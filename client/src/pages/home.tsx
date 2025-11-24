@@ -2,12 +2,30 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Wrench, Zap, Droplets, Hammer, HardHat, Truck, 
-  Star, MapPin, Phone, Clock, CheckCircle, 
-  ArrowRight, ChevronLeft, ChevronRight,
-  Shield, Award, Users, Calendar, Building2, Menu,
-  Sparkles, Glasses, Settings
+import {
+  Wrench,
+  Zap,
+  Droplets,
+  Hammer,
+  HardHat,
+  Truck,
+  Star,
+  MapPin,
+  Phone,
+  Clock,
+  CheckCircle,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Shield,
+  Award,
+  Users,
+  Calendar,
+  Building2,
+  Menu,
+  Sparkles,
+  Glasses,
+  Settings,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useHeroSlides } from "@/hooks/useHeroSlides";
@@ -15,38 +33,86 @@ import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 
 const serviceTypes = [
-  { icon: Wrench, name: "General Contractors", color: "text-blue-600 dark:text-blue-400", path: "/services/general-contractors" },
-  { icon: Zap, name: "Electricians", color: "text-yellow-600 dark:text-yellow-400", path: "/services/electricians" },
-  { icon: Droplets, name: "Plumbers", color: "text-blue-500 dark:text-blue-300", path: "/services/plumbers" },
-  { icon: HardHat, name: "Construction", color: "text-orange-600 dark:text-orange-400", path: "/services/construction" },
-  { icon: Hammer, name: "Handyman Services", color: "text-red-600 dark:text-red-400", path: "/services/handyman" },
-  { icon: Truck, name: "HVAC Technicians", color: "text-green-600 dark:text-green-400", path: "/services/hvac" },
-  { icon: Sparkles, name: "Pressure Washers", color: "text-cyan-600 dark:text-cyan-400", path: "/services/pressure-washers" },
-  { icon: Glasses, name: "Window Washers", color: "text-sky-600 dark:text-sky-400", path: "/services/window-washers" },
-  { icon: Settings, name: "Service Techs", color: "text-purple-600 dark:text-purple-400", path: "/services/service-techs" }
+  {
+    icon: Wrench,
+    name: "General Contractors",
+    color: "text-blue-600 dark:text-blue-400",
+    path: "/services/general-contractors",
+  },
+  {
+    icon: Zap,
+    name: "Electricians",
+    color: "text-yellow-600 dark:text-yellow-400",
+    path: "/services/electricians",
+  },
+  {
+    icon: Droplets,
+    name: "Plumbers",
+    color: "text-blue-500 dark:text-blue-300",
+    path: "/services/plumbers",
+  },
+  {
+    icon: HardHat,
+    name: "Construction",
+    color: "text-orange-600 dark:text-orange-400",
+    path: "/services/construction",
+  },
+  {
+    icon: Hammer,
+    name: "Handyman Services",
+    color: "text-red-600 dark:text-red-400",
+    path: "/services/handyman",
+  },
+  {
+    icon: Truck,
+    name: "HVAC Technicians",
+    color: "text-green-600 dark:text-green-400",
+    path: "/services/hvac",
+  },
+  {
+    icon: Sparkles,
+    name: "Pressure Washers",
+    color: "text-cyan-600 dark:text-cyan-400",
+    path: "/services/pressure-washers",
+  },
+  {
+    icon: Glasses,
+    name: "Window Washers",
+    color: "text-sky-600 dark:text-sky-400",
+    path: "/services/window-washers",
+  },
+  {
+    icon: Settings,
+    name: "Service Techs",
+    color: "text-purple-600 dark:text-purple-400",
+    path: "/services/service-techs",
+  },
 ];
 
 const features = [
   {
     icon: Calendar,
     title: "Job Scheduling",
-    description: "Drag-and-drop scheduling with real-time updates and crew assignments"
+    description:
+      "Drag-and-drop scheduling with real-time updates and crew assignments",
   },
   {
     icon: MapPin,
     title: "Route Optimization",
-    description: "Smart routing to minimize travel time and fuel costs between job sites"
+    description:
+      "Smart routing to minimize travel time and fuel costs between job sites",
   },
   {
     icon: Users,
-    title: "Team Management", 
-    description: "Track employee performance, hours, and location with mobile apps"
+    title: "Team Management",
+    description:
+      "Track employee performance, hours, and location with mobile apps",
   },
   {
     icon: CheckCircle,
     title: "Quality Control",
-    description: "Digital forms, photo documentation, and customer sign-offs"
-  }
+    description: "Digital forms, photo documentation, and customer sign-offs",
+  },
 ];
 
 const testimonials = [
@@ -54,26 +120,32 @@ const testimonials = [
     name: "Mike Rodriguez",
     company: "Rodriguez Electrical",
     role: "Owner",
-    content: "Pro Field Manager transformed our business. We're now 40% more efficient with job scheduling and our cash flow improved dramatically.",
+    content:
+      "Pro Field Manager transformed our business. We're now 40% more efficient with job scheduling and our cash flow improved dramatically.",
     rating: 5,
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80"
+    avatar:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
   },
   {
-    name: "Sarah Johnson", 
+    name: "Sarah Johnson",
     company: "Johnson Plumbing Co.",
     role: "Operations Manager",
-    content: "The GPS tracking and mobile apps are game-changers. Our customers love the real-time updates and professional invoices.",
+    content:
+      "The GPS tracking and mobile apps are game-changers. Our customers love the real-time updates and professional invoices.",
     rating: 5,
-    avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b169?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80"
+    avatar:
+      "https://images.unsplash.com/photo-1494790108755-2616b612b169?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
   },
   {
     name: "Tom Wilson",
     company: "Wilson Construction",
-    role: "Project Manager", 
-    content: "We've saved 15+ hours per week on administrative tasks. The automated invoicing alone pays for the software.",
+    role: "Project Manager",
+    content:
+      "We've saved 15+ hours per week on administrative tasks. The automated invoicing alone pays for the software.",
     rating: 5,
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80"
-  }
+    avatar:
+      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+  },
 ];
 
 export default function HomePage() {
@@ -85,15 +157,15 @@ export default function HomePage() {
 
   // Detect if accessing via custom domain
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsCustomDomain(window.location.hostname === 'profieldmanager.com');
+    if (typeof window !== "undefined") {
+      setIsCustomDomain(window.location.hostname === "profieldmanager.com");
     }
   }, []);
 
   // Auto-advance slides
   useEffect(() => {
     if (!isAutoPlaying || !heroSlides.length) return;
-    
+
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
     }, 5000);
@@ -104,25 +176,25 @@ export default function HomePage() {
   // Close mobile menu when clicking outside or on escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (mobileMenuOpen && !(event.target as Element)?.closest('header')) {
+      if (mobileMenuOpen && !(event.target as Element)?.closest("header")) {
         setMobileMenuOpen(false);
       }
     };
 
     const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         setMobileMenuOpen(false);
       }
     };
 
     if (mobileMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscapeKey);
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleEscapeKey);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscapeKey);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscapeKey);
     };
   }, [mobileMenuOpen]);
 
@@ -132,7 +204,9 @@ export default function HomePage() {
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+    setCurrentSlide(
+      (prev) => (prev - 1 + heroSlides.length) % heroSlides.length,
+    );
     setIsAutoPlaying(false);
   };
 
@@ -148,13 +222,33 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Building2 className="h-8 w-8 text-white" />
-            <span className="text-xl font-bold text-white">Pro Field Manager</span>
+            <span className="text-xl font-bold text-white">
+              Pro Field Manager
+            </span>
           </div>
           <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-white hover:text-blue-200 transition-colors">Home</Link>
-            <Link href="/features" className="text-white hover:text-blue-200 transition-colors">Features</Link>
-            <Link href="/features#pricing" className="text-white hover:text-blue-200 transition-colors">Pricing</Link>
-            <Button variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900">
+            <Link
+              href="/"
+              className="text-white hover:text-blue-200 transition-colors"
+            >
+              Home
+            </Link>
+            <Link
+              href="/features"
+              className="text-white hover:text-blue-200 transition-colors"
+            >
+              Features
+            </Link>
+            <Link
+              href="/features#pricing"
+              className="text-white hover:text-blue-200 transition-colors"
+            >
+              Pricing
+            </Link>
+            <Button
+              variant="outline"
+              className="border-white text-black hover:bg-white hover:text-slate-900"
+            >
               <Link href="/login">Login</Link>
             </Button>
             <Button className="bg-blue-600 hover:bg-blue-700 text-white">
@@ -162,36 +256,36 @@ export default function HomePage() {
             </Button>
           </nav>
           <div className="md:hidden">
-            <Button 
-              variant="ghost" 
-              className="text-white" 
+            <Button
+              variant="ghost"
+              className="text-white"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               <Menu className="h-6 w-6" />
             </Button>
           </div>
         </div>
-        
+
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 z-40">
             <div className="container mx-auto px-4 py-6 space-y-4">
-              <Link 
-                href="/" 
+              <Link
+                href="/"
                 className="block text-slate-900 hover:text-blue-600 transition-colors text-lg font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Home
               </Link>
-              <Link 
-                href="/features" 
+              <Link
+                href="/features"
                 className="block text-slate-900 hover:text-blue-600 transition-colors text-lg font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Features
               </Link>
-              <Link 
-                href="/features#pricing" 
+              <Link
+                href="/features#pricing"
                 className="block text-slate-900 hover:text-blue-600 transition-colors text-lg font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -199,11 +293,17 @@ export default function HomePage() {
               </Link>
               <div className="pt-4 border-t border-gray-200 space-y-3">
                 <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                  <Button variant="outline" className="w-full border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white">
+                  <Button
+                    variant="outline"
+                    className="w-full border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"
+                  >
                     Login
                   </Button>
                 </Link>
-                <Link href="/features#signup" onClick={() => setMobileMenuOpen(false)}>
+                <Link
+                  href="/features#signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                     Get Started
                   </Button>
@@ -219,16 +319,26 @@ export default function HomePage() {
         <div className="relative z-30 bg-blue-600 text-white py-3 px-4">
           <div className="container mx-auto text-center">
             <p className="text-sm md:text-base">
-              <strong>Welcome to Pro Field Manager!</strong> You're accessing via profieldmanager.com. 
-              <Link href="/login" className="ml-2 underline font-semibold hover:text-blue-200">
+              <strong>Welcome to Pro Field Manager!</strong> You're accessing
+              via profieldmanager.com.
+              <Link
+                href="/login"
+                className="ml-2 underline font-semibold hover:text-blue-200"
+              >
                 Click here to log in
-              </Link>
-              {" "}or{" "}
-              <Link href="/features#signup" className="underline font-semibold hover:text-blue-200">
+              </Link>{" "}
+              or{" "}
+              <Link
+                href="/features#signup"
+                className="underline font-semibold hover:text-blue-200"
+              >
                 start your free trial
               </Link>
               {" • "}
-              <Link href="/auth-debug" className="underline text-blue-100 hover:text-white">
+              <Link
+                href="/auth-debug"
+                className="underline text-blue-100 hover:text-white"
+              >
                 Need help? Check connection status
               </Link>
             </p>
@@ -239,18 +349,18 @@ export default function HomePage() {
       {/* Hero Slider Section */}
       <section className="relative h-screen overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 to-slate-900/40 z-10" />
-        
+
         {/* Background Images */}
         {heroSlides.map((slide, index) => (
           <div
             key={slide.id}
             className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === currentSlide ? 'opacity-100' : 'opacity-0'
+              index === currentSlide ? "opacity-100" : "opacity-0"
             }`}
             style={{
               backgroundImage: `url(${slide.imageUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center'
+              backgroundSize: "cover",
+              backgroundPosition: "center",
             }}
           />
         ))}
@@ -263,15 +373,18 @@ export default function HomePage() {
                 <div
                   key={slide.id}
                   className={`transition-all duration-700 ${
-                    index === currentSlide 
-                      ? 'opacity-100 translate-x-0' 
-                      : 'opacity-0 translate-x-4'
+                    index === currentSlide
+                      ? "opacity-100 translate-x-0"
+                      : "opacity-0 translate-x-4"
                   }`}
-                  style={{ display: index === currentSlide ? 'block' : 'none' }}
+                  style={{ display: index === currentSlide ? "block" : "none" }}
                 >
                   {slide.subtitle && (
-                    <Badge variant="secondary" className="mb-4 bg-blue-600 hover:bg-blue-700 text-white">
-                      {slide.subtitle.split(' ').slice(0, 3).join(' ')}
+                    <Badge
+                      variant="secondary"
+                      className="mb-4 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {slide.subtitle.split(" ").slice(0, 3).join(" ")}
                     </Badge>
                   )}
                   <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
@@ -284,13 +397,23 @@ export default function HomePage() {
                     {slide.description}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4">
-                    <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg">
-                      <Link href={slide.buttonLink || "/features#signup"} className="flex items-center">
+                    <Button
+                      size="lg"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
+                    >
+                      <Link
+                        href={slide.buttonLink || "/features#signup"}
+                        className="flex items-center"
+                      >
                         {slide.buttonText || "Get Started"}
                         <ArrowRight className="ml-2 h-5 w-5" />
                       </Link>
                     </Button>
-                    <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900 px-8 py-4 text-lg">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="border-white text-black hover:bg-white hover:text-slate-900 px-8 py-4 text-lg"
+                    >
                       <Link href="/features">View All Features</Link>
                     </Button>
                   </div>
@@ -322,8 +445,8 @@ export default function HomePage() {
               onClick={() => goToSlide(index)}
               className={`w-3 h-3 rounded-full transition-all ${
                 index === currentSlide
-                  ? 'bg-white scale-125'
-                  : 'bg-white/50 hover:bg-white/75'
+                  ? "bg-white scale-125"
+                  : "bg-white/50 hover:bg-white/75"
               }`}
             />
           ))}
@@ -338,8 +461,8 @@ export default function HomePage() {
               Built for Service Professionals
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
-              Whether you're running a one-person operation or managing multiple crews, 
-              Pro Field Manager scales with your business needs.
+              Whether you're running a one-person operation or managing multiple
+              crews, Pro Field Manager scales with your business needs.
             </p>
           </div>
 
@@ -351,10 +474,12 @@ export default function HomePage() {
                   key={index}
                   href={service.path}
                   className="text-center group hover:scale-105 transition-transform duration-200"
-                  data-testid={`link-service-${service.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  data-testid={`link-service-${service.name.toLowerCase().replace(/\s+/g, "-")}`}
                 >
                   <div className="bg-white dark:bg-slate-700 rounded-2xl p-6 shadow-lg group-hover:shadow-xl transition-shadow cursor-pointer">
-                    <Icon className={`h-12 w-12 mx-auto mb-4 ${service.color}`} />
+                    <Icon
+                      className={`h-12 w-12 mx-auto mb-4 ${service.color}`}
+                    />
                     <h3 className="font-semibold text-slate-900 dark:text-white text-sm leading-tight">
                       {service.name}
                     </h3>
@@ -374,8 +499,9 @@ export default function HomePage() {
               Everything You Need to Run Your Field Business
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
-              Streamline operations, increase productivity, and deliver exceptional service 
-              with our comprehensive field service management platform.
+              Streamline operations, increase productivity, and deliver
+              exceptional service with our comprehensive field service
+              management platform.
             </p>
           </div>
 
@@ -383,7 +509,10 @@ export default function HomePage() {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-200">
+                <Card
+                  key={index}
+                  className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-200"
+                >
                   <CardContent className="p-8 text-center">
                     <div className="bg-blue-100 dark:bg-blue-900 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
                       <Icon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
@@ -434,7 +563,8 @@ export default function HomePage() {
               Trusted by Service Professionals
             </h2>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
-              See how businesses like yours are transforming their operations with Pro Field Manager
+              See how businesses like yours are transforming their operations
+              with Pro Field Manager
             </p>
           </div>
 
@@ -444,7 +574,10 @@ export default function HomePage() {
                 <CardContent className="p-8">
                   <div className="flex mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                      <Star
+                        key={i}
+                        className="h-5 w-5 text-yellow-400 fill-current"
+                      />
                     ))}
                   </div>
                   <p className="text-slate-700 dark:text-slate-300 mb-6 leading-relaxed">
@@ -479,17 +612,27 @@ export default function HomePage() {
             Ready to Transform Your Field Business?
           </h2>
           <p className="text-xl text-slate-300 mb-8 max-w-3xl mx-auto">
-            Join thousands of service professionals who trust Pro Field Manager to run their operations. 
-            Start your free trial today - no credit card required.
+            Join thousands of service professionals who trust Pro Field Manager
+            to run their operations. Start your free trial today - no credit
+            card required.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 text-lg" asChild>
+            <Button
+              size="lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 text-lg"
+              asChild
+            >
               <Link href="/demo-signup">
                 Start Free 30-Day Trial
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900 px-12 py-4 text-lg" asChild>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-white text-white hover:bg-white hover:text-slate-900 px-12 py-4 text-lg"
+              asChild
+            >
               <Link href="/demo-signup">
                 <Phone className="mr-2 h-5 w-5" />
                 Schedule Demo
@@ -521,7 +664,8 @@ export default function HomePage() {
               Solutions for Every Service Professional
             </h2>
             <p className="text-slate-400 text-lg">
-              Learn more about how Pro Field Manager helps your specific industry
+              Learn more about how Pro Field Manager helps your specific
+              industry
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 max-w-6xl mx-auto">
@@ -532,9 +676,11 @@ export default function HomePage() {
                   key={index}
                   href={service.path}
                   className="flex flex-col items-center p-4 rounded-lg bg-slate-700/50 hover:bg-slate-700 transition-colors group"
-                  data-testid={`footer-link-${service.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  data-testid={`footer-link-${service.name.toLowerCase().replace(/\s+/g, "-")}`}
                 >
-                  <Icon className={`h-8 w-8 mb-3 ${service.color} group-hover:scale-110 transition-transform`} />
+                  <Icon
+                    className={`h-8 w-8 mb-3 ${service.color} group-hover:scale-110 transition-transform`}
+                  />
                   <span className="text-white text-sm font-medium text-center leading-tight">
                     {service.name}
                   </span>

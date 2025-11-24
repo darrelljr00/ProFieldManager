@@ -7,20 +7,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Upload, 
-  Download, 
-  Share2, 
-  FolderPlus, 
-  FileText, 
-  Image, 
-  Video, 
-  File, 
+import {
+  Upload,
+  Download,
+  Share2,
+  FolderPlus,
+  FileText,
+  Image,
+  Video,
+  File,
   MoreVertical,
   Eye,
   Edit,
@@ -34,7 +51,7 @@ import {
   Filter,
   X,
   Undo,
-  Shield
+  Shield,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import SignatureDialog from "@/components/signature-dialog";
@@ -44,7 +61,7 @@ import { FolderPermissionsDialog } from "@/components/permissions/FolderPermissi
 import { ThumbnailImage } from "@/components/ThumbnailImage";
 
 interface FileItem {
-  id: number;
+  /* same as before */ id: number;
   fileName: string;
   originalName: string;
   filePath: string;
@@ -66,7 +83,6 @@ interface FileItem {
     id: number;
     name: string;
   };
-  // Digital signature fields
   signatureStatus?: string;
   signatureData?: string;
   signedBy?: string;
@@ -76,7 +92,7 @@ interface FileItem {
 }
 
 interface Folder {
-  id: number;
+  /* same as before */ id: number;
   name: string;
   description?: string;
   parentFolderId?: number;
@@ -84,7 +100,9 @@ interface Folder {
 }
 
 export default function FileManager() {
-  const [selectedFolderId, setSelectedFolderId] = useState<number | undefined>();
+  const [selectedFolderId, setSelectedFolderId] = useState<
+    number | undefined
+  >();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -105,8 +123,18 @@ export default function FileManager() {
   const [newFileName, setNewFileName] = useState("");
   const [newFileContent, setNewFileContent] = useState("");
   const [editingFileContent, setEditingFileContent] = useState("");
-  const [filePermissionsDialogOpen, setFilePermissionsDialogOpen] = useState(false);
-  const [folderPermissionsDialogOpen, setFolderPermissionsDialogOpen] = useState(false);
+  const [filePermissionsDialogOpen, setFilePermissionsDialogOpen] =
+    useState(false);
+  const [folderPermissionsDialogOpen, setFolderPermissionsDialogOpen] =
+    useState(false);
+
+  // === NEW: image viewer states ===
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [imageViewerSrc, setImageViewerSrc] = useState<string | null>(null);
+  // === NEW: share link state ===
+  const [generatedShareLink, setGeneratedShareLink] = useState<string | null>(
+    null,
+  );
 
   // Search and Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -117,8 +145,13 @@ export default function FileManager() {
 
   // Drag and drop states
   const [draggedFile, setDraggedFile] = useState<FileItem | null>(null);
-  const [draggedOverFolder, setDraggedOverFolder] = useState<number | null>(null);
-  const [lastMove, setLastMove] = useState<{ fileId: number; previousFolderId: number | null } | null>(null);
+  const [draggedOverFolder, setDraggedOverFolder] = useState<number | null>(
+    null,
+  );
+  const [lastMove, setLastMove] = useState<{
+    fileId: number;
+    previousFolderId: number | null;
+  } | null>(null);
   const [showUndoButton, setShowUndoButton] = useState(false);
 
   const { toast } = useToast();
@@ -127,45 +160,88 @@ export default function FileManager() {
   // Fetch files
   const { data: files, isLoading: filesLoading } = useQuery({
     queryKey: ["/api/files", selectedFolderId],
-    queryFn: () => apiRequest("GET", `/api/files${selectedFolderId ? `?folderId=${selectedFolderId}` : ""}`).then(res => res.json()),
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/files${selectedFolderId ? `?folderId=${selectedFolderId}` : ""}`,
+      ).then((res) => res.json()),
   });
 
   // Fetch folders
   const { data: folders } = useQuery({
     queryKey: ["/api/folders", selectedFolderId],
-    queryFn: () => apiRequest("GET", `/api/folders${selectedFolderId ? `?parentId=${selectedFolderId}` : ""}`).then(res => res.json()),
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/folders${selectedFolderId ? `?parentId=${selectedFolderId}` : ""}`,
+      ).then((res) => res.json()),
   });
 
   // Filter files based on search criteria
   const filteredFiles = (files || []).filter((file: FileItem) => {
-    const matchesSearch = searchTerm === "" || 
+    const matchesSearch =
+      searchTerm === "" ||
       file.originalName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       file.fileName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       file.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (file.tags && Array.isArray(file.tags) ? file.tags.join(' ').toLowerCase().includes(searchTerm.toLowerCase()) : false) ||
-      file.uploadedByUser?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      file.uploadedByUser?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      file.uploadedByUser?.username?.toLowerCase().includes(searchTerm.toLowerCase());
+      (file.tags && Array.isArray(file.tags)
+        ? file.tags.join(" ").toLowerCase().includes(searchTerm.toLowerCase())
+        : false) ||
+      file.uploadedByUser?.firstName
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      file.uploadedByUser?.lastName
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      file.uploadedByUser?.username
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
     // File type filtering
     let matchesFileType = true;
     if (fileTypeFilter !== "all") {
-      const fileExtension = file.fileName?.split('.').pop()?.toLowerCase();
+      const fileExtension = file.fileName?.split(".").pop()?.toLowerCase();
       switch (fileTypeFilter) {
         case "image":
-          matchesFileType = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(fileExtension || '');
+          matchesFileType = [
+            "jpg",
+            "jpeg",
+            "png",
+            "gif",
+            "bmp",
+            "svg",
+            "webp",
+          ].includes(fileExtension || "");
           break;
         case "document":
-          matchesFileType = ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt'].includes(fileExtension || '');
+          matchesFileType = [
+            "pdf",
+            "doc",
+            "docx",
+            "txt",
+            "rtf",
+            "odt",
+          ].includes(fileExtension || "");
           break;
         case "spreadsheet":
-          matchesFileType = ['xls', 'xlsx', 'csv', 'ods'].includes(fileExtension || '');
+          matchesFileType = ["xls", "xlsx", "csv", "ods"].includes(
+            fileExtension || "",
+          );
           break;
         case "video":
-          matchesFileType = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'].includes(fileExtension || '');
+          matchesFileType = [
+            "mp4",
+            "avi",
+            "mov",
+            "wmv",
+            "flv",
+            "webm",
+          ].includes(fileExtension || "");
           break;
         case "audio":
-          matchesFileType = ['mp3', 'wav', 'flac', 'aac', 'ogg'].includes(fileExtension || '');
+          matchesFileType = ["mp3", "wav", "flac", "aac", "ogg"].includes(
+            fileExtension || "",
+          );
           break;
         default:
           matchesFileType = true;
@@ -196,7 +272,7 @@ export default function FileManager() {
     if (dateFilter !== "all" && file.createdAt) {
       const fileDate = new Date(file.createdAt);
       const now = new Date();
-      
+
       switch (dateFilter) {
         case "today":
           matchesDate = fileDate.toDateString() === now.toDateString();
@@ -234,7 +310,7 @@ export default function FileManager() {
     searchTerm !== "",
     fileTypeFilter !== "all",
     sizeFilter !== "all",
-    dateFilter !== "all"
+    dateFilter !== "all",
   ].filter(Boolean).length;
 
   // Handle folder creation
@@ -258,7 +334,7 @@ export default function FileManager() {
     setSelectedFolderId(undefined);
   };
 
-  // Delete folder mutation
+  // Delete folder mutation (unchanged)
   const deleteFolderMutation = useMutation({
     mutationFn: async (folderId: number) => {
       return await apiRequest("DELETE", `/api/folders/${folderId}`);
@@ -278,13 +354,6 @@ export default function FileManager() {
       });
     },
   });
-
-  // Handle folder deletion
-  const handleDeleteFolder = (folderId: number, folderName: string) => {
-    if (window.confirm(`Are you sure you want to delete the folder "${folderName}"? This action cannot be undone.`)) {
-      deleteFolderMutation.mutate(folderId);
-    }
-  };
 
   // Handle file upload
   const handleUpload = () => {
@@ -315,7 +384,9 @@ export default function FileManager() {
         description: "Your file has been uploaded to the file manager.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/files"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/files", selectedFolderId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/files", selectedFolderId],
+      });
       setUploadDialogOpen(false);
       setUploadFile(null);
       setFileDescription("");
@@ -332,7 +403,11 @@ export default function FileManager() {
 
   // Create folder mutation
   const createFolderMutation = useMutation({
-    mutationFn: async (data: { name: string; description?: string; parentFolderId?: number }) => {
+    mutationFn: async (data: {
+      name: string;
+      description?: string;
+      parentFolderId?: number;
+    }) => {
       return await apiRequest("POST", "/api/folders", data);
     },
     onSuccess: () => {
@@ -354,20 +429,46 @@ export default function FileManager() {
     },
   });
 
-  // Share file mutation
+  // === UPDATED: share file mutation returns JSON and sets generatedShareLink ===
   const shareFileMutation = useMutation({
-    mutationFn: async (data: { fileId: number; sharedWith?: string; permissions: string; expiresAt?: string }) => {
-      return await apiRequest("POST", `/api/files/${data.fileId}/share`, data);
+    mutationFn: async (data: {
+      fileId: number;
+      sharedWith?: string;
+      permissions: string;
+      expiresAt?: string;
+    }) => {
+      // ensure server returns JSON { shareUrl: "https://..." } or similar
+      const res = await apiRequest(
+        "POST",
+        `/api/files/${data.fileId}/share`,
+        data,
+      );
+      return await res.json();
     },
     onSuccess: (response) => {
-      toast({
-        title: "File shared successfully",
-        description: "Share link has been created.",
-      });
-      setShareDialogOpen(false);
+      // Expecting the API to return the generated share URL in response.shareUrl or response.link
+      const shareUrl =
+        response?.shareUrl || response?.link || response?.url || null;
+      if (shareUrl) {
+        setGeneratedShareLink(shareUrl);
+        toast({
+          title: "File shared successfully",
+          description: "Share link has been created.",
+        });
+      } else {
+        // Fallback behaviour if API didn't return link
+        toast({
+          title: "File shared",
+          description: "Share link created (no direct link returned by API).",
+        });
+      }
+
+      setShareDialogOpen(true); // keep dialog open to show the link
+      // reset form fields except the generated link
       setShareEmail("");
       setSharePermissions("view");
       setShareExpiry("");
+      queryClient.invalidateQueries({ queryKey: ["/api/files"] });
     },
     onError: (error: any) => {
       toast({
@@ -377,8 +478,6 @@ export default function FileManager() {
       });
     },
   });
-
-
 
   // Delete file mutation
   const deleteFileMutation = useMutation({
@@ -404,7 +503,11 @@ export default function FileManager() {
   // Move file to folder mutation
   const moveFileMutation = useMutation({
     mutationFn: async (data: { fileId: number; folderId: number | null }) => {
-      const response = await apiRequest("POST", `/api/files/${data.fileId}/move`, { folderId: data.folderId });
+      const response = await apiRequest(
+        "POST",
+        `/api/files/${data.fileId}/move`,
+        { folderId: data.folderId },
+      );
       return response.json();
     },
     onSuccess: (data) => {
@@ -412,7 +515,10 @@ export default function FileManager() {
         title: "File moved successfully",
         description: "File has been moved to the folder.",
       });
-      setLastMove({ fileId: data.file.id, previousFolderId: data.previousFolderId });
+      setLastMove({
+        fileId: data.file.id,
+        previousFolderId: data.previousFolderId,
+      });
       setShowUndoButton(true);
       queryClient.invalidateQueries({ queryKey: ["/api/files"] });
       // Hide undo button after 10 seconds
@@ -431,7 +537,11 @@ export default function FileManager() {
   const undoMoveMutation = useMutation({
     mutationFn: async () => {
       if (!lastMove) throw new Error("No move to undo");
-      const response = await apiRequest("POST", `/api/files/${lastMove.fileId}/undo-move`, { previousFolderId: lastMove.previousFolderId });
+      const response = await apiRequest(
+        "POST",
+        `/api/files/${lastMove.fileId}/undo-move`,
+        { previousFolderId: lastMove.previousFolderId },
+      );
       return response.json();
     },
     onSuccess: () => {
@@ -454,8 +564,14 @@ export default function FileManager() {
 
   // Create text file mutation
   const createTextFileMutation = useMutation({
-    mutationFn: async (data: { name: string; content: string; folderId?: number }) => {
-      return await apiRequest("POST", "/api/files/create-text", data).then(res => res.json());
+    mutationFn: async (data: {
+      name: string;
+      content: string;
+      folderId?: number;
+    }) => {
+      return await apiRequest("POST", "/api/files/create-text", data).then(
+        (res) => res.json(),
+      );
     },
     onSuccess: () => {
       toast({
@@ -463,7 +579,9 @@ export default function FileManager() {
         description: "New text file has been created.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/files"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/files", selectedFolderId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/files", selectedFolderId],
+      });
       setCreateFileDialogOpen(false);
       setNewFileName("");
       setNewFileContent("");
@@ -480,7 +598,9 @@ export default function FileManager() {
   // Update file content mutation
   const updateFileContentMutation = useMutation({
     mutationFn: async (data: { fileId: number; content: string }) => {
-      return await apiRequest("PUT", `/api/files/${data.fileId}/content`, { content: data.content }).then(res => res.json());
+      return await apiRequest("PUT", `/api/files/${data.fileId}/content`, {
+        content: data.content,
+      }).then((res) => res.json());
     },
     onSuccess: () => {
       toast({
@@ -504,7 +624,10 @@ export default function FileManager() {
   // Convert to PDF mutation
   const convertToPdfMutation = useMutation({
     mutationFn: async (fileId: number) => {
-      return await apiRequest("POST", `/api/files/${fileId}/convert-to-pdf`).then(res => res.json());
+      return await apiRequest(
+        "POST",
+        `/api/files/${fileId}/convert-to-pdf`,
+      ).then((res) => res.json());
     },
     onSuccess: (response) => {
       toast({
@@ -512,7 +635,9 @@ export default function FileManager() {
         description: "PDF version has been created and added to your files.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/files"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/files", selectedFolderId] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/files", selectedFolderId],
+      });
     },
     onError: (error: any) => {
       toast({
@@ -526,19 +651,46 @@ export default function FileManager() {
   // Fetch file content query
   const { data: fileContent, refetch: refetchFileContent } = useQuery({
     queryKey: ["/api/files", selectedFile?.id, "content"],
-    queryFn: () => 
-      selectedFile ? 
-        apiRequest("GET", `/api/files/${selectedFile.id}/content`).then(res => res.json()) : 
-        null,
+    queryFn: () =>
+      selectedFile
+        ? apiRequest("GET", `/api/files/${selectedFile.id}/content`).then(
+            (res) => res.json(),
+          )
+        : null,
     enabled: !!selectedFile && editFileDialogOpen,
   });
 
+  // === NEW helper: open image viewer ===
+  const openImageViewer = (file: FileItem) => {
+    // Prefer signedDocumentUrl, then filePath, then fallback to a download endpoint that hopefully serves inline
+    const src =
+      file.signedDocumentUrl ||
+      file.filePath ||
+      `/api/files/${file.id}/download?inline=1`;
+    setImageViewerSrc(src);
+    setImageViewerOpen(true);
+  };
 
-
-
+  // === NEW helper: copy to clipboard ===
+  const copyToClipboard = async (text: string | null) => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Copied", description: "Link copied to clipboard." });
+    } catch (err) {
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy link.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleShareFile = () => {
     if (!selectedFile) return;
+
+    // clear previous generated link before creating new one
+    setGeneratedShareLink(null);
 
     shareFileMutation.mutate({
       fileId: selectedFile.id,
@@ -550,16 +702,7 @@ export default function FileManager() {
 
   const handleDocuSign = () => {
     if (!selectedFile) return;
-
-    // TODO: Implement DocuSign functionality
-    console.log('DocuSign functionality needs to be implemented');
-    
-    // docusignMutation.mutate({
-    //   fileId: selectedFile.id,
-    //   recipientEmail: docusignEmail,
-    //   recipientName: docusignName,
-    //   subject: docusignSubject || undefined,
-    // });
+    console.log("DocuSign functionality needs to be implemented");
   };
 
   const handleCreateTextFile = () => {
@@ -575,7 +718,6 @@ export default function FileManager() {
   const handleEditFile = async (file: FileItem) => {
     setSelectedFile(file);
     setEditFileDialogOpen(true);
-    // Fetch file content when dialog opens
     const response = await apiRequest("GET", `/api/files/${file.id}/content`);
     const data = await response.json();
     setEditingFileContent(data.content || "");
@@ -596,7 +738,10 @@ export default function FileManager() {
 
   const handleDownload = async (file: FileItem) => {
     try {
-      const response = await apiRequest("GET", `/api/files/${file.id}/download`);
+      const response = await apiRequest(
+        "GET",
+        `/api/files/${file.id}/download`,
+      );
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -636,34 +781,57 @@ export default function FileManager() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-
-
   const getSignatureStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending Signature</Badge>;
-      case 'signed':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Signed</Badge>;
-      case 'declined':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Declined</Badge>;
+      case "pending":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-yellow-50 text-yellow-700 border-yellow-200"
+          >
+            Pending Signature
+          </Badge>
+        );
+      case "signed":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-green-50 text-green-700 border-green-200"
+          >
+            Signed
+          </Badge>
+        );
+      case "declined":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-red-50 text-red-700 border-red-200"
+          >
+            Declined
+          </Badge>
+        );
       default:
         return null;
     }
   };
 
   const isDocumentSignable = (mimeType: string) => {
-    return ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(mimeType);
+    return [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ].includes(mimeType);
   };
 
-  // Drag and drop handlers
+  // Drag and drop handlers (unchanged)
   const handleDragStart = (e: React.DragEvent, file: FileItem) => {
     setDraggedFile(file);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.dataTransfer.dropEffect = "move";
   };
 
   const handleDragEnter = (e: React.DragEvent, folderId: number) => {
@@ -679,11 +847,11 @@ export default function FileManager() {
   const handleDrop = (e: React.DragEvent, folderId: number | null) => {
     e.preventDefault();
     setDraggedOverFolder(null);
-    
+
     if (draggedFile) {
       moveFileMutation.mutate({
         fileId: draggedFile.id,
-        folderId: folderId
+        folderId: folderId,
       });
       setDraggedFile(null);
     }
@@ -699,7 +867,9 @@ export default function FileManager() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">File Manager</h1>
-            <p className="text-gray-600">Upload, organize, and share your documents</p>
+            <p className="text-gray-600">
+              Upload, organize, and share your documents
+            </p>
           </div>
           <div className="flex gap-3">
             <Dialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
@@ -729,7 +899,9 @@ export default function FileManager() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="folder-description">Description (Optional)</Label>
+                    <Label htmlFor="folder-description">
+                      Description (Optional)
+                    </Label>
                     <Textarea
                       id="folder-description"
                       value={folderDescription}
@@ -737,18 +909,23 @@ export default function FileManager() {
                       placeholder="Enter folder description"
                     />
                   </div>
-                  <Button 
-                    onClick={handleCreateFolder} 
+                  <Button
+                    onClick={handleCreateFolder}
                     disabled={!folderName || createFolderMutation.isPending}
                     className="w-full"
                   >
-                    {createFolderMutation.isPending ? "Creating..." : "Create Folder"}
+                    {createFolderMutation.isPending
+                      ? "Creating..."
+                      : "Create Folder"}
                   </Button>
                 </div>
               </DialogContent>
             </Dialog>
 
-            <Dialog open={createFileDialogOpen} onOpenChange={setCreateFileDialogOpen}>
+            <Dialog
+              open={createFileDialogOpen}
+              onOpenChange={setCreateFileDialogOpen}
+            >
               <DialogTrigger asChild>
                 <Button variant="outline">
                   <FileText className="mr-2 h-4 w-4" />
@@ -779,12 +956,18 @@ export default function FileManager() {
                       rows={10}
                     />
                   </div>
-                  <Button 
-                    onClick={handleCreateTextFile} 
-                    disabled={!newFileName || !newFileContent || createTextFileMutation.isPending}
+                  <Button
+                    onClick={handleCreateTextFile}
+                    disabled={
+                      !newFileName ||
+                      !newFileContent ||
+                      createTextFileMutation.isPending
+                    }
                     className="w-full"
                   >
-                    {createTextFileMutation.isPending ? "Creating..." : "Create File"}
+                    {createTextFileMutation.isPending
+                      ? "Creating..."
+                      : "Create File"}
                   </Button>
                 </div>
               </DialogContent>
@@ -812,11 +995,15 @@ export default function FileManager() {
                     <Input
                       id="file-upload"
                       type="file"
-                      onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                      onChange={(e) =>
+                        setUploadFile(e.target.files?.[0] || null)
+                      }
                     />
                   </div>
                   <div>
-                    <Label htmlFor="file-description">Description (Optional)</Label>
+                    <Label htmlFor="file-description">
+                      Description (Optional)
+                    </Label>
                     <Textarea
                       id="file-description"
                       value={fileDescription}
@@ -833,8 +1020,8 @@ export default function FileManager() {
                       placeholder="Enter tags separated by commas"
                     />
                   </div>
-                  <Button 
-                    onClick={handleUpload} 
+                  <Button
+                    onClick={handleUpload}
                     disabled={!uploadFile || uploadMutation.isPending}
                     className="w-full"
                   >
@@ -852,9 +1039,9 @@ export default function FileManager() {
             <div className="flex items-center text-blue-700">
               <span className="text-sm">File moved successfully</span>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleUndoMove}
               disabled={undoMoveMutation.isPending}
               className="text-blue-700 border-blue-300 hover:bg-blue-100"
@@ -888,7 +1075,10 @@ export default function FileManager() {
                   <Filter className="h-4 w-4" />
                   Filters
                   {activeFiltersCount > 0 && (
-                    <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
+                    <Badge
+                      variant="secondary"
+                      className="ml-1 px-1.5 py-0.5 text-xs"
+                    >
                       {activeFiltersCount}
                     </Badge>
                   )}
@@ -906,8 +1096,13 @@ export default function FileManager() {
             {showAdvancedFilters && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">File Type</label>
-                  <Select value={fileTypeFilter} onValueChange={setFileTypeFilter}>
+                  <label className="text-sm font-medium mb-2 block">
+                    File Type
+                  </label>
+                  <Select
+                    value={fileTypeFilter}
+                    onValueChange={setFileTypeFilter}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="All Types" />
                     </SelectTrigger>
@@ -923,7 +1118,9 @@ export default function FileManager() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">File Size</label>
+                  <label className="text-sm font-medium mb-2 block">
+                    File Size
+                  </label>
                   <Select value={sizeFilter} onValueChange={setSizeFilter}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Sizes" />
@@ -938,7 +1135,9 @@ export default function FileManager() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Upload Date</label>
+                  <label className="text-sm font-medium mb-2 block">
+                    Upload Date
+                  </label>
                   <Select value={dateFilter} onValueChange={setDateFilter}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Dates" />
@@ -967,7 +1166,7 @@ export default function FileManager() {
         {selectedFolderId && (
           <div className="mb-4">
             <nav className="flex items-center space-x-2 text-sm text-gray-600">
-              <button 
+              <button
                 onClick={handleBackNavigation}
                 className="hover:text-blue-600 underline"
               >
@@ -985,9 +1184,9 @@ export default function FileManager() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl font-semibold">Folders</h2>
               {selectedFolderId && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleBackNavigation}
                   className="text-blue-600 hover:text-blue-700"
                 >
@@ -997,10 +1196,12 @@ export default function FileManager() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {folders.map((folder: Folder) => (
-                <Card 
-                  key={folder.id} 
+                <Card
+                  key={folder.id}
                   className={`cursor-pointer hover:shadow-md transition-shadow hover:bg-blue-50 ${
-                    draggedOverFolder === folder.id ? 'ring-2 ring-blue-500 bg-blue-100' : ''
+                    draggedOverFolder === folder.id
+                      ? "ring-2 ring-blue-500 bg-blue-100"
+                      : ""
                   }`}
                   onClick={() => handleFolderClick(folder.id)}
                   onDragOver={handleDragOver}
@@ -1015,33 +1216,42 @@ export default function FileManager() {
                         <div>
                           <h3 className="font-medium">{folder.name}</h3>
                           {folder.description && (
-                            <p className="text-sm text-gray-600">{folder.description}</p>
+                            <p className="text-sm text-gray-600">
+                              {folder.description}
+                            </p>
                           )}
                         </div>
                       </div>
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuTrigger
+                          asChild
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Button variant="ghost" size="sm">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            // TODO: Add rename functionality
-                          }}>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // TODO: Add rename functionality
+                            }}
+                          >
                             <Edit className="mr-2 h-4 w-4" />
                             Rename
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedFolder(folder);
-                            setFolderPermissionsDialogOpen(true);
-                          }}>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedFolder(folder);
+                              setFolderPermissionsDialogOpen(true);
+                            }}
+                          >
                             <Shield className="mr-2 h-4 w-4" />
                             Permissions
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteFolder(folder.id, folder.name);
@@ -1063,9 +1273,11 @@ export default function FileManager() {
         )}
 
         {/* Files Section */}
-        <div 
+        <div
           className={`${
-            draggedFile && !selectedFolderId ? 'bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-2' : ''
+            draggedFile && !selectedFolderId
+              ? "bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-2"
+              : ""
           }`}
           onDragOver={handleDragOver}
           onDragEnter={(e) => !selectedFolderId && handleDragEnter(e, 0)}
@@ -1075,7 +1287,9 @@ export default function FileManager() {
           <h2 className="text-xl font-semibold mb-3">
             Files
             {draggedFile && !selectedFolderId && (
-              <span className="text-blue-600 text-sm ml-2">(Drop here to move to root)</span>
+              <span className="text-blue-600 text-sm ml-2">
+                (Drop here to move to root)
+              </span>
             )}
           </h2>
           {filesLoading ? (
@@ -1093,43 +1307,54 @@ export default function FileManager() {
             <div className="text-center py-8">
               <File className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">
-                {(files?.length || 0) === 0 ? "No files" : "No files match your search"}
+                {(files?.length || 0) === 0
+                  ? "No files"
+                  : "No files match your search"}
               </h3>
               <p className="mt-1 text-sm text-gray-500">
-                {(files?.length || 0) === 0 
-                  ? "Upload files to get started." 
+                {(files?.length || 0) === 0
+                  ? "Upload files to get started."
                   : "Try adjusting your search criteria or clearing filters."}
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredFiles.map((file: FileItem) => (
-                <Card 
-                  key={file.id} 
+                <Card
+                  key={file.id}
                   className={`hover:shadow-md transition-shadow cursor-move ${
-                    draggedFile?.id === file.id ? 'opacity-50' : ''
+                    draggedFile?.id === file.id ? "opacity-50" : ""
                   }`}
                   draggable
                   onDragStart={(e) => handleDragStart(e, file)}
                 >
                   <CardContent className="p-4">
-                    {/* Image thumbnail preview */}
-                    {file.fileType === 'image' && (
+                    {/* Image thumbnail preview: clicking opens viewer */}
+                    {file.fileType === "image" && (
                       <div className="mb-3 flex justify-center">
-                        <div className="w-full h-32 flex items-center justify-center bg-gray-50 rounded border">
-                          <ThumbnailImage 
-                            fileId={file.id} 
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openImageViewer(file);
+                          }}
+                          className="w-full h-32 flex items-center justify-center bg-gray-50 rounded border overflow-hidden"
+                        >
+                          <ThumbnailImage
+                            fileId={file.id}
                             fileName={file.originalName}
                             className="w-full h-full object-cover rounded"
                           />
-                        </div>
+                        </button>
                       </div>
                     )}
-                    
+
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center">
                         {getFileIcon(file.fileType, file.mimeType)}
-                        <span className="ml-2 font-medium truncate">{file.originalName}</span>
+                        <span className="ml-2 font-medium truncate">
+                          {file.originalName}
+                        </span>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -1138,32 +1363,39 @@ export default function FileManager() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleDownload(file)}>
+                          <DropdownMenuItem
+                            onClick={() => handleDownload(file)}
+                          >
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </DropdownMenuItem>
-                          {file.fileType === 'text' && (
-                            <DropdownMenuItem onClick={() => handleEditFile(file)}>
+                          {file.fileType === "text" && (
+                            <DropdownMenuItem
+                              onClick={() => handleEditFile(file)}
+                            >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
                           )}
-                          {file.fileType === 'text' && (
-                            <DropdownMenuItem onClick={() => handleConvertToPdf(file)}>
+                          {file.fileType === "text" && (
+                            <DropdownMenuItem
+                              onClick={() => handleConvertToPdf(file)}
+                            >
                               <FileText className="mr-2 h-4 w-4" />
                               Convert to PDF
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => {
                               setSelectedFile(file);
                               setShareDialogOpen(true);
+                              setGeneratedShareLink(null); // reset previously generated link
                             }}
                           >
                             <Share2 className="mr-2 h-4 w-4" />
                             Share
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => {
                               setSelectedFile(file);
                               setFilePermissionsDialogOpen(true);
@@ -1173,18 +1405,20 @@ export default function FileManager() {
                             Permissions
                           </DropdownMenuItem>
                           {isDocumentSignable(file.mimeType) && (
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => {
                                 setSelectedFile(file);
                                 setSignatureDialogOpen(true);
                               }}
                             >
                               <FileSignature className="mr-2 h-4 w-4" />
-                              {file.signatureStatus === 'signed' ? 'View Signature' : 'Digital Signature'}
+                              {file.signatureStatus === "signed"
+                                ? "View Signature"
+                                : "Digital Signature"}
                             </DropdownMenuItem>
                           )}
                           {isDocumentSignable(file.mimeType) && (
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => {
                                 setSelectedFile(file);
                                 setDocumentFieldEditorOpen(true);
@@ -1194,7 +1428,7 @@ export default function FileManager() {
                               Place Signature Fields
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => deleteFileMutation.mutate(file.id)}
                             className="text-red-600"
                           >
@@ -1204,41 +1438,51 @@ export default function FileManager() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm text-gray-600">
                         <span>{formatFileSize(file.fileSize)}</span>
                         <span>{file.downloadCount} downloads</span>
                       </div>
-                      
+
                       {file.description && (
-                        <p className="text-sm text-gray-700">{file.description}</p>
+                        <p className="text-sm text-gray-700">
+                          {file.description}
+                        </p>
                       )}
-                      
+
                       {file.tags && file.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {file.tags.map((tag, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="text-xs"
+                            >
                               {tag}
                             </Badge>
                           ))}
                         </div>
                       )}
-                      
-                      {file.signatureStatus && file.signatureStatus !== 'none' && (
-                        <div className="mt-2">
-                          {getSignatureStatusBadge(file.signatureStatus)}
-                        </div>
-                      )}
-                      
+
+                      {file.signatureStatus &&
+                        file.signatureStatus !== "none" && (
+                          <div className="mt-2">
+                            {getSignatureStatusBadge(file.signatureStatus)}
+                          </div>
+                        )}
+
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <div className="flex items-center">
                           <User className="h-3 w-3 mr-1" />
-                          {file.uploadedByUser.firstName || file.uploadedByUser.username}
+                          {file.uploadedByUser.firstName ||
+                            file.uploadedByUser.username}
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-3 w-3 mr-1" />
-                          {formatDistanceToNow(new Date(file.createdAt), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(file.createdAt), {
+                            addSuffix: true,
+                          })}
                         </div>
                       </div>
                     </div>
@@ -1250,7 +1494,13 @@ export default function FileManager() {
         </div>
 
         {/* Share Dialog */}
-        <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <Dialog
+          open={shareDialogOpen}
+          onOpenChange={(open) => {
+            setShareDialogOpen(open);
+            if (!open) setGeneratedShareLink(null);
+          }}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Share File</DialogTitle>
@@ -1268,7 +1518,10 @@ export default function FileManager() {
               </div>
               <div>
                 <Label htmlFor="share-permissions">Permissions</Label>
-                <Select value={sharePermissions} onValueChange={setSharePermissions}>
+                <Select
+                  value={sharePermissions}
+                  onValueChange={setSharePermissions}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1288,12 +1541,51 @@ export default function FileManager() {
                   onChange={(e) => setShareExpiry(e.target.value)}
                 />
               </div>
-              <Button 
-                onClick={handleShareFile} 
+
+              {/* NEW: show generated share link when available */}
+              {generatedShareLink && (
+                <div className="bg-gray-50 border rounded p-3">
+                  <div className="flex items-start gap-2">
+                    <Link className="h-4 w-4 mt-1 text-gray-500" />
+                    <div className="flex-1">
+                      <div className="text-xs text-gray-600 mb-1">
+                        Share Link
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          readOnly
+                          value={generatedShareLink}
+                          className="flex-1"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => copyToClipboard(generatedShareLink)}
+                        >
+                          Copy
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            window.open(generatedShareLink, "_blank")
+                          }
+                        >
+                          Open
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <Button
+                onClick={handleShareFile}
                 disabled={shareFileMutation.isPending}
                 className="w-full"
               >
-                {shareFileMutation.isPending ? "Creating Share Link..." : "Create Share Link"}
+                {shareFileMutation.isPending
+                  ? "Creating Share Link..."
+                  : "Create Share Link"}
               </Button>
             </div>
           </DialogContent>
@@ -1336,14 +1628,16 @@ export default function FileManager() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button 
-                  onClick={handleUpdateFileContent} 
+                <Button
+                  onClick={handleUpdateFileContent}
                   disabled={updateFileContentMutation.isPending}
                   className="flex-1"
                 >
-                  {updateFileContentMutation.isPending ? "Saving..." : "Save Changes"}
+                  {updateFileContentMutation.isPending
+                    ? "Saving..."
+                    : "Save Changes"}
                 </Button>
-                <Button 
+                <Button
                   variant="outline"
                   onClick={() => {
                     setEditFileDialogOpen(false);
@@ -1365,10 +1659,14 @@ export default function FileManager() {
             setFilePermissionsDialogOpen(false);
             setSelectedFile(null);
           }}
-          file={selectedFile ? {
-            id: selectedFile.id,
-            fileName: selectedFile.originalName
-          } : null}
+          file={
+            selectedFile
+              ? {
+                  id: selectedFile.id,
+                  fileName: selectedFile.originalName,
+                }
+              : null
+          }
         />
 
         {/* Folder Permissions Dialog */}
@@ -1378,11 +1676,85 @@ export default function FileManager() {
             setFolderPermissionsDialogOpen(false);
             setSelectedFolder(null);
           }}
-          folder={selectedFolder ? {
-            id: selectedFolder.id,
-            name: selectedFolder.name
-          } : null}
+          folder={
+            selectedFolder
+              ? {
+                  id: selectedFolder.id,
+                  name: selectedFolder.name,
+                }
+              : null
+          }
         />
+
+        {/* === NEW: Image Viewer Dialog === */}
+        <Dialog
+          open={imageViewerOpen}
+          onOpenChange={(open) => {
+            setImageViewerOpen(open);
+            if (!open) setImageViewerSrc(null);
+          }}
+        >
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Image Preview</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-4">
+              {imageViewerSrc ? (
+                <div className="w-full h-[60vh] flex items-center justify-center bg-gray-100 rounded overflow-hidden">
+                  {/* use img element for preview */}
+                  <img
+                    src={imageViewerSrc}
+                    alt="Preview"
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500">
+                  No preview available.
+                </div>
+              )}
+              <div className="flex gap-2 justify-end">
+                {imageViewerSrc && (
+                  <>
+                    <Button
+                      onClick={() => copyToClipboard(imageViewerSrc)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      Copy Link
+                    </Button>
+                    <Button
+                      onClick={() => window.open(imageViewerSrc!, "_blank")}
+                      size="sm"
+                    >
+                      Open in new tab
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        // attempt to download via the download endpoint if needed
+                        const downloadUrl = `/api/files/download-by-url?fileUrl=${encodeURIComponent(imageViewerSrc)}`;
+                        // fallback to opening the image URL (server should handle content-disposition)
+                        window.open(imageViewerSrc!, "_blank");
+                      }}
+                      size="sm"
+                    >
+                      Download
+                    </Button>
+                  </>
+                )}
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setImageViewerOpen(false);
+                    setImageViewerSrc(null);
+                  }}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
