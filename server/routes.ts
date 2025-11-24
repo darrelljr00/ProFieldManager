@@ -4019,19 +4019,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dashboard recent activity
-  app.get("/api/dashboard/recent-activity", async (req, res) => {
-    try {
-      const user = getAuthenticatedUser(req);
-      const limit = parseInt(req.query.limit as string) || 10;
-      const activity = await storage.getRecentActivity(user.organizationId, limit);
-      res.json(activity);
-    } catch (error: any) {
-      console.error("❌ Recent Activity Error:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
   // Customer routes
   app.get("/api/customers", requireAuth, async (req, res) => {
     try {
@@ -11272,44 +11259,102 @@ ${fromName || ''}
     }
   });
 
+  // ---------------------- POST /api/expenses ----------------------
   app.post("/api/expenses", requireAuth, expenseUpload.single('receipt'), async (req, res) => {
     try {
       const userId = req.user!.id;
       const expenseData = req.body;
-      
+
       console.log("Expense creation request:", { userId, expenseData });
-      
-      // Handle file upload
-      let receiptUrl = null;
-      let receiptData = null;
-      
-      if (req.file) {
+
+      // prefer receiptUrl coming from client (e.g. after /api/files/upload)
+      let receiptUrl = expenseData.receiptUrl || null;
+      let receiptData = expenseData.receiptData || null;
+      let createdFileRecord = null;
+
+      // If client did not provide receiptUrl but they uploaded a file directly on this endpoint
+      if (!receiptUrl && req.file) {
+        console.log("Receipt present in request.file — will upload to Cloudinary and create file record");
+
         const user = getAuthenticatedUser(req);
+        let finalPathOnDisk = req.file.path;
         let finalFileName = req.file.filename;
 
-        // Apply compression if it's an image file
+        // If image compression is desired, compress and set finalPathOnDisk to compressed file
         const isImageFile = /\.(jpeg|jpg|png|gif|webp)$/i.test(req.file.originalname);
         if (isImageFile) {
           const originalPath = req.file.path;
           const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
           const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
-          
-          // Try to apply compression
+
           const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
-          
+
           if (compressionResult.success) {
-            // Use compressed image
+            finalPathOnDisk = compressedPath;
             finalFileName = compressedFilename;
             console.log(`✅ Expense receipt compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
           } else {
             console.log(`❌ Expense receipt compression failed: ${compressionResult.error}`);
+            // fallback to original file at req.file.path
+            finalPathOnDisk = req.file.path;
+            finalFileName = req.file.filename;
           }
         }
 
-        receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${finalFileName}`;
+        // Read buffer and upload to Cloudinary using your CloudinaryService
+        const uploadBuffer = await fs.readFile(finalPathOnDisk);
+        const cloudinaryResult = await CloudinaryService.uploadImage(
+          uploadBuffer,
+          {
+            folder: `org-${user.organizationId}/receipt_images`,
+            filename: req.file.originalname,
+            organizationId: user.organizationId,
+            quality: 80,
+            maxWidth: 2000,
+            maxHeight: 2000
+          }
+        );
+
+        if (!cloudinaryResult.success) {
+          console.error('Cloudinary upload failed for expense receipt:', cloudinaryResult.error);
+          return res.status(500).json({ message: 'Failed to upload receipt to Cloudinary', error: cloudinaryResult.error });
+        }
+
+        // Create file record in your files table (so file metadata is persisted)
+        const fileData = {
+          fileName: finalFileName,
+          originalName: req.file.originalname,
+          filePath: cloudinaryResult.secureUrl,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          fileType: isImageFile ? 'image' : 'other',
+          organizationId: user.organizationId,
+          uploadedBy: user.id,
+          description: `Expense receipt uploaded via expenses endpoint`,
+          tags: [],
+          folderId: null,
+          useS3: false,
+          fileUrl: cloudinaryResult.secureUrl,
+        };
+
+        console.log("Creating file record for expense receipt:", fileData);
+        createdFileRecord = await storage.createFile(fileData);
+
+        // Use the Cloudinary secure URL for the expense
+        receiptUrl = cloudinaryResult.secureUrl;
         receiptData = `Receipt uploaded: ${req.file.originalname}`;
+
+        console.log("Cloudinary and file record created for expense:", { receiptUrl, fileId: createdFileRecord?.id });
+      } else {
+        // No req.file — but if receiptUrl was provided by client, keep it
+        if (receiptUrl) {
+          console.log("Using receiptUrl provided by client:", receiptUrl);
+        } else {
+          console.log("No receipt provided for this expense");
+        }
       }
 
+      // Create the expense using the final receiptUrl (Cloudinary public URL) or null
       const expense = await storage.createExpense({
         userId,
         projectId: expenseData.projectId ? parseInt(expenseData.projectId) : null,
@@ -11317,17 +11362,16 @@ ${fromName || ''}
         category: expenseData.category || 'general',
         description: expenseData.description,
         vendor: expenseData.vendor || null,
-        expenseDate: new Date(expenseData.expenseDate),
+        expenseDate: expenseData.expenseDate ? new Date(expenseData.expenseDate) : new Date(),
         receiptUrl,
         receiptData,
         notes: expenseData.notes || null,
-        tags: expenseData.tags && typeof expenseData.tags === 'string' ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : [],
+        tags: expenseData.tags && typeof expenseData.tags === 'string' ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : (Array.isArray(expenseData.tags) ? expenseData.tags : []),
         source: expenseData.source || 'general',
       });
-      
+
       console.log("Expense created successfully:", expense);
 
-      // Broadcast to all web users except the creator
       (app as any).broadcastToWebUsers('expense_created', {
         expense,
         createdBy: req.user!.username
@@ -11336,64 +11380,102 @@ ${fromName || ''}
       res.status(201).json(expense);
     } catch (error: any) {
       console.error("Error creating expense:", error);
-      res.status(500).json({ message: "Failed to create expense" });
+      res.status(500).json({ message: "Failed to create expense", error: error?.message || error });
     }
   });
 
+  // ---------------------- PUT /api/expenses/:id ----------------------
   app.put("/api/expenses/:id", requireAuth, upload.single('receipt'), async (req, res) => {
     try {
       const expenseId = parseInt(req.params.id);
       const userId = req.user!.id;
       const expenseData = req.body;
-      
+
       console.log("Expense update request:", { expenseId, userId, expenseData });
-      
-      // Handle file upload
-      let receiptUrl = undefined;
-      let receiptData = undefined;
-      
-      if (req.file) {
-        const user = getAuthenticatedUser(req);
-        let finalFileName = req.file.filename;
 
-        // Apply compression if it's an image file
-        const isImageFile = /\.(jpeg|jpg|png|gif|webp)$/i.test(req.file.originalname);
-        if (isImageFile) {
-          const originalPath = req.file.path;
-          const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
-          const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
-          
-          // Try to apply compression
-          const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
-          
-          if (compressionResult.success) {
-            // Use compressed image
-            finalFileName = compressedFilename;
-            console.log(`✅ Expense receipt update compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
-          } else {
-            console.log(`❌ Expense receipt update compression failed: ${compressionResult.error}`);
-          }
-        }
-
-        receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${finalFileName}`;
-        receiptData = `Receipt uploaded: ${req.file.originalname}`;
-      }
-
+      // prepare update data
       const updateData: any = {
         description: expenseData.description,
         amount: expenseData.amount ? parseFloat(expenseData.amount) : undefined,
         category: expenseData.category || undefined,
         vendor: expenseData.vendor || undefined,
         expenseDate: expenseData.expenseDate ? new Date(expenseData.expenseDate) : undefined,
-        projectId: expenseData.projectId ? parseInt(expenseData.projectId) : null,
+        projectId: expenseData.projectId ? parseInt(expenseData.projectId) : undefined,
         notes: expenseData.notes || undefined,
-        tags: expenseData.tags && typeof expenseData.tags === 'string' ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : undefined,
+        tags: expenseData.tags && typeof expenseData.tags === 'string' ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : (Array.isArray(expenseData.tags) ? expenseData.tags : undefined),
       };
 
-      // Only update receipt fields if a new file was uploaded
-      if (receiptUrl) {
-        updateData.receiptUrl = receiptUrl;
-        updateData.receiptData = receiptData;
+      // Prefer receiptUrl from client if provided
+      if (expenseData.receiptUrl) {
+        updateData.receiptUrl = expenseData.receiptUrl;
+        updateData.receiptData = expenseData.receiptData || `Receipt updated via client`;
+        console.log("Using receiptUrl from client for update:", updateData.receiptUrl);
+      }
+
+      // If a new file was uploaded on update, upload to Cloudinary and create file record & set receiptUrl
+      if (req.file) {
+        console.log("New receipt file uploaded in update — uploading to Cloudinary");
+        const user = getAuthenticatedUser(req);
+        let finalPathOnDisk = req.file.path;
+        let finalFileName = req.file.filename;
+
+        const isImageFile = /\.(jpeg|jpg|png|gif|webp)$/i.test(req.file.originalname);
+        if (isImageFile) {
+          const originalPath = req.file.path;
+          const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
+          const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
+
+          const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
+          if (compressionResult.success) {
+            finalPathOnDisk = compressedPath;
+            finalFileName = compressedFilename;
+            console.log(`✅ Expense update receipt compression successful`);
+          } else {
+            console.log(`❌ Expense update receipt compression failed: ${compressionResult.error}`);
+          }
+        }
+
+        const uploadBuffer = await fs.readFile(finalPathOnDisk);
+        const cloudinaryResult = await CloudinaryService.uploadImage(
+          uploadBuffer,
+          {
+            folder: `org-${user.organizationId}/receipt_images`,
+            filename: req.file.originalname,
+            organizationId: user.organizationId,
+            quality: 80,
+            maxWidth: 2000,
+            maxHeight: 2000
+          }
+        );
+
+        if (!cloudinaryResult.success) {
+          console.error('Cloudinary upload failed for expense update:', cloudinaryResult.error);
+          return res.status(500).json({ message: 'Failed to upload receipt to Cloudinary', error: cloudinaryResult.error });
+        }
+
+        const fileData = {
+          fileName: finalFileName,
+          originalName: req.file.originalname,
+          filePath: cloudinaryResult.secureUrl,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          fileType: isImageFile ? 'image' : 'other',
+          organizationId: user.organizationId,
+          uploadedBy: user.id,
+          description: `Expense receipt uploaded via expense update`,
+          tags: [],
+          folderId: null,
+          useS3: false,
+          fileUrl: cloudinaryResult.secureUrl,
+        };
+
+        console.log("Creating file record for updated receipt:", fileData);
+        const createdFileRecord = await storage.createFile(fileData);
+
+        updateData.receiptUrl = cloudinaryResult.secureUrl;
+        updateData.receiptData = `Receipt uploaded: ${req.file.originalname}`;
+
+        console.log("Updated receiptUrl set to Cloudinary secure URL:", updateData.receiptUrl);
       }
 
       const expense = await storage.updateExpense(expenseId, userId, updateData);
@@ -11404,7 +11486,6 @@ ${fromName || ''}
 
       console.log("Expense updated successfully:", expense);
 
-      // Broadcast to all web users except the updater
       (app as any).broadcastToWebUsers('expense_updated', {
         expense,
         updatedBy: req.user!.username
@@ -11413,7 +11494,7 @@ ${fromName || ''}
       res.json(expense);
     } catch (error: any) {
       console.error("Error updating expense:", error);
-      res.status(500).json({ message: "Failed to update expense" });
+      res.status(500).json({ message: "Failed to update expense", error: error?.message || error });
     }
   });
 

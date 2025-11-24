@@ -3,40 +3,69 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Plus, 
-  Receipt, 
-  DollarSign, 
-  Calendar, 
-  User, 
-  Edit, 
-  Trash2, 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Plus,
+  Receipt,
+  DollarSign,
+  Calendar,
+  User,
+  Edit,
+  Trash2,
   TrendingUp,
   Filter,
   Camera,
   Upload,
   X,
-  Image as ImageIcon
+  Image as ImageIcon,
 } from "lucide-react";
 import type { Expense } from "@shared/schema";
 
 interface ExpenseWithDetails extends Expense {
   project?: { name: string };
   user?: { firstName: string; lastName: string };
+  receiptUrl?: string | null;
+  source?: string;
+  userName?: string;
 }
 
 export default function TechnicianExpenses() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingExpense, setEditingExpense] = useState<ExpenseWithDetails | null>(null);
+  const [editingExpense, setEditingExpense] =
+    useState<ExpenseWithDetails | null>(null);
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
@@ -57,7 +86,7 @@ export default function TechnicianExpenses() {
     queryKey: ["/api/projects"],
   });
 
-  // Create expense mutation
+  // Mutations
   const createExpenseMutation = useMutation({
     mutationFn: async (formData: FormData) => {
       const response = await apiRequest("POST", "/api/expenses", formData);
@@ -67,23 +96,25 @@ export default function TechnicianExpenses() {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
       setIsDialogOpen(false);
       resetForm();
-      toast({
-        title: "Success",
-        description: "Expense created successfully",
-      });
+      toast({ title: "Success", description: "Expense created successfully" });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create expense",
+        description: error?.message || "Failed to create expense",
         variant: "destructive",
       });
     },
   });
 
-  // Update expense mutation
   const updateExpenseMutation = useMutation({
-    mutationFn: async ({ id, formData }: { id: number; formData: FormData }) => {
+    mutationFn: async ({
+      id,
+      formData,
+    }: {
+      id: number;
+      formData: FormData;
+    }) => {
       const response = await apiRequest("PUT", `/api/expenses/${id}`, formData);
       return response.json();
     },
@@ -91,53 +122,51 @@ export default function TechnicianExpenses() {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
       setIsDialogOpen(false);
       resetForm();
-      toast({
-        title: "Success",
-        description: "Expense updated successfully",
-      });
+      toast({ title: "Success", description: "Expense updated successfully" });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update expense",
+        description: error?.message || "Failed to update expense",
         variant: "destructive",
       });
     },
   });
 
-  // Delete expense mutation
   const deleteExpenseMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/expenses/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
-      toast({
-        title: "Success",
-        description: "Expense deleted successfully",
-      });
+      toast({ title: "Success", description: "Expense deleted successfully" });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete expense",
+        description: error?.message || "Failed to delete expense",
         variant: "destructive",
       });
     },
   });
 
-  // Handle image selection from camera or file
+  // ---------- Helpers ----------
   const handleImageSelect = (file: File) => {
     setReceiptImage(file);
+    setReceiptPreview("");
     const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64Image = reader.result as string;
-      setReceiptPreview(base64Image);
+    reader.onloadend = () => setReceiptPreview(reader.result as string);
+    reader.onerror = (err) => {
+      console.error("FileReader error:", err);
+      toast({
+        title: "File error",
+        description: "Could not read selected file.",
+        variant: "destructive",
+      });
     };
     reader.readAsDataURL(file);
   };
 
-  // Reset form
   const resetForm = () => {
     setEditingExpense(null);
     setReceiptImage(null);
@@ -145,40 +174,79 @@ export default function TechnicianExpenses() {
     setSelectedProjectId("");
   };
 
-  // Handle form submit
+  const uploadFileAndGetUrl = async (file: File) => {
+    const fileFormData = new FormData();
+    fileFormData.append("file", file);
+    fileFormData.append("description", "Expense receipt");
+
+    const uploadResponse = await apiRequest(
+      "POST",
+      "/api/files/upload",
+      fileFormData,
+    );
+    if (!uploadResponse.ok) {
+      const text = await uploadResponse.text().catch(() => "");
+      console.error("Upload failed response text:", text);
+      throw new Error(
+        `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`,
+      );
+    }
+
+    const uploadResult = await uploadResponse.json().catch((err) => {
+      console.error("Upload JSON parse failed:", err);
+      return null;
+    });
+
+    const url =
+      uploadResult?.cloudinaryUrl ||
+      uploadResult?.cloudinary_url ||
+      uploadResult?.file?.filePath ||
+      uploadResult?.filePath ||
+      uploadResult?.url ||
+      uploadResult?.data?.url ||
+      uploadResult?.fileUrl ||
+      uploadResult?.location ||
+      null;
+
+    if (!url) {
+      console.error("Unexpected upload result shape:", uploadResult);
+      throw new Error(
+        "Upload succeeded but server did not return a public URL.",
+      );
+    }
+
+    return typeof url === "string" && url.startsWith("/")
+      ? window.location.origin + url
+      : url;
+  };
+
+  // ---------- Submit ----------
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    
+
     try {
-      let receiptUrl = editingExpense?.receiptUrl || null;
-      
-      // Upload receipt file first if a new one was selected
+      // get existing receiptUrl if editing
+      let finalReceiptUrl: string | null = editingExpense?.receiptUrl || null;
+
+      // if user selected a new file, upload it and use returned Cloudinary url
       if (receiptImage) {
-        const fileFormData = new FormData();
-        fileFormData.append("file", receiptImage);
-        fileFormData.append("description", "Expense receipt");
-        
-        const uploadResponse = await apiRequest("POST", "/api/files/upload", fileFormData);
-        const uploadResult = await uploadResponse.json();
-        receiptUrl = uploadResult.url;
+        finalReceiptUrl = await uploadFileAndGetUrl(receiptImage);
       }
 
-      // Prepare expense data
       const formData = new FormData(form);
-      
-      // Add receipt URL if we have one
-      if (receiptUrl) {
-        formData.append("receiptUrl", receiptUrl);
+
+      if (finalReceiptUrl) {
+        formData.set("receiptUrl", finalReceiptUrl);
       }
 
-      // Add logged-in user's ID as the submitter
       if (currentUser?.id) {
-        formData.append("userId", currentUser.id.toString());
+        formData.set("userId", currentUser.id.toString());
       }
-      
-      // Mark this expense as created from technician expenses page
-      formData.append("source", "technician_expenses");
+
+      formData.set("source", "technician_expenses");
+
+      if (selectedProjectId) formData.set("projectId", selectedProjectId);
 
       if (editingExpense) {
         updateExpenseMutation.mutate({ id: editingExpense.id, formData });
@@ -186,83 +254,82 @@ export default function TechnicianExpenses() {
         createExpenseMutation.mutate(formData);
       }
     } catch (error: any) {
+      console.error("handleSubmit error:", error);
       toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload receipt",
+        title: "Upload/Save failed",
+        description:
+          error?.message || "Failed to upload receipt or save expense",
         variant: "destructive",
       });
     }
   };
 
-  // Handle edit
+  // ---------- Edit / Delete ----------
   const handleEdit = (expense: ExpenseWithDetails) => {
     setEditingExpense(expense);
-    if (expense.receiptUrl) {
+
+    // Only set preview if receiptUrl is an absolute URL (http(s) or data:)
+    if (
+      expense.receiptUrl &&
+      (expense.receiptUrl.startsWith("http") ||
+        expense.receiptUrl.startsWith("data:"))
+    ) {
       setReceiptPreview(expense.receiptUrl);
+    } else {
+      setReceiptPreview("");
     }
-    if (expense.projectId) {
-      setSelectedProjectId(expense.projectId.toString());
-    }
+
+    setSelectedProjectId(expense.projectId ? expense.projectId.toString() : "");
     setIsDialogOpen(true);
   };
 
-  // Handle delete
   const handleDelete = (id: number) => {
     if (window.confirm("Are you sure you want to delete this expense?")) {
       deleteExpenseMutation.mutate(id);
     }
   };
 
+  // ---------- Derived data ----------
   const filteredExpenses = expenses.filter((expense: any) => {
     if (statusFilter !== "all" && expense.status !== statusFilter) return false;
-    
-    // Only show expenses created through the Technician Expenses page
-    // This filters out expenses created from other pages/forms
-    if (expense.source !== 'technician_expenses') {
-      return false;
-    }
-    
+    if (expense.source !== "technician_expenses") return false;
     return true;
   });
 
-  const totalExpenses = filteredExpenses.reduce((sum, expense) => 
-    sum + parseFloat(expense.amount || "0"), 0
+  const totalExpenses = filteredExpenses.reduce(
+    (sum, expense) => sum + parseFloat(expense.amount || "0"),
+    0,
   );
-
   const approvedExpenses = filteredExpenses
-    .filter(e => e.status === "approved")
-    .reduce((sum, expense) => sum + parseFloat(expense.amount || "0"), 0);
-
+    .filter((e) => e.status === "approved")
+    .reduce((s, e) => s + parseFloat(e.amount || "0"), 0);
   const pendingExpenses = filteredExpenses
-    .filter(e => e.status === "pending")
-    .reduce((sum, expense) => sum + parseFloat(expense.amount || "0"), 0);
+    .filter((e) => e.status === "pending")
+    .reduce((s, e) => s + parseFloat(e.amount || "0"), 0);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(amount);
-  };
-
   const formatDate = (date: string | Date | null) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+    return new Date(date).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved':
-        return 'bg-green-500/10 text-green-500 dark:bg-green-500/20';
-      case 'pending':
-        return 'bg-yellow-500/10 text-yellow-500 dark:bg-yellow-500/20';
-      case 'rejected':
-        return 'bg-red-500/10 text-red-500 dark:bg-red-500/20';
+      case "approved":
+        return "bg-green-500/10 text-green-500 dark:bg-green-500/20";
+      case "pending":
+        return "bg-yellow-500/10 text-yellow-500 dark:bg-yellow-500/20";
+      case "rejected":
+        return "bg-red-500/10 text-red-500 dark:bg-red-500/20";
       default:
-        return 'bg-gray-500/10 text-gray-500 dark:bg-gray-500/20';
+        return "bg-gray-500/10 text-gray-500 dark:bg-gray-500/20";
     }
   };
 
@@ -272,23 +339,25 @@ export default function TechnicianExpenses() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white" data-testid="heading-technician-expenses">
+            <h1
+              className="text-3xl font-bold text-gray-900 dark:text-white"
+              data-testid="heading-technician-expenses"
+            >
               Technician Expenses
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Track and manage field technician expenses
             </p>
           </div>
-          <Button 
-            onClick={() => setIsDialogOpen(true)} 
+          <Button
+            onClick={() => setIsDialogOpen(true)}
             data-testid="button-add-expense"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Expense
+            <Plus className="mr-2 h-4 w-4" /> Add Expense
           </Button>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="pb-2">
@@ -299,7 +368,6 @@ export default function TechnicianExpenses() {
               </CardTitle>
             </CardHeader>
           </Card>
-
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Approved</CardDescription>
@@ -309,7 +377,6 @@ export default function TechnicianExpenses() {
               </CardTitle>
             </CardHeader>
           </Card>
-
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Pending Approval</CardDescription>
@@ -367,19 +434,24 @@ export default function TechnicianExpenses() {
           </CardContent>
         </Card>
 
-        {/* Expenses Table */}
+        {/* Table */}
         <Card>
           <CardHeader>
             <CardTitle>Expense List</CardTitle>
             <CardDescription>
-              {filteredExpenses.length} expense{filteredExpenses.length !== 1 ? 's' : ''} found
+              {filteredExpenses.length} expense
+              {filteredExpenses.length !== 1 ? "s" : ""} found
             </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading expenses...</div>
+              <div className="text-center py-8 text-gray-500">
+                Loading expenses...
+              </div>
             ) : filteredExpenses.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">No expenses found</div>
+              <div className="text-center py-8 text-gray-500">
+                No expenses found
+              </div>
             ) : (
               <div className="rounded-md border">
                 <Table>
@@ -387,7 +459,8 @@ export default function TechnicianExpenses() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Description</TableHead>
-                      {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                      {(currentUser?.role === "admin" ||
+                        currentUser?.role === "manager") && (
                         <TableHead>Technician</TableHead>
                       )}
                       <TableHead>Category</TableHead>
@@ -399,7 +472,10 @@ export default function TechnicianExpenses() {
                   </TableHeader>
                   <TableBody>
                     {filteredExpenses.map((expense) => (
-                      <TableRow key={expense.id} data-testid={`row-expense-${expense.id}`}>
+                      <TableRow
+                        key={expense.id}
+                        data-testid={`row-expense-${expense.id}`}
+                      >
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-gray-400" />
@@ -409,50 +485,81 @@ export default function TechnicianExpenses() {
                         <TableCell className="font-medium">
                           {expense.description || "No description"}
                         </TableCell>
-                        {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                        {(currentUser?.role === "admin" ||
+                          currentUser?.role === "manager") && (
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4 text-gray-400" />
-                              {(expense as any).userName || 'Unknown'}
+                              {(expense as any).userName || "Unknown"}
                             </div>
                           </TableCell>
                         )}
-                        <TableCell>{expense.category || "Uncategorized"}</TableCell>
+                        <TableCell>
+                          {expense.category || "Uncategorized"}
+                        </TableCell>
                         <TableCell className="font-semibold">
                           {formatCurrency(parseFloat(expense.amount || "0"))}
                         </TableCell>
+
+                        {/* Receipt cell: show "No receipt" if no valid absolute URL or data URI */}
                         <TableCell>
-                          {expense.receiptUrl ? (
-                            <a 
-                              href={expense.receiptUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                            >
-                              <Receipt className="h-4 w-4" />
-                              <span className="text-xs">View</span>
-                            </a>
+                          {expense.receiptUrl &&
+                          (expense.receiptUrl.startsWith("http") ||
+                            expense.receiptUrl.startsWith("data:")) ? (
+                            expense.receiptUrl.startsWith("data:") ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const w = window.open();
+                                  if (!w) return;
+                                  w.document.write(
+                                    `<img src="${expense.receiptUrl}" style="max-width:100%;height:auto" />`,
+                                  );
+                                }}
+                                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                              >
+                                <Receipt className="h-4 w-4" />
+                                <span className="text-xs">View</span>
+                              </button>
+                            ) : (
+                              <a
+                                href={expense.receiptUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                              >
+                                <Receipt className="h-4 w-4" />
+                                <span className="text-xs">View</span>
+                              </a>
+                            )
                           ) : (
-                            <span className="text-xs text-gray-400">No receipt</span>
+                            <span className="text-xs text-gray-400">
+                              No receipt
+                            </span>
                           )}
                         </TableCell>
+
                         <TableCell>
-                          <Badge className={getStatusColor(expense.status || 'pending')}>
-                            {expense.status || 'pending'}
+                          <Badge
+                            className={getStatusColor(
+                              expense.status || "pending",
+                            )}
+                          >
+                            {expense.status || "pending"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => handleEdit(expense)}
                               data-testid={`button-edit-expense-${expense.id}`}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={() => handleDelete(expense.id)}
                               data-testid={`button-delete-expense-${expense.id}`}
@@ -471,21 +578,27 @@ export default function TechnicianExpenses() {
         </Card>
       </div>
 
-      {/* Expense Form Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={(open) => {
-        setIsDialogOpen(open);
-        if (!open) resetForm();
-      }}>
+      {/* Dialog Form */}
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) resetForm();
+        }}
+      >
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingExpense ? "Edit Expense" : "Add New Expense"}</DialogTitle>
+            <DialogTitle>
+              {editingExpense ? "Edit Expense" : "Add New Expense"}
+            </DialogTitle>
             <DialogDescription>
-              {editingExpense ? "Update expense details" : "Create a new expense entry with receipt upload"}
+              {editingExpense
+                ? "Update expense details"
+                : "Create a new expense entry with receipt upload"}
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Amount */}
             <div>
               <Label htmlFor="amount">Amount *</Label>
               <div className="relative">
@@ -504,7 +617,6 @@ export default function TechnicianExpenses() {
               </div>
             </div>
 
-            {/* Category */}
             <div>
               <Label htmlFor="category">Category *</Label>
               <Input
@@ -517,7 +629,6 @@ export default function TechnicianExpenses() {
               />
             </div>
 
-            {/* Fuel-Specific Fields (for gas receipts) */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="gallons">Gallons (Optional)</Label>
@@ -530,10 +641,14 @@ export default function TechnicianExpenses() {
                   placeholder="0.000"
                   data-testid="input-expense-gallons"
                 />
-                <p className="text-xs text-muted-foreground mt-1">For fuel/gas receipts</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  For fuel/gas receipts
+                </p>
               </div>
               <div>
-                <Label htmlFor="pricePerGallon">Price per Gallon (Optional)</Label>
+                <Label htmlFor="pricePerGallon">
+                  Price per Gallon (Optional)
+                </Label>
                 <Input
                   id="pricePerGallon"
                   name="pricePerGallon"
@@ -543,11 +658,12 @@ export default function TechnicianExpenses() {
                   placeholder="0.000"
                   data-testid="input-expense-price-per-gallon"
                 />
-                <p className="text-xs text-muted-foreground mt-1">For fuel/gas receipts</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  For fuel/gas receipts
+                </p>
               </div>
             </div>
 
-            {/* Description */}
             <div>
               <Label htmlFor="description">Description *</Label>
               <Textarea
@@ -561,7 +677,6 @@ export default function TechnicianExpenses() {
               />
             </div>
 
-            {/* Date */}
             <div>
               <Label htmlFor="expenseDate">Expense Date *</Label>
               <Input
@@ -569,16 +684,21 @@ export default function TechnicianExpenses() {
                 name="expenseDate"
                 type="date"
                 required
-                defaultValue={editingExpense?.expenseDate ? new Date(editingExpense.expenseDate).toISOString().split('T')[0] : ''}
+                defaultValue={
+                  editingExpense?.expenseDate
+                    ? new Date(editingExpense.expenseDate)
+                        .toISOString()
+                        .split("T")[0]
+                    : ""
+                }
                 data-testid="input-expense-date"
               />
             </div>
 
-            {/* Project (Optional) */}
             <div>
               <Label htmlFor="projectId">Project (Optional)</Label>
-              <Select 
-                value={selectedProjectId} 
+              <Select
+                value={selectedProjectId}
                 onValueChange={setSelectedProjectId}
               >
                 <SelectTrigger data-testid="select-expense-project">
@@ -592,43 +712,37 @@ export default function TechnicianExpenses() {
                   ))}
                 </SelectContent>
               </Select>
-              {/* Hidden input to submit project ID in FormData */}
-              <input 
-                type="hidden" 
-                name="projectId" 
-                value={selectedProjectId} 
-              />
+              <input type="hidden" name="projectId" value={selectedProjectId} />
             </div>
 
-            {/* Vendor */}
             <div>
               <Label htmlFor="vendor">Vendor</Label>
               <Input
                 id="vendor"
                 name="vendor"
-                defaultValue={editingExpense?.vendor || ''}
+                defaultValue={editingExpense?.vendor || ""}
                 placeholder="Store or vendor name"
                 data-testid="input-expense-vendor"
               />
             </div>
 
-            {/* Submitted By (Read-only) */}
             <div>
               <Label htmlFor="submittedBy">Submitted By</Label>
               <Input
                 id="submittedBy"
-                value={currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : ''}
+                value={
+                  currentUser
+                    ? `${currentUser.firstName} ${currentUser.lastName}`
+                    : ""
+                }
                 readOnly
                 className="bg-gray-50 dark:bg-gray-800 cursor-not-allowed"
                 data-testid="input-expense-submitter"
               />
             </div>
 
-            {/* Receipt Photo Upload */}
             <div className="space-y-3">
               <Label>Receipt Photo</Label>
-              
-              {/* Camera and File Upload Buttons */}
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -652,7 +766,6 @@ export default function TechnicianExpenses() {
                 </Button>
               </div>
 
-              {/* Hidden camera input (mobile will open camera) */}
               <input
                 ref={cameraInputRef}
                 type="file"
@@ -664,8 +777,6 @@ export default function TechnicianExpenses() {
                 }}
                 className="hidden"
               />
-
-              {/* Hidden file input */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -677,7 +788,6 @@ export default function TechnicianExpenses() {
                 className="hidden"
               />
 
-              {/* Image Preview */}
               {receiptPreview && (
                 <div className="relative border rounded-lg p-2">
                   <Button
@@ -706,25 +816,31 @@ export default function TechnicianExpenses() {
 
               {editingExpense?.receiptUrl && !receiptPreview && (
                 <p className="text-sm text-muted-foreground">
-                  Current receipt: <a href={editingExpense.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View</a>
+                  Current receipt:{" "}
+                  <a
+                    href={editingExpense.receiptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    View
+                  </a>
                 </p>
               )}
             </div>
 
-            {/* Notes */}
             <div>
               <Label htmlFor="notes">Notes (Optional)</Label>
               <Textarea
                 id="notes"
                 name="notes"
-                defaultValue={editingExpense?.notes || ''}
+                defaultValue={editingExpense?.notes || ""}
                 placeholder="Additional notes"
                 rows={2}
                 data-testid="input-expense-notes"
-              />
+              />fix 
             </div>
 
-            {/* Submit Button */}
             <div className="flex gap-2 pt-4">
               <Button
                 type="button"
@@ -741,16 +857,18 @@ export default function TechnicianExpenses() {
               <Button
                 type="submit"
                 className="flex-1"
-                disabled={createExpenseMutation.isPending || updateExpenseMutation.isPending}
+                disabled={
+                  createExpenseMutation.isPending ||
+                  updateExpenseMutation.isPending
+                }
                 data-testid="button-submit-expense"
               >
-                {createExpenseMutation.isPending || updateExpenseMutation.isPending ? (
-                  "Saving..."
-                ) : editingExpense ? (
-                  "Update Expense"
-                ) : (
-                  "Create Expense"
-                )}
+                {createExpenseMutation.isPending ||
+                updateExpenseMutation.isPending
+                  ? "Saving..."
+                  : editingExpense
+                    ? "Update Expense"
+                    : "Create Expense"}
               </Button>
             </div>
           </form>
