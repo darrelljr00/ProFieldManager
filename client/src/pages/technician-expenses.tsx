@@ -39,7 +39,6 @@ export default function TechnicianExpenses() {
   const [editingExpense, setEditingExpense] = useState<ExpenseWithDetails | null>(null);
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string>("");
-  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,7 +142,6 @@ export default function TechnicianExpenses() {
     setEditingExpense(null);
     setReceiptImage(null);
     setReceiptPreview("");
-    setUploadProgress(0);
     setSelectedProjectId("");
   };
 
@@ -151,25 +149,48 @@ export default function TechnicianExpenses() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    const formData = new FormData(form);
-
-    // Add receipt image if selected
-    if (receiptImage) {
-      formData.append("receipt", receiptImage);
-    }
-
-    // Add logged-in user's ID as the submitter
-    if (currentUser?.id) {
-      formData.append("userId", currentUser.id.toString());
-    }
     
-    // Mark this expense as created from technician expenses page
-    formData.append("source", "technician_expenses");
+    try {
+      let receiptUrl = editingExpense?.receiptUrl || null;
+      
+      // Upload receipt file first if a new one was selected
+      if (receiptImage) {
+        const fileFormData = new FormData();
+        fileFormData.append("file", receiptImage);
+        fileFormData.append("description", "Expense receipt");
+        
+        const uploadResponse = await apiRequest("POST", "/api/files/upload", fileFormData);
+        const uploadResult = await uploadResponse.json();
+        receiptUrl = uploadResult.url;
+      }
 
-    if (editingExpense) {
-      updateExpenseMutation.mutate({ id: editingExpense.id, formData });
-    } else {
-      createExpenseMutation.mutate(formData);
+      // Prepare expense data
+      const formData = new FormData(form);
+      
+      // Add receipt URL if we have one
+      if (receiptUrl) {
+        formData.append("receiptUrl", receiptUrl);
+      }
+
+      // Add logged-in user's ID as the submitter
+      if (currentUser?.id) {
+        formData.append("userId", currentUser.id.toString());
+      }
+      
+      // Mark this expense as created from technician expenses page
+      formData.append("source", "technician_expenses");
+
+      if (editingExpense) {
+        updateExpenseMutation.mutate({ id: editingExpense.id, formData });
+      } else {
+        createExpenseMutation.mutate(formData);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload receipt",
+        variant: "destructive",
+      });
     }
   };
 
