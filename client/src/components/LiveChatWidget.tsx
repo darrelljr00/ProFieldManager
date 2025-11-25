@@ -56,7 +56,8 @@ export function LiveChatWidget() {
     '/api', '/login', '/signup', '/logout', '/screen-sharing', '/mobile-test',
     '/parts-supplies', '/call-manager', '/file-security', '/frontend-management',
     '/slider-management', '/popup-management', '/live-chat-management', '/weather',
-    '/reviews', '/market-research', '/image-gallery', '/sms', '/messages', '/geofences'
+    '/reviews', '/market-research', '/image-gallery', '/sms', '/messages', '/geofences',
+    '/website-analytics', '/deploy-cwp', '/deleted-jobs', '/cancelled-jobs'
   ];
 
   // Resolve organization ID from URL path on mount

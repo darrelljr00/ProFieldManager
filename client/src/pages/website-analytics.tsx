@@ -152,12 +152,12 @@ function getDeviceIcon(deviceType: string | null) {
 }
 
 export default function WebsiteAnalytics() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [period, setPeriod] = useState("7d");
   const [settingsData, setSettingsData] = useState<Partial<AnalyticsSettings>>({});
 
-  // Fetch traffic overview
+  // All hooks must be called unconditionally before any returns
   const { data: overview, isLoading: overviewLoading, refetch: refetchOverview } = useQuery<TrafficOverview>({
     queryKey: ["/api/analytics/traffic-overview", period],
     queryFn: async () => {
@@ -165,19 +165,19 @@ export default function WebsiteAnalytics() {
       if (!res.ok) throw new Error("Failed to fetch traffic overview");
       return res.json();
     },
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60000,
+    enabled: !!isAdmin,
   });
 
-  // Fetch current visitors
   const { data: currentVisitors, isLoading: visitorsLoading, refetch: refetchVisitors } = useQuery<{
     activeCount: number;
     visitors: ActiveVisitor[];
   }>({
     queryKey: ["/api/analytics/current-visitors"],
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 10000,
+    enabled: !!isAdmin,
   });
 
-  // Fetch top pages
   const { data: topPages, isLoading: pagesLoading } = useQuery<TopPage[]>({
     queryKey: ["/api/analytics/top-pages", period],
     queryFn: async () => {
@@ -185,9 +185,9 @@ export default function WebsiteAnalytics() {
       if (!res.ok) throw new Error("Failed to fetch top pages");
       return res.json();
     },
+    enabled: !!isAdmin,
   });
 
-  // Fetch traffic sources
   const { data: sources } = useQuery<{ source: string; sessions: number; visitors: number }[]>({
     queryKey: ["/api/analytics/traffic-sources", period],
     queryFn: async () => {
@@ -195,9 +195,9 @@ export default function WebsiteAnalytics() {
       if (!res.ok) throw new Error("Failed to fetch traffic sources");
       return res.json();
     },
+    enabled: !!isAdmin,
   });
 
-  // Fetch device breakdown
   const { data: deviceData } = useQuery<{
     devices: { deviceType: string; count: number }[];
     browsers: { browser: string; count: number }[];
@@ -208,9 +208,9 @@ export default function WebsiteAnalytics() {
       if (!res.ok) throw new Error("Failed to fetch device breakdown");
       return res.json();
     },
+    enabled: !!isAdmin,
   });
 
-  // Fetch timeline data
   const { data: timeline } = useQuery<{ date: string; pageViews: number; uniqueVisitors: number }[]>({
     queryKey: ["/api/analytics/pageviews-timeline", period],
     queryFn: async () => {
@@ -218,14 +218,14 @@ export default function WebsiteAnalytics() {
       if (!res.ok) throw new Error("Failed to fetch timeline");
       return res.json();
     },
+    enabled: !!isAdmin,
   });
 
-  // Fetch settings
   const { data: settings } = useQuery<AnalyticsSettings>({
     queryKey: ["/api/analytics/settings"],
+    enabled: !!isAdmin,
   });
 
-  // Update settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: Partial<AnalyticsSettings>) => {
       const res = await apiRequest("POST", "/api/analytics/settings", data);
@@ -254,6 +254,31 @@ export default function WebsiteAnalytics() {
     refetchOverview();
     refetchVisitors();
   };
+
+  // Admin-only access check - AFTER all hooks
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>
+              You don't have permission to access the Analytics dashboard.
+              This feature is only available to administrators.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">

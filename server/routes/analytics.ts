@@ -8,6 +8,7 @@ import {
   insertAnalyticsSettingsSchema
 } from "@shared/schema";
 import { eq, and, desc, sql, gte, count } from "drizzle-orm";
+import { requireAuth } from "../auth";
 
 const router = Router();
 
@@ -87,7 +88,7 @@ router.post("/track-pageview", async (req: Request, res: Response) => {
 });
 
 // Get analytics settings
-router.get("/settings", async (req: Request, res: Response) => {
+router.get("/settings", requireAuth, async (req: Request, res: Response) => {
   try {
     const user = req.user as any;
     if (!user?.organizationId) {
@@ -123,7 +124,7 @@ router.get("/settings", async (req: Request, res: Response) => {
 });
 
 // Update analytics settings
-router.post("/settings", async (req: Request, res: Response) => {
+router.post("/settings", requireAuth, async (req: Request, res: Response) => {
   try {
     const user = req.user as any;
     if (!user?.organizationId) {
@@ -162,7 +163,7 @@ router.post("/settings", async (req: Request, res: Response) => {
 });
 
 // Get current active visitors
-router.get("/current-visitors", async (req: Request, res: Response) => {
+router.get("/current-visitors", requireAuth, async (req: Request, res: Response) => {
   try {
     const user = req.user as any;
     if (!user?.organizationId) {
@@ -209,7 +210,7 @@ router.get("/current-visitors", async (req: Request, res: Response) => {
 });
 
 // Get traffic overview stats
-router.get("/traffic-overview", async (req: Request, res: Response) => {
+router.get("/traffic-overview", requireAuth, async (req: Request, res: Response) => {
   try {
     const user = req.user as any;
     if (!user?.organizationId) {
@@ -315,7 +316,7 @@ router.get("/traffic-overview", async (req: Request, res: Response) => {
 });
 
 // Get top pages
-router.get("/top-pages", async (req: Request, res: Response) => {
+router.get("/top-pages", requireAuth, async (req: Request, res: Response) => {
   try {
     const user = req.user as any;
     if (!user?.organizationId) {
@@ -367,7 +368,7 @@ router.get("/top-pages", async (req: Request, res: Response) => {
 });
 
 // Get traffic sources
-router.get("/traffic-sources", async (req: Request, res: Response) => {
+router.get("/traffic-sources", requireAuth, async (req: Request, res: Response) => {
   try {
     const user = req.user as any;
     if (!user?.organizationId) {
@@ -416,7 +417,7 @@ router.get("/traffic-sources", async (req: Request, res: Response) => {
 });
 
 // Get device breakdown
-router.get("/device-breakdown", async (req: Request, res: Response) => {
+router.get("/device-breakdown", requireAuth, async (req: Request, res: Response) => {
   try {
     const user = req.user as any;
     if (!user?.organizationId) {
@@ -479,7 +480,7 @@ router.get("/device-breakdown", async (req: Request, res: Response) => {
 });
 
 // Get page views over time (for charts)
-router.get("/pageviews-timeline", async (req: Request, res: Response) => {
+router.get("/pageviews-timeline", requireAuth, async (req: Request, res: Response) => {
   try {
     const user = req.user as any;
     if (!user?.organizationId) {

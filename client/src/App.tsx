@@ -261,8 +261,8 @@ function AuthenticatedApp() {
           {isAdmin && <Route path="/popup-management" component={PopupManagement} />}
           <Route path="/live-chat-management" component={LiveChatManagement} />
           <Route path="/settings" component={Settings} />
-          {isAdmin && <Route path="/deploy-cwp" component={DeployCWP} />}
-          {isAdmin && <Route path="/website-analytics" component={WebsiteAnalytics} />}
+          <Route path="/deploy-cwp" component={DeployCWP} />
+          <Route path="/website-analytics" component={WebsiteAnalytics} />
           <Route path="/reports" component={Reports} />
           <Route path="/logout" component={Logout} />
           <Route component={NotFound} />
