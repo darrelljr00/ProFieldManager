@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { Rocket } from "lucide-react";
 import {
   FileText,
   BarChart3,
@@ -797,6 +798,7 @@ export function Sidebar() {
         { name: "General Settings", href: "/admin-settings", icon: Settings },
         { name: "File Security", href: "/file-security", icon: Shield },
         { name: "Mobile Test", href: "/mobile-test", icon: Smartphone },
+        { name: "Deploy to CWP", href: "/deploy-cwp", icon: Rocket },
         {
           name: "Expense Categories",
           href: "/expense-category-management",
