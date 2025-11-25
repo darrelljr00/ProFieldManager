@@ -6275,3 +6275,39 @@ export const insertLiveChatSettingsSchema = createInsertSchema(liveChatSettings)
 
 export type LiveChatSettings = typeof liveChatSettings.$inferSelect;
 export type InsertLiveChatSettings = z.infer<typeof insertLiveChatSettingsSchema>;
+
+// CWP Deployment System
+export const deployments = pgTable("deployments", {
+  id: serial("id").primaryKey(),
+  jobId: text("job_id").notNull().unique(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  projectId: text("project_id").notNull(),
+  
+  // Server Configuration
+  serverHost: text("server_host").notNull(),
+  serverUser: text("server_user").notNull(),
+  serverPort: integer("server_port").default(22),
+  remotePath: text("remote_path").notNull(),
+  localBuildPath: text("local_build_path").notNull(),
+  
+  // Status and Logs
+  status: text("status").notNull().default("pending"), // pending, running, success, failed
+  logs: text("logs"),
+  errorMessage: text("error_message"),
+  
+  // Timing
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertDeploymentSchema = createInsertSchema(deployments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Deployment = typeof deployments.$inferSelect;
+export type InsertDeployment = z.infer<typeof insertDeploymentSchema>;
