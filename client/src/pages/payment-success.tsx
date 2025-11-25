@@ -2,6 +2,7 @@ import { useLocation, Link } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, FileText, Home } from "lucide-react";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 export default function PaymentSuccess() {
   const [location] = useLocation();
@@ -9,6 +10,8 @@ export default function PaymentSuccess() {
   const type = params.get('type'); // 'invoice' or 'quote'
   const id = params.get('id');
   const paymentIntentId = params.get('pi');
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">

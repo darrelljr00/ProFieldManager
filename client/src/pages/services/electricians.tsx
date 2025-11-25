@@ -6,8 +6,11 @@ import { SEOHead } from "@/components/seo-head";
 import { PublicPageHeader } from "@/components/PublicPageHeader";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 export default function ElectriciansPage() {
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
+  
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <PublicPageHeader />

@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { authenticateUser, isCustomDomain } from "@/lib/api-config";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 export default function UniversalLogin() {
   const [username, setUsername] = useState("sales@texaspowerwash.net");
@@ -11,6 +12,8 @@ export default function UniversalLogin() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
   // Cross-domain authentication detection for custom domain
   useEffect(() => {

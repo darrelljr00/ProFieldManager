@@ -6,6 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle, Calendar as CalendarIcon, Clock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 interface SelectedTime {
   date: string;
@@ -28,6 +29,8 @@ export default function QuoteAvailabilityPage() {
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [timeSelections, setTimeSelections] = useState<Record<string, string[]>>({});
   const { toast } = useToast();
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
   
   const token = params?.token;
 

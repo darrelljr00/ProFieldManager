@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 interface FrontendComponent {
   id: number;
@@ -165,6 +166,8 @@ function ComponentRenderer({ component }: { component: FrontendComponent }) {
 export default function FrontendPageRenderer() {
   const params = useParams();
   const { orgSlug, pageSlug } = params as { orgSlug: string; pageSlug: string };
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
   const { data: page, isLoading, error } = useQuery<FrontendPage>({
     queryKey: ['/api/public/pages', orgSlug, pageSlug],

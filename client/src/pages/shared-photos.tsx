@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download, Eye, Clock, User, MessageSquare, ArrowLeft, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 interface SharedPhoto {
   id: number;
@@ -40,6 +41,8 @@ export default function SharedPhotosViewer() {
   const [, params] = useRoute("/shared/:token");
   const [selectedImage, setSelectedImage] = useState<SharedPhoto | null>(null);
   const token = params?.token;
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
   console.log('🔗 SharedPhotosViewer - Route params:', { params: params || null, token, currentPath: window.location.pathname });
 

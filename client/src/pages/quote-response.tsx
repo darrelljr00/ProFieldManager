@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, XCircle, Clock, FileText, DollarSign, Calendar, AlertCircle } from "lucide-react";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 interface QuoteData {
   id: number;
@@ -42,6 +43,8 @@ export default function QuoteResponsePage() {
   const [responding, setResponding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
   
   const action = params?.action; // 'approve' or 'deny'
   const token = params?.token;

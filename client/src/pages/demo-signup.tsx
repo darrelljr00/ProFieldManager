@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Rocket, CheckCircle, Building2, Users, TrendingUp, Clock, Shield, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 const demoSignupSchema = registerSchema.extend({
   organizationName: z.string().min(1, "Business name is required"),
@@ -34,6 +35,8 @@ export default function DemoSignupPage() {
   const queryClient = useQueryClient();
   const [currentSlide, setCurrentSlide] = useState(0);
   const { data: slides = [], isLoading: slidesLoading } = useHeroSlides();
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
   const form = useForm<DemoSignupFormValues>({
     resolver: zodResolver(demoSignupSchema),

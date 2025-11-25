@@ -20,6 +20,7 @@ import {
 import { Eye, EyeOff, Lock, User, UserPlus, AlertCircle, MapPin } from "lucide-react";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 interface LoginData {
   username: string;
@@ -56,6 +57,8 @@ export default function LoginPage() {
   const [isDemoSignup, setIsDemoSignup] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
   // Check for demo parameter in URL and auto-open registration dialog
   useEffect(() => {

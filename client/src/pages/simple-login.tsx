@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin } from "lucide-react";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 interface LoginData {
   username: string;
@@ -24,6 +25,8 @@ export default function SimpleLogin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
   
   // Get intended destination from URL params or localStorage
   const getIntendedDestination = () => {

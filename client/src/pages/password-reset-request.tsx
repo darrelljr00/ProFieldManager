@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 export default function PasswordResetRequest() {
   const [, setLocation] = useLocation();
@@ -8,6 +9,8 @@ export default function PasswordResetRequest() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

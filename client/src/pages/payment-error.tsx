@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { XCircle, AlertCircle, ArrowLeft } from "lucide-react";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 export default function PaymentError() {
   const [location] = useLocation();
@@ -11,6 +12,8 @@ export default function PaymentError() {
   const type = params.get('type');
   const id = params.get('id');
   const orgSlug = params.get('org');
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
   const handleTryAgain = () => {
     if (type && id && orgSlug) {

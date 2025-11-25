@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, Mail, Phone, MapPin, Calendar, FileText, Loader2, CheckCircle2, AlertCircle, CreditCard, Lock } from "lucide-react";
 import { format } from "date-fns";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 export default function PublicQuotePayment() {
   const [, params] = useRoute("/:orgSlug/quote/:quoteId/pay");
@@ -15,6 +16,8 @@ export default function PublicQuotePayment() {
   const { orgSlug, quoteId } = params as { orgSlug: string; quoteId: string } || {};
   const [processing, setProcessing] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
   
   // Check if payment was cancelled
   const cancelled = new URLSearchParams(location.split('?')[1]).get('cancelled');

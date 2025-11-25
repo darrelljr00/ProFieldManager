@@ -27,6 +27,7 @@ import { Link } from "wouter";
 import { useHeroSlides } from "@/hooks/useHeroSlides";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 const subscriptionPlans = [
   {
@@ -86,6 +87,8 @@ export default function FeaturesPage() {
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const { toast } = useToast();
   const { data: heroSlides = [], isLoading } = useHeroSlides();
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
   // Auto-advance slides
   useEffect(() => {

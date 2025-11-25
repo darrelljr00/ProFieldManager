@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 export default function PasswordResetComplete() {
   const [, setLocation] = useLocation();
@@ -12,6 +13,8 @@ export default function PasswordResetComplete() {
   const [validToken, setValidToken] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [token, setToken] = useState("");
+  
+  useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
