@@ -278,8 +278,25 @@ router.post("/api/deploy", async (req: Request, res: Response) => {
   }
 });
 
+function verifyDeployTokenFromQuery(req: Request): boolean {
+  const token = req.query.token as string;
+  const deployToken = process.env.DEPLOY_API_TOKEN;
+  
+  if (!deployToken) {
+    console.warn("DEPLOY_API_TOKEN not configured");
+    return false;
+  }
+  
+  return token === deployToken;
+}
+
 router.get("/api/deploy/logs/:jobId", (req: Request, res: Response) => {
   const { jobId } = req.params;
+  
+  if (!verifyDeployTokenFromQuery(req)) {
+    res.status(401).json({ error: "Unauthorized. Invalid or missing token." });
+    return;
+  }
   
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');

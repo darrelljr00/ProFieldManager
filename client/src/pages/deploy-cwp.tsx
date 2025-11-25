@@ -88,14 +88,21 @@ function formatDate(dateString: string | undefined) {
   return new Date(dateString).toLocaleString();
 }
 
-function DeployLogs({ jobId, onClose }: { jobId: string; onClose: () => void }) {
+function DeployLogs({ jobId, token, onClose }: { jobId: string; token: string; onClose: () => void }) {
   const [logs, setLogs] = useState<string[]>([]);
   const [status, setStatus] = useState<string>("connecting");
   const [isComplete, setIsComplete] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const eventSource = new EventSource(`/api/deploy/logs/${jobId}`);
+    if (!token) {
+      setLogs(["ERROR: No deploy token provided. Cannot stream logs."]);
+      setStatus("failed");
+      setIsComplete(true);
+      return;
+    }
+    
+    const eventSource = new EventSource(`/api/deploy/logs/${jobId}?token=${encodeURIComponent(token)}`);
     
     eventSource.onmessage = (event) => {
       try {
@@ -127,7 +134,7 @@ function DeployLogs({ jobId, onClose }: { jobId: string; onClose: () => void }) 
     return () => {
       eventSource.close();
     };
-  }, [jobId]);
+  }, [jobId, token]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -174,10 +181,34 @@ function DeployLogs({ jobId, onClose }: { jobId: string; onClose: () => void }) 
   );
 }
 
-function DeployHistory({ onViewLogs }: { onViewLogs: (jobId: string) => void }) {
+function DeployHistory({ onViewLogs }: { onViewLogs: (jobId: string, token: string) => void }) {
+  const { toast } = useToast();
   const { data, isLoading, refetch } = useQuery<{ deployments: Deployment[] }>({
     queryKey: ["/api/deploy/history"],
   });
+  const [selectedDeployment, setSelectedDeployment] = useState<string | null>(null);
+  const [tokenInput, setTokenInput] = useState("");
+
+  const handleViewLogs = (jobId: string) => {
+    setSelectedDeployment(jobId);
+    setTokenInput("");
+  };
+
+  const handleConfirmViewLogs = () => {
+    if (!tokenInput.trim()) {
+      toast({
+        title: "Token Required",
+        description: "Please enter the deploy token to view logs.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (selectedDeployment) {
+      onViewLogs(selectedDeployment, tokenInput);
+      setSelectedDeployment(null);
+      setTokenInput("");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -230,7 +261,7 @@ function DeployHistory({ onViewLogs }: { onViewLogs: (jobId: string) => void }) 
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => onViewLogs(deployment.jobId)}
+                  onClick={() => handleViewLogs(deployment.jobId)}
                   data-testid={`view-logs-${deployment.jobId}`}
                 >
                   <Eye className="h-4 w-4 mr-1" />
@@ -252,11 +283,43 @@ function DeployHistory({ onViewLogs }: { onViewLogs: (jobId: string) => void }) 
           </Card>
         ))}
       </div>
+
+      <Dialog open={!!selectedDeployment} onOpenChange={() => setSelectedDeployment(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enter Deploy Token</DialogTitle>
+            <DialogDescription>
+              Enter your deploy token to view the logs for this deployment.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="historyToken">Deploy Token</Label>
+              <Input
+                id="historyToken"
+                type="password"
+                placeholder="Enter deploy token"
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                data-testid="input-history-token"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedDeployment(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmViewLogs}>
+              View Logs
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function DeployForm({ onDeploy }: { onDeploy: (jobId: string) => void }) {
+function DeployForm({ onDeploy }: { onDeploy: (jobId: string, token: string) => void }) {
   const { toast } = useToast();
   const [config, setConfig] = useState<DeployConfig>(() => {
     const saved = localStorage.getItem("cwp_deploy_config");
@@ -329,7 +392,7 @@ function DeployForm({ onDeploy }: { onDeploy: (jobId: string) => void }) {
         description: `Job ID: ${data.jobId}`,
       });
 
-      onDeploy(data.jobId);
+      onDeploy(data.jobId, config.deployToken);
       queryClient.refetchQueries({ queryKey: ["/api/deploy/history"] });
 
     } catch (error: any) {
@@ -546,7 +609,11 @@ function SetupInstructions() {
 }
 
 export default function DeployCWP() {
-  const [activeLogJobId, setActiveLogJobId] = useState<string | null>(null);
+  const [activeLog, setActiveLog] = useState<{ jobId: string; token: string } | null>(null);
+  
+  const handleDeploy = (jobId: string, token: string) => {
+    setActiveLog({ jobId, token });
+  };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -584,11 +651,11 @@ export default function DeployCWP() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <DeployForm onDeploy={setActiveLogJobId} />
+              <DeployForm onDeploy={handleDeploy} />
             </CardContent>
           </Card>
 
-          {activeLogJobId && (
+          {activeLog && (
             <Card className="mt-4">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -598,8 +665,9 @@ export default function DeployCWP() {
               </CardHeader>
               <CardContent>
                 <DeployLogs 
-                  jobId={activeLogJobId} 
-                  onClose={() => setActiveLogJobId(null)} 
+                  jobId={activeLog.jobId} 
+                  token={activeLog.token}
+                  onClose={() => setActiveLog(null)} 
                 />
               </CardContent>
             </Card>
@@ -615,12 +683,12 @@ export default function DeployCWP() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <DeployHistory onViewLogs={setActiveLogJobId} />
+              <DeployHistory onViewLogs={handleDeploy} />
             </CardContent>
           </Card>
 
-          {activeLogJobId && (
-            <Dialog open={!!activeLogJobId} onOpenChange={() => setActiveLogJobId(null)}>
+          {activeLog && (
+            <Dialog open={!!activeLog} onOpenChange={() => setActiveLog(null)}>
               <DialogContent className="max-w-3xl">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
@@ -629,8 +697,9 @@ export default function DeployCWP() {
                   </DialogTitle>
                 </DialogHeader>
                 <DeployLogs 
-                  jobId={activeLogJobId} 
-                  onClose={() => setActiveLogJobId(null)} 
+                  jobId={activeLog.jobId}
+                  token={activeLog.token}
+                  onClose={() => setActiveLog(null)} 
                 />
               </DialogContent>
             </Dialog>
