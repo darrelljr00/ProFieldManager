@@ -92,6 +92,7 @@ import Notifications from "@/pages/notifications";
 import ScreenSharing from "@/pages/screen-sharing";
 import Logout from "@/pages/logout";
 import DeployCWP from "@/pages/deploy-cwp";
+import WebsiteAnalytics from "@/pages/website-analytics";
 import { HelpButton } from "@/components/help-button";
 import { MobileSensorTracker } from "@/components/MobileSensorTracker";
 import { LiveChatWidget } from "@/components/LiveChatWidget";
@@ -261,6 +262,7 @@ function AuthenticatedApp() {
           <Route path="/live-chat-management" component={LiveChatManagement} />
           <Route path="/settings" component={Settings} />
           {isAdmin && <Route path="/deploy-cwp" component={DeployCWP} />}
+          {isAdmin && <Route path="/website-analytics" component={WebsiteAnalytics} />}
           <Route path="/reports" component={Reports} />
           <Route path="/logout" component={Logout} />
           <Route component={NotFound} />

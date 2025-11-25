@@ -786,6 +786,7 @@ export function Sidebar() {
         { name: "Slider Management", href: "/slider-management", icon: Image },
         { name: "Pop-ups", href: "/popup-management", icon: MessageSquare },
         { name: "Live Chat", href: "/live-chat-management", icon: MessageCircle },
+        { name: "Analytics", href: "/website-analytics", icon: BarChart3 },
       ],
     },
     {

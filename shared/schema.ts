@@ -6311,3 +6311,140 @@ export const insertDeploymentSchema = createInsertSchema(deployments).omit({
 
 export type Deployment = typeof deployments.$inferSelect;
 export type InsertDeployment = z.infer<typeof insertDeploymentSchema>;
+
+// Website Analytics - Page Views
+export const analyticsPageViews = pgTable("analytics_page_views", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Page info
+  pagePath: text("page_path").notNull(),
+  pageTitle: text("page_title"),
+  referrer: text("referrer"),
+  
+  // Visitor info
+  visitorId: text("visitor_id").notNull(), // Anonymous session ID
+  sessionId: text("session_id").notNull(),
+  userAgent: text("user_agent"),
+  ipAddress: text("ip_address"),
+  
+  // Location (from IP)
+  country: text("country"),
+  city: text("city"),
+  region: text("region"),
+  
+  // Device info
+  deviceType: text("device_type"), // desktop, mobile, tablet
+  browser: text("browser"),
+  os: text("os"),
+  
+  // UTM tracking
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  utmTerm: text("utm_term"),
+  utmContent: text("utm_content"),
+  
+  // Time tracking
+  timeOnPage: integer("time_on_page"), // seconds
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAnalyticsPageViewSchema = createInsertSchema(analyticsPageViews).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AnalyticsPageView = typeof analyticsPageViews.$inferSelect;
+export type InsertAnalyticsPageView = z.infer<typeof insertAnalyticsPageViewSchema>;
+
+// Website Analytics - Visitor Sessions
+export const analyticsVisitorSessions = pgTable("analytics_visitor_sessions", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  visitorId: text("visitor_id").notNull(),
+  sessionId: text("session_id").notNull().unique(),
+  
+  // Session info
+  startTime: timestamp("start_time").notNull().defaultNow(),
+  endTime: timestamp("end_time"),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  isActive: boolean("is_active").default(true),
+  
+  // First page
+  landingPage: text("landing_page").notNull(),
+  exitPage: text("exit_page"),
+  
+  // Visitor info
+  userAgent: text("user_agent"),
+  ipAddress: text("ip_address"),
+  country: text("country"),
+  city: text("city"),
+  
+  // Device
+  deviceType: text("device_type"),
+  browser: text("browser"),
+  os: text("os"),
+  
+  // Stats
+  pageViewCount: integer("page_view_count").default(0),
+  totalDuration: integer("total_duration").default(0), // seconds
+  
+  // UTM
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAnalyticsVisitorSessionSchema = createInsertSchema(analyticsVisitorSessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type AnalyticsVisitorSession = typeof analyticsVisitorSessions.$inferSelect;
+export type InsertAnalyticsVisitorSession = z.infer<typeof insertAnalyticsVisitorSessionSchema>;
+
+// Website Analytics Settings
+export const analyticsSettings = pgTable("analytics_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id).unique(),
+  
+  // Internal tracking
+  enableInternalTracking: boolean("enable_internal_tracking").default(true),
+  trackPageViews: boolean("track_page_views").default(true),
+  trackVisitorSessions: boolean("track_visitor_sessions").default(true),
+  
+  // Google Analytics
+  enableGoogleAnalytics: boolean("enable_google_analytics").default(false),
+  googleAnalyticsMeasurementId: text("google_analytics_measurement_id"), // G-XXXXXXXXXX
+  
+  // Facebook Pixel
+  enableFacebookPixel: boolean("enable_facebook_pixel").default(false),
+  facebookPixelId: text("facebook_pixel_id"),
+  
+  // Privacy settings
+  anonymizeIp: boolean("anonymize_ip").default(true),
+  respectDoNotTrack: boolean("respect_do_not_track").default(true),
+  cookieConsentRequired: boolean("cookie_consent_required").default(false),
+  
+  // Data retention
+  dataRetentionDays: integer("data_retention_days").default(365),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAnalyticsSettingsSchema = createInsertSchema(analyticsSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type AnalyticsSettings = typeof analyticsSettings.$inferSelect;
+export type InsertAnalyticsSettings = z.infer<typeof insertAnalyticsSettingsSchema>;

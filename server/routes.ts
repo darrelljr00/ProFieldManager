@@ -93,6 +93,7 @@ import { ensureOrganizationFolders, createOrganizationFolders } from "./folderCr
 import { Client } from '@googlemaps/google-maps-services-js';
 import marketResearchRouter from "./marketResearch";
 import deployRouter from "./routes/deploy";
+import analyticsRouter from "./routes/analytics";
 import { s3Service } from "./s3Service";
 import { fileManager } from "./fileManager";
 import { CloudinaryService } from "./cloudinary";
@@ -1137,6 +1138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register deploy routes for CWP deployment
   app.use(deployRouter);
+  app.use("/api/analytics", analyticsRouter);
   const httpServer = createServer(app);
 
   // WebSocket server for real-time updates
