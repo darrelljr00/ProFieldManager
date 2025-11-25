@@ -1,0 +1,184 @@
+Build a complete “Deploy to CWP” system inside my project. Follow these steps very strictly:
+
+1. Create backend API for deployments
+
+Create a new folder:
+/deploy
+
+Create a file:
+/deploy/deployController.js
+
+Inside, implement:
+
+POST /api/deploy
+
+Auth protected (simple token from ENV: DEPLOY_API_TOKEN)
+
+Request body:
+
+{
+  "projectId": "string",
+  "server": {
+    "host": "string",
+    "user": "string",
+    "port": number,
+    "remotePath": "string"
+  },
+  "localBuildPath": "string"
+}
+
+
+When this endpoint is hit:
+
+Read SSH private key from ENV DEPLOY_SSH_KEY
+
+Write it temporarily to /tmp/deploy_key with chmod 600
+
+Run an rsync command:
+
+rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i /tmp/deploy_key -p PORT" LOCAL_PATH/ USER@HOST:REMOTE_PATH/
+
+
+Save deploy logs into /deploy/logs/<timestamp>.log
+
+Respond { status: "started", jobId }
+
+Enable log streaming
+
+Create GET /api/deploy/logs/:jobId
+
+Stream (SSE / plain text) the log file in real time while deploy is happening.
+
+2. Register the API routes
+
+Create /deploy/index.js exporting a function that attaches routes to Express:
+
+import { deployHandler, deployLogs } from "./deployController.js";
+
+export default function registerDeployRoutes(app) {
+  app.post("/api/deploy", deployHandler);
+  app.get("/api/deploy/logs/:jobId", deployLogs);
+}
+
+
+Then import & use inside main server.js:
+
+import registerDeployRoutes from "./deploy/index.js";
+registerDeployRoutes(app);
+
+3. Add ENV variables
+
+Update .env:
+
+DEPLOY_API_TOKEN=your_token_here
+DEPLOY_SSH_KEY=---BEGIN PRIVATE KEY---\nXXXX\n---END PRIVATE KEY---
+
+
+Note:
+
+Store SSH key exactly as multiline or base64.
+
+DO NOT commit key in Git.
+
+4. Create Deployment UI on the dashboard
+
+Inside React dashboard (or wherever frontend lives):
+
+Add a “Deploy” button
+
+Create:
+/src/components/DeployButton.jsx
+
+Implement:
+
+A button labeled “Deploy to CWP”
+
+On click → call:
+
+POST /api/deploy
+{
+  projectId: "main",
+  server: {
+    host: "CWP_SERVER_IP",
+    user: "DEPLOY_USER",
+    port: 22,
+    remotePath: "/home/USERNAME/public_html/PROJECT"
+  },
+  localBuildPath: "./build"
+}
+
+
+After response → open a modal or side panel to show logs.
+
+5. Create live logs viewer
+
+Create:
+/src/components/DeployLogs.jsx
+
+Implement:
+
+Fetch /api/deploy/logs/:jobId
+
+Show real-time output like a terminal UI
+
+Auto-scroll to bottom
+
+Handle status: running, success, failed
+
+6. Show Deploy History
+
+Create:
+/deploy/history.json or use DB table later.
+
+System should append every deploy event:
+
+{
+  jobId,
+  projectId,
+  timestamp,
+  server,
+  status
+}
+
+
+Create route:
+GET /api/deploy/history
+
+Create UI:
+/src/components/DeployHistory.jsx
+
+7. Must follow these requirements
+
+Use Node + Express on backend
+
+Use rsync over SSH, not FTP
+
+Log everything to /deploy/logs
+
+Use SSE or simple streaming
+
+No TypeScript unless codebase already in TS
+
+Make everything plug-and-play
+
+Keep code clean and well commented
+
+After finishing, test full flow:
+
+Click Deploy → API request fires
+
+Deploy job runs rsync
+
+Logs stream to UI
+
+Deploy history is updated
+
+8. Final step
+
+After coding everything:
+
+Verify build folder deploys correctly to CWP
+
+Confirm SSH key works
+
+Print test instructions so I can verify deployment
