@@ -12,6 +12,9 @@ import { requireAuth } from "../auth";
 
 const router = Router();
 
+// Platform organization ID for profieldmanager.com analytics
+const PLATFORM_ORG_ID = 4;
+
 // Track page view (public endpoint for tracking script)
 router.post("/track-pageview", async (req: Request, res: Response) => {
   try {
@@ -165,11 +168,6 @@ router.post("/settings", requireAuth, async (req: Request, res: Response) => {
 // Get current active visitors
 router.get("/current-visitors", requireAuth, async (req: Request, res: Response) => {
   try {
-    const user = req.user as any;
-    if (!user?.organizationId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
     // Consider sessions active if last activity was within 5 minutes
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
@@ -192,7 +190,7 @@ router.get("/current-visitors", requireAuth, async (req: Request, res: Response)
       .from(analyticsVisitorSessions)
       .where(
         and(
-          eq(analyticsVisitorSessions.organizationId, user.organizationId),
+          eq(analyticsVisitorSessions.organizationId, PLATFORM_ORG_ID),
           gte(analyticsVisitorSessions.lastActivityAt, fiveMinutesAgo)
         )
       )
@@ -212,11 +210,6 @@ router.get("/current-visitors", requireAuth, async (req: Request, res: Response)
 // Get traffic overview stats
 router.get("/traffic-overview", requireAuth, async (req: Request, res: Response) => {
   try {
-    const user = req.user as any;
-    if (!user?.organizationId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
     const period = req.query.period as string || '7d';
     
     let startDate: Date;
@@ -243,7 +236,7 @@ router.get("/traffic-overview", requireAuth, async (req: Request, res: Response)
       .from(analyticsPageViews)
       .where(
         and(
-          eq(analyticsPageViews.organizationId, user.organizationId),
+          eq(analyticsPageViews.organizationId, PLATFORM_ORG_ID),
           gte(analyticsPageViews.createdAt, startDate)
         )
       );
@@ -254,7 +247,7 @@ router.get("/traffic-overview", requireAuth, async (req: Request, res: Response)
       .from(analyticsPageViews)
       .where(
         and(
-          eq(analyticsPageViews.organizationId, user.organizationId),
+          eq(analyticsPageViews.organizationId, PLATFORM_ORG_ID),
           gte(analyticsPageViews.createdAt, startDate)
         )
       );
@@ -265,7 +258,7 @@ router.get("/traffic-overview", requireAuth, async (req: Request, res: Response)
       .from(analyticsVisitorSessions)
       .where(
         and(
-          eq(analyticsVisitorSessions.organizationId, user.organizationId),
+          eq(analyticsVisitorSessions.organizationId, PLATFORM_ORG_ID),
           gte(analyticsVisitorSessions.startTime, startDate)
         )
       );
@@ -278,7 +271,7 @@ router.get("/traffic-overview", requireAuth, async (req: Request, res: Response)
       .from(analyticsVisitorSessions)
       .where(
         and(
-          eq(analyticsVisitorSessions.organizationId, user.organizationId),
+          eq(analyticsVisitorSessions.organizationId, PLATFORM_ORG_ID),
           gte(analyticsVisitorSessions.startTime, startDate)
         )
       );
@@ -292,7 +285,7 @@ router.get("/traffic-overview", requireAuth, async (req: Request, res: Response)
       .from(analyticsVisitorSessions)
       .where(
         and(
-          eq(analyticsVisitorSessions.organizationId, user.organizationId),
+          eq(analyticsVisitorSessions.organizationId, PLATFORM_ORG_ID),
           gte(analyticsVisitorSessions.startTime, startDate)
         )
       );
@@ -318,11 +311,6 @@ router.get("/traffic-overview", requireAuth, async (req: Request, res: Response)
 // Get top pages
 router.get("/top-pages", requireAuth, async (req: Request, res: Response) => {
   try {
-    const user = req.user as any;
-    if (!user?.organizationId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
     const period = req.query.period as string || '7d';
     const limit = parseInt(req.query.limit as string) || 10;
     
@@ -352,7 +340,7 @@ router.get("/top-pages", requireAuth, async (req: Request, res: Response) => {
       .from(analyticsPageViews)
       .where(
         and(
-          eq(analyticsPageViews.organizationId, user.organizationId),
+          eq(analyticsPageViews.organizationId, PLATFORM_ORG_ID),
           gte(analyticsPageViews.createdAt, startDate)
         )
       )
@@ -370,11 +358,6 @@ router.get("/top-pages", requireAuth, async (req: Request, res: Response) => {
 // Get traffic sources
 router.get("/traffic-sources", requireAuth, async (req: Request, res: Response) => {
   try {
-    const user = req.user as any;
-    if (!user?.organizationId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
     const period = req.query.period as string || '7d';
     
     let startDate: Date;
@@ -401,7 +384,7 @@ router.get("/traffic-sources", requireAuth, async (req: Request, res: Response) 
       .from(analyticsVisitorSessions)
       .where(
         and(
-          eq(analyticsVisitorSessions.organizationId, user.organizationId),
+          eq(analyticsVisitorSessions.organizationId, PLATFORM_ORG_ID),
           gte(analyticsVisitorSessions.startTime, startDate)
         )
       )
@@ -419,11 +402,6 @@ router.get("/traffic-sources", requireAuth, async (req: Request, res: Response) 
 // Get device breakdown
 router.get("/device-breakdown", requireAuth, async (req: Request, res: Response) => {
   try {
-    const user = req.user as any;
-    if (!user?.organizationId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
     const period = req.query.period as string || '7d';
     
     let startDate: Date;
@@ -449,7 +427,7 @@ router.get("/device-breakdown", requireAuth, async (req: Request, res: Response)
       .from(analyticsVisitorSessions)
       .where(
         and(
-          eq(analyticsVisitorSessions.organizationId, user.organizationId),
+          eq(analyticsVisitorSessions.organizationId, PLATFORM_ORG_ID),
           gte(analyticsVisitorSessions.startTime, startDate)
         )
       )
@@ -464,7 +442,7 @@ router.get("/device-breakdown", requireAuth, async (req: Request, res: Response)
       .from(analyticsVisitorSessions)
       .where(
         and(
-          eq(analyticsVisitorSessions.organizationId, user.organizationId),
+          eq(analyticsVisitorSessions.organizationId, PLATFORM_ORG_ID),
           gte(analyticsVisitorSessions.startTime, startDate)
         )
       )
@@ -482,11 +460,6 @@ router.get("/device-breakdown", requireAuth, async (req: Request, res: Response)
 // Get page views over time (for charts)
 router.get("/pageviews-timeline", requireAuth, async (req: Request, res: Response) => {
   try {
-    const user = req.user as any;
-    if (!user?.organizationId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
     const period = req.query.period as string || '7d';
     
     let startDate: Date;
@@ -518,7 +491,7 @@ router.get("/pageviews-timeline", requireAuth, async (req: Request, res: Respons
       .from(analyticsPageViews)
       .where(
         and(
-          eq(analyticsPageViews.organizationId, user.organizationId),
+          eq(analyticsPageViews.organizationId, PLATFORM_ORG_ID),
           gte(analyticsPageViews.createdAt, startDate)
         )
       )
