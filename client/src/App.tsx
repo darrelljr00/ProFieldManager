@@ -11,6 +11,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGPSTracking } from "@/hooks/use-gps-tracking";
+import { useAnalytics } from "@/hooks/use-analytics";
 import Dashboard from "@/pages/dashboard";
 import Projects from "@/pages/projects";
 import ProjectDetail from "@/pages/project-detail";
@@ -282,6 +283,62 @@ function AuthenticatedApp() {
   );
 }
 
+
+// Public Routes with automatic analytics tracking for all unauthenticated pages
+// Any new public page added here will automatically be tracked
+function PublicRoutes() {
+  // Centralized analytics tracking for ALL public pages
+  // This ensures new pages are automatically tracked without developer intervention
+  useAnalytics({ 
+    enableInternal: true, 
+    organizationId: 4, // Pro Field Manager platform organization
+    enableGA: true, 
+    enableFB: true 
+  });
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+        </div>
+      }>
+        <Switch>
+          <Route path="/" component={HomePage} />
+          <Route path="/features" component={FeaturesPage} />
+          <Route path="/signup" component={FeaturesPage} />
+          <Route path="/demo-signup" component={DemoSignupPage} />
+          <Route path="/services/general-contractors" component={GeneralContractorsPage} />
+          <Route path="/services/electricians" component={ElectriciansPage} />
+          <Route path="/services/plumbers" component={PlumbersPage} />
+          <Route path="/services/construction" component={ConstructionPage} />
+          <Route path="/services/handyman" component={HandymanPage} />
+          <Route path="/services/hvac" component={HVACPage} />
+          <Route path="/services/pressure-washers" component={PressureWashersPage} />
+          <Route path="/services/window-washers" component={WindowWashersPage} />
+          <Route path="/services/service-techs" component={ServiceTechsPage} />
+          <Route path="/login" component={UniversalLogin} />
+          <Route path="/password-reset-request" component={PasswordResetRequest} />
+          <Route path="/password-reset-complete" component={PasswordResetComplete} />
+          <Route path="/login-simple" component={SimpleLogin} />
+          <Route path="/login-full" component={Login} />
+          <Route path="/auth-debug" component={AuthDebug} />
+          <Route path="/shared/:token" component={SharedPhotosViewer} />
+          <Route path="/quote/:action/:token" component={QuoteResponsePage} />
+          <Route path="/site/:orgSlug/:pageSlug" component={FrontendPageRenderer} />
+          <Route path="/quote-availability/:token" component={QuoteAvailabilityPage} />
+          {/* Public payment pages - no authentication required */}
+          <Route path="/:orgSlug/invoice/:invoiceId/pay" component={PublicInvoicePayment} />
+          <Route path="/:orgSlug/quote/:quoteId/pay" component={PublicQuotePayment} />
+          <Route path="/payment/success" component={PaymentSuccess} />
+          <Route path="/payment/error" component={PaymentError} />
+          
+          <Route component={DirectLogin} />
+        </Switch>
+      </Suspense>
+    </div>
+  );
+}
 function Router() {
   const authHook = useAuth();
   const isAuthenticated = authHook?.isAuthenticated ?? false;
@@ -340,48 +397,7 @@ function Router() {
     return <AuthenticatedApp />;
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
-      }>
-        <Switch>
-          <Route path="/" component={HomePage} />
-          <Route path="/features" component={FeaturesPage} />
-          <Route path="/signup" component={FeaturesPage} />
-          <Route path="/demo-signup" component={DemoSignupPage} />
-          <Route path="/services/general-contractors" component={GeneralContractorsPage} />
-          <Route path="/services/electricians" component={ElectriciansPage} />
-          <Route path="/services/plumbers" component={PlumbersPage} />
-          <Route path="/services/construction" component={ConstructionPage} />
-          <Route path="/services/handyman" component={HandymanPage} />
-          <Route path="/services/hvac" component={HVACPage} />
-          <Route path="/services/pressure-washers" component={PressureWashersPage} />
-          <Route path="/services/window-washers" component={WindowWashersPage} />
-          <Route path="/services/service-techs" component={ServiceTechsPage} />
-          <Route path="/login" component={UniversalLogin} />
-          <Route path="/password-reset-request" component={PasswordResetRequest} />
-          <Route path="/password-reset-complete" component={PasswordResetComplete} />
-          <Route path="/login-simple" component={SimpleLogin} />
-          <Route path="/login-full" component={Login} />
-          <Route path="/auth-debug" component={AuthDebug} />
-          <Route path="/shared/:token" component={SharedPhotosViewer} />
-          <Route path="/quote/:action/:token" component={QuoteResponsePage} />
-          <Route path="/site/:orgSlug/:pageSlug" component={FrontendPageRenderer} />
-          <Route path="/quote-availability/:token" component={QuoteAvailabilityPage} />
-          {/* Public payment pages - no authentication required */}
-          <Route path="/:orgSlug/invoice/:invoiceId/pay" component={PublicInvoicePayment} />
-          <Route path="/:orgSlug/quote/:quoteId/pay" component={PublicQuotePayment} />
-          <Route path="/payment/success" component={PaymentSuccess} />
-          <Route path="/payment/error" component={PaymentError} />
-          
-          <Route component={DirectLogin} />
-        </Switch>
-      </Suspense>
-    </div>
-  );
+  return <PublicRoutes />;
 }
 
 function App() {
