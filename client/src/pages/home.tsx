@@ -31,6 +31,7 @@ import { Link } from "wouter";
 import { useHeroSlides } from "@/hooks/useHeroSlides";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 const serviceTypes = [
   {
@@ -154,6 +155,14 @@ export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCustomDomain, setIsCustomDomain] = useState(false);
   const { data: heroSlides = [], isLoading } = useHeroSlides();
+  
+  // Track page views for analytics (using Pro Field Manager org ID for main site)
+  useAnalytics({ 
+    enableInternal: true, 
+    organizationId: 4,
+    enableGA: true,
+    enableFB: true 
+  });
 
   // Detect if accessing via custom domain
   useEffect(() => {
