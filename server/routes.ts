@@ -26925,17 +26925,17 @@ ${fromName || ''}
   app.post('/api/live-chat/sessions/:sessionId/messages', async (req, res) => {
     try {
       const { message, senderRole, senderName } = req.body;
-      const chatMessage = await storage.createLiveChatMessage(
-        Number(req.params.sessionId),
+      const sessionId = Number(req.params.sessionId);
+      const chatMessage = await storage.createLiveChatMessage({
+        sessionId,
         senderRole,
         message,
-        senderName
-      );
+        senderName,
+      });
       
       // Broadcast new message via WebSocket
       if (broadcastToOrganization) {
-        // Get session to find organization
-        const session = await storage.getLiveChatSession(Number(req.params.sessionId), 2);
+        const session = await storage.getLiveChatSession(sessionId, 4);
         if (session) {
           broadcastToOrganization(session.organizationId, {
             eventType: 'live_chat_message',
@@ -26950,7 +26950,7 @@ ${fromName || ''}
       console.error('Error sending message:', error);
       res.status(500).json({ message: 'Failed to send message' });
     }
-  
+  });
   // Live Chat Departments
   app.get('/api/live-chat/departments', requireAuth, async (req, res) => {
     try {
@@ -27005,8 +27005,6 @@ ${fromName || ''}
       res.status(500).json({ message: 'Failed to delete department' });
     }
   });
-  });
-
   // Live Chat Settings
   app.get("/api/live-chat/settings", requireAuth, async (req, res) => {
     try {
