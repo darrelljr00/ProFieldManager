@@ -1,390 +1,285 @@
-export const API_CONFIG = {
-  // Custom domain configuration - routes API calls to Replit backend
+// src/lib/apiConfig.ts
+/**
+ * Robust API configuration for custom-domain vs replit usage.
+ * - Uses safe defaults to avoid "undefined" being embedded into URLs.
+ * - Normalizes incoming env values (ensures protocol for API URL).
+ * - Provides runtime fallbacks so the app won't break before a rebuild.
+ * - Exports helpers: getApiBaseUrl, buildApiUrl, isCustomDomain, getAuthHeaders,
+ *   authenticateUser, getApiConfigDebug
+ *
+ * Important: Vite env vars are injected at build time. If you change .env,
+ * you MUST rebuild the frontend for values to take effect.
+ */
+
+type ApiConfig = {
   customDomain: {
-    hostname: import.meta.env.VITE_PROD_HOSTNAME,
-    apiBaseUrl: import.meta.env.VITE_PROD_API_URL,
-  },
-  // Replit domain uses relative URLs
+    hostname: string; // e.g. "profieldmanager.com" (no protocol)
+    apiBaseUrl: string; // e.g. "https://profieldmanager.com" or Replit backend url
+  };
   replitDomain: {
-    apiBaseUrl: "",
+    apiBaseUrl: string; // usually '' or '/' for relative requests on repl
+  };
+};
+
+// Read env safely and normalize
+const rawHost = (import.meta.env.VITE_PROD_HOSTNAME as string) || "";
+const rawApi = (import.meta.env.VITE_PROD_API_URL as string) || "";
+
+// helpers to normalize
+const normalizeHostname = (value: string): string => {
+  // Strip protocol and trailing slashes -> keep only hostname (ex: mysite.com)
+  if (!value) return "";
+  try {
+    // If someone accidentally passed a full URL, extract hostname
+    if (value.includes("://")) {
+      const u = new URL(value);
+      return u.hostname;
+    }
+    // remove protocol-like prefix if present and any trailing slashes
+    return value.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  } catch {
+    return value.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  }
+};
+
+const normalizeApiUrl = (value: string): string => {
+  if (!value) return "";
+  // Ensure there's a protocol. If missing, assume https.
+  try {
+    if (!value.includes("://")) {
+      return `https://${value.replace(/\/+$/, "")}`;
+    }
+    return value.replace(/\/+$/, ""); // remove trailing slash
+  } catch {
+    return value;
+  }
+};
+
+const DEFAULT_HOSTNAME = normalizeHostname(rawHost) || "profieldmanager.com";
+const DEFAULT_API_URL = normalizeApiUrl(rawApi) || ""; // leave empty if unknown
+
+export const API_CONFIG: ApiConfig = {
+  customDomain: {
+    hostname: DEFAULT_HOSTNAME,
+    apiBaseUrl: DEFAULT_API_URL,
+  },
+  replitDomain: {
+    apiBaseUrl: "", // relative requests by default
   },
 };
 
 /**
- * Get the appropriate API base URL based on the current hostname
- * @returns Base URL for API requests
- */
-export const getApiBaseUrl = (): string => {
-  // Server-side rendering check
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  const hostname = window.location.hostname;
-
-  // CRITICAL FIX: For custom domain, ALWAYS route API calls to Replit backend
-  if (hostname === API_CONFIG.customDomain.hostname || isCustomDomain()) {
-    console.log(
-      "🌐 Custom domain detected - routing ALL API calls to Replit backend:",
-      API_CONFIG.customDomain.apiBaseUrl,
-    );
-    return API_CONFIG.customDomain.apiBaseUrl; // Route to Replit backend
-  }
-
-  // Use relative URLs for Replit domain
-  return API_CONFIG.replitDomain.apiBaseUrl;
-};
-
-/**
- * Build complete API URL for a given endpoint
- * @param endpoint - API endpoint path (e.g., '/api/projects')
- * @returns Complete URL for the API request
- */
-export const buildApiUrl = (endpoint: string): string => {
-  const baseUrl = getApiBaseUrl();
-
-  // Ensure endpoint is a string and starts with /
-  const endpointStr = String(endpoint || "");
-  const cleanEndpoint = endpointStr.startsWith("/")
-    ? endpointStr
-    : `/${endpointStr}`;
-
-  const finalUrl = `${baseUrl}${cleanEndpoint}`;
-
-  // Enhanced debugging for custom domain uploads
-  if (window.location.hostname === "profieldmanager.com") {
-    console.log("🌐 CUSTOM DOMAIN API ROUTING:", {
-      originalEndpoint: endpoint,
-      cleanEndpoint,
-      baseUrl,
-      finalUrl,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  return finalUrl;
-};
-
-/**
- * Check if current domain is the custom domain
- * @returns True if accessing via custom domain
+ * Runtime detection of custom domain
  */
 export const isCustomDomain = (): boolean => {
-  if (typeof window === "undefined") {
-    return false;
-  }
+  if (typeof window === "undefined") return false;
 
-  // Check multiple indicators for custom domain access
-  const hostname = window.location.hostname;
-  const href = window.location.href;
-  const origin = window.location.origin;
+  const hostname = window.location.hostname || "";
+  const href = window.location.href || "";
+  const origin = window.location.origin || "";
 
-  // Clear only domain-specific flags when on Replit domain (preserve auth tokens)
-  if (hostname.includes("replit.dev") || hostname.includes("repl.co")) {
-    // console.log('🧹 CLEARING STALE CUSTOM DOMAIN FLAGS - We are on Replit domain');
-    localStorage.removeItem("accessed_from_custom_domain");
-    localStorage.removeItem("custom_domain_session");
-    // CRITICAL FIX: Do NOT clear auth_token - it's needed for API authentication
-  }
+  // Stored flags (persisted)
+  const flag = localStorage.getItem("accessed_from_custom_domain") === "true";
+  const sessionFlag = localStorage.getItem("custom_domain_session") === "true";
 
-  // Direct hostname match
+  // Various heuristics - direct hostname, URL contains, origin contains, flags and referrer
   const directMatch = hostname === API_CONFIG.customDomain.hostname;
-
-  // Check if URL contains custom domain
-  const urlContainsCustomDomain = href.includes(
+  const urlContains = href.includes(API_CONFIG.customDomain.hostname);
+  const originContains = origin.includes(API_CONFIG.customDomain.hostname);
+  const referrerContains = (document.referrer || "").includes(
     API_CONFIG.customDomain.hostname,
   );
 
-  // Check if we're making requests to custom domain (for proxied scenarios)
-  const originContainsCustomDomain = origin.includes(
-    API_CONFIG.customDomain.hostname,
-  );
-
-  // NEW: Check if we have a stored flag indicating custom domain access
-  // This handles proxy/iframe scenarios where JS context doesn't show real domain
-  const hasCustomDomainFlag =
-    localStorage.getItem("accessed_from_custom_domain") === "true";
-
-  // NEW: Check document referrer for proxy scenarios
-  const referrerFromCustomDomain = document.referrer.includes(
-    API_CONFIG.customDomain.hostname,
-  );
-
-  // NEW: Check if we're receiving login requests from custom domain
-  const hasCustomDomainSession =
-    localStorage.getItem("custom_domain_session") === "true";
-
-  const isCustom =
+  const result =
     directMatch ||
-    urlContainsCustomDomain ||
-    originContainsCustomDomain ||
-    hasCustomDomainFlag ||
-    referrerFromCustomDomain ||
-    hasCustomDomainSession;
+    urlContains ||
+    originContains ||
+    flag ||
+    sessionFlag ||
+    referrerContains;
 
-  // Disabled to reduce console noise - uncomment for debugging
-  // console.log('🔍 ENHANCED CUSTOM DOMAIN CHECK:', {
-  //   hostname,
-  //   href,
-  //   origin,
-  //   expectedCustomDomain: API_CONFIG.customDomain.hostname,
-  //   directMatch,
-  //   urlContainsCustomDomain,
-  //   originContainsCustomDomain,
-  //   hasCustomDomainFlag,
-  //   referrerFromCustomDomain,
-  //   hasCustomDomainSession,
-  //   documentReferrer: document.referrer,
-  //   finalResult: isCustom
-  // });
-
-  // If we detect custom domain access, store the flag for future requests
-  if (isCustom && !hasCustomDomainFlag) {
-    localStorage.setItem("accessed_from_custom_domain", "true");
-    console.log("🏷️ MARKED AS CUSTOM DOMAIN ACCESS");
+  // mark for future runs
+  if (result && !flag) {
+    try {
+      localStorage.setItem("accessed_from_custom_domain", "true");
+    } catch {
+      /* noop */
+    }
   }
 
-  return isCustom;
+  return result;
 };
 
 /**
- * Get authentication headers appropriate for current domain
- * @returns Headers object with authentication
+ * Decide and return the API base URL at runtime.
+ * - If custom domain detected, use configured API URL (if present) or fallback to origin.
+ * - If replit domain, use relative base ('') unless configured otherwise.
+ */
+export const getApiBaseUrl = (): string => {
+  if (typeof window === "undefined") return "";
+
+  const hostname = window.location.hostname || "";
+  const isCustom = isCustomDomain();
+
+  const customApi = API_CONFIG.customDomain.apiBaseUrl || "";
+  const replitApi = API_CONFIG.replitDomain.apiBaseUrl || "";
+
+  if (isCustom) {
+    // prefer explicit custom API URL; fallback to current origin
+    return customApi || window.location.origin;
+  }
+
+  // non-custom (replit or others) - prefer replitApi (which is usually '') or relative
+  return replitApi || "";
+};
+
+/**
+ * Normalize an endpoint into a final URL string.
+ * If base is empty -> return a relative URL starting with '/'
+ */
+export const buildApiUrl = (endpoint: string): string => {
+  if (typeof window === "undefined") return endpoint || "";
+
+  const base = getApiBaseUrl();
+  const raw = String(endpoint || "");
+  const clean = raw.startsWith("/") ? raw : `/${raw}`;
+
+  if (!base) return clean; // relative URL
+
+  // Avoid double slashes
+  return `${base.replace(/\/+$/, "")}${clean}`;
+};
+
+/**
+ * Authentication helpers
  */
 export const getAuthHeaders = (): Record<string, string> => {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
 
-  // CRITICAL FIX: Always check for stored token first, regardless of domain
-  const token = localStorage.getItem("auth_token");
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-    // Disabled to reduce console noise - uncomment for debugging
-    // console.log('✅ AUTH HEADERS: Using Bearer token authentication', {
-    //   hasToken: true,
-    //   tokenLength: token.length,
-    //   isCustomDomain: isCustomDomain()
-    // });
-  } else {
-    // console.log('🔐 AUTH HEADERS: No token found, falling back to cookie auth', {
-    //   isCustomDomain: isCustomDomain()
-    // });
+  try {
+    const token = localStorage.getItem("auth_token");
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch {
+    // ignore storage errors in privacy modes
   }
 
   return headers;
 };
 
 /**
- * Enhanced login function specifically for custom domain compatibility
- * @param credentials - Login credentials
- * @returns Promise with authentication result
+ * Authenticate user (POST). This function will:
+ * - pick the correct login URL depending on domain
+ * - send credentials and store token+user on success
  */
 export const authenticateUser = async (credentials: {
   username: string;
   password: string;
   gpsData?: any;
 }) => {
-  console.log("🔐 SIMPLIFIED AUTHENTICATION:", {
-    isCustomDomain: isCustomDomain(),
-    hasCredentials: !!credentials.username && !!credentials.password,
-    timestamp: new Date().toISOString(),
-  });
-
-  // For custom domain, authenticate directly with Replit server
-  if (isCustomDomain()) {
-    console.log("🌐 CUSTOM DOMAIN: Using direct Replit server authentication");
-
-    // Direct connection to Replit server
-    const replitServerUrl = import.meta.env.VITE_PROD_API_URL;
-    const loginUrl = `${replitServerUrl}/api/auth/login`;
-
-    console.log("🔐 CUSTOM DOMAIN -> REPLIT SERVER:", loginUrl);
-
-    try {
-      const response = await fetch(loginUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          username: credentials.username,
-          password: credentials.password,
-          gpsData: credentials.gpsData,
-        }),
-      });
-
-      console.log("🔐 CUSTOM DOMAIN RESPONSE:", {
-        status: response.status,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries()),
-      });
-
-      console.log(
-        "🔐 Custom domain response status:",
-        response.status,
-        response.ok,
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("🚨 CUSTOM DOMAIN LOGIN ERROR:", {
-          status: response.status,
-          statusText: response.statusText,
-          errorText,
-          responseHeaders: Object.fromEntries(response.headers.entries()),
-        });
-        throw new Error(`Login failed - Invalid credentials`);
-      }
-
-      const data = await response.json();
-      console.log("✅ CUSTOM DOMAIN LOGIN SUCCESS:", data);
-
-      // For custom domain, ensure we return the authentication data WITHOUT redirecting
-      // ALWAYS store authentication data regardless of domain detection
-      if (data.token && data.user) {
-        localStorage.setItem("auth_token", data.token);
-        localStorage.setItem("user_data", JSON.stringify(data.user));
-        console.log(
-          "🔐 CUSTOM DOMAIN AUTH STORED - STAYING ON CUSTOM DOMAIN:",
-          {
-            hasToken: !!data.token,
-            hasUser: !!data.user,
-            tokenLength: data.token.length,
-            userName: data.user.username,
-            currentDomain: window.location.hostname,
-          },
-        );
-
-        // Immediately verify stored data
-        const verifyToken = localStorage.getItem("auth_token");
-        const verifyUser = localStorage.getItem("user_data");
-        console.log("🔍 STORAGE VERIFICATION:", {
-          tokenStored: !!verifyToken,
-          userStored: !!verifyUser,
-          tokenMatch: verifyToken === data.token,
-          userParseable: (() => {
-            try {
-              const parsed = JSON.parse(verifyUser || "");
-              return parsed.username === data.user.username;
-            } catch {
-              return false;
-            }
-          })(),
-        });
-      } else {
-        console.error("⚠️ MISSING AUTH DATA:", {
-          hasToken: !!data.token,
-          hasUser: !!data.user,
-          fullResponse: data,
-        });
-      }
-
-      return data;
-    } catch (error) {
-      console.error("🚨 CUSTOM DOMAIN AUTH ERROR:", {
-        errorMessage: error.message,
-        errorType: error.name,
-        stack: error.stack,
-      });
-      // Preserve the original error message
-      throw error;
-    }
+  if (typeof window === "undefined") {
+    throw new Error("authenticateUser must be called from browser");
   }
 
-  // For Replit domain, use regular POST
-  console.log("🔧 REPLIT DOMAIN: Using regular POST authentication");
+  const isCustom = isCustomDomain();
+  const base = getApiBaseUrl();
+  const loginUrl = isCustom ? `${base}/api/auth/login` : `/api/auth/login`;
+
+  // Build payload
+  const body = {
+    username: credentials.username,
+    password: credentials.password,
+    gpsData: credentials.gpsData ?? null,
+  };
 
   try {
-    const response = await fetch("/api/auth/login", {
+    const res = await fetch(loginUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(credentials),
+      headers: getAuthHeaders(),
       credentials: "include",
+      body: JSON.stringify(body),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("🚨 REPLIT LOGIN ERROR:", errorText);
-      throw new Error("Invalid credentials");
+    // Log debug info (safe)
+    console.debug("[auth] request:", {
+      loginUrl,
+      isCustom,
+      status: res.status,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("[auth] login failed:", {
+        loginUrl,
+        status: res.status,
+        body: text,
+      });
+      throw new Error(`Login failed (status ${res.status})`);
     }
 
-    const data = await response.json();
-    console.log("✅ REPLIT LOGIN SUCCESS:", data);
+    const data = await res.json();
 
-    // Also store token for Replit domain to ensure consistency
-    if (data.token && data.user) {
-      localStorage.setItem("auth_token", data.token);
-      localStorage.setItem("user_data", JSON.stringify(data.user));
-      console.log("🔐 REPLIT DOMAIN AUTH DATA STORED");
+    if (data?.token) {
+      try {
+        localStorage.setItem("auth_token", data.token);
+        if (data.user)
+          localStorage.setItem("user_data", JSON.stringify(data.user));
+        if (isCustom) {
+          localStorage.setItem("custom_domain_session", "true");
+          localStorage.setItem("accessed_from_custom_domain", "true");
+        }
+      } catch {
+        // ignore localStorage write errors
+      }
+    } else {
+      console.warn("[auth] response missing token:", data);
     }
 
     return data;
-  } catch (error) {
-    console.error("🚨 REPLIT AUTH ERROR:", error);
-
-    // FALLBACK: Try login-fallback endpoint as last resort
-    console.log("🔄 ATTEMPTING LOGIN-FALLBACK AS FINAL FALLBACK");
-    try {
-      const fallbackResponse = await fetch(
-        "/api/auth/login-fallback?" +
-          new URLSearchParams({
-            username: credentials.username,
-            password: credentials.password,
-          }),
-        {
-          method: "GET",
-          credentials: "include",
-        },
-      );
-
-      if (fallbackResponse.ok) {
-        const fallbackData = await fallbackResponse.json();
-        console.log("✅ LOGIN-FALLBACK SUCCESS:", fallbackData);
-
-        // CRITICAL: Store the token from fallback response
-        if (fallbackData.token && fallbackData.user) {
-          localStorage.setItem("auth_token", fallbackData.token);
-          localStorage.setItem("user_data", JSON.stringify(fallbackData.user));
-          console.log("🔐 FALLBACK TOKEN STORED SUCCESSFULLY");
-
-          // If server indicates this was a custom domain request, set the flag
-          if (fallbackData.isCustomDomain) {
-            localStorage.setItem("custom_domain_session", "true");
-            localStorage.setItem("accessed_from_custom_domain", "true");
-            console.log(
-              "🏷️ CUSTOM DOMAIN SESSION FLAG SET FROM SERVER RESPONSE",
-            );
-          }
-        }
-
-        return fallbackData;
-      }
-    } catch (fallbackError) {
-      console.error("🚨 LOGIN-FALLBACK ALSO FAILED:", fallbackError);
-    }
-
-    throw new Error("Invalid credentials");
+  } catch (err) {
+    console.error("[auth] error:", err);
+    throw err;
   }
 };
 
 /**
- * Debug information about current API configuration
- * @returns Configuration debug info
+ * Debug helper - returns info about the current runtime API config
  */
 export const getApiConfigDebug = () => {
   if (typeof window === "undefined") {
     return { serverSide: true };
   }
 
+  const hostname = window.location.hostname || "";
+  const apiBase = getApiBaseUrl();
+  const customFlag = isCustomDomain();
+
+  let hasToken = false;
+  try {
+    hasToken = !!localStorage.getItem("auth_token");
+  } catch {
+    hasToken = false;
+  }
+
   return {
-    hostname: window.location.hostname,
-    isCustomDomain: isCustomDomain(),
-    apiBaseUrl: getApiBaseUrl(),
-    hasAuthToken: !!localStorage.getItem("auth_token"),
+    hostname,
+    isCustomDomain: customFlag,
+    apiBaseUrl: apiBase,
+    env_custom_hostname: API_CONFIG.customDomain.hostname,
+    env_custom_apiBase: API_CONFIG.customDomain.apiBaseUrl,
+    hasAuthToken: hasToken,
     timestamp: new Date().toISOString(),
   };
+};
+
+export default {
+  API_CONFIG,
+  isCustomDomain,
+  getApiBaseUrl,
+  buildApiUrl,
+  getAuthHeaders,
+  authenticateUser,
+  getApiConfigDebug,
 };

@@ -26843,6 +26843,26 @@ ${fromName || ''}
     }
   });
 
+
+  // Public: Create sales chat session (Pro Field Manager platform)
+  app.post("/api/live-chat/sessions/sales", async (req, res) => {
+    try {
+      const { visitorName, visitorEmail, visitorPhone, source } = req.body;
+      // Use Pro Field Manager organization (org 4) for sales inquiries
+      const PRO_FIELD_MANAGER_ORG_ID = 4;
+      const session = await storage.createLiveChatSession({
+        organizationId: PRO_FIELD_MANAGER_ORG_ID,
+        visitorName,
+        visitorEmail,
+        metadata: { phone: visitorPhone, source: source || "footer_widget", type: "sales" },
+        status: "waiting",
+      });
+      res.status(201).json(session);
+    } catch (error: any) {
+      console.error("Error creating sales chat session:", error);
+      res.status(500).json({ message: "Failed to create sales chat session" });
+    }
+  });
   // Admin: Get single chat session
   app.get('/api/live-chat/sessions/:id', requireAuth, async (req, res) => {
     try {

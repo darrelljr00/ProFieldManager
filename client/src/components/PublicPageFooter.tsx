@@ -1,6 +1,8 @@
-import { Building2, Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram, Youtube } from "lucide-react";
+import { useState } from "react";
+import { Building2, Mail, Phone, MapPin, Facebook, Twitter, Linkedin, Instagram, Youtube, MessageCircle } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { SalesLiveChatWidget } from "./SalesLiveChatWidget";
 
 interface LayoutSettings {
   footerCompanyName?: string;
@@ -46,6 +48,7 @@ const socialIcons: Record<string, any> = {
 export function PublicPageFooter() {
   const currentYear = new Date().getFullYear();
   const organizationSlug = "pro-field-manager";
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const { data: settings } = useQuery<LayoutSettings>({
     queryKey: ['/api/public/website-layout/settings', organizationSlug],
@@ -169,9 +172,23 @@ export function PublicPageFooter() {
                   </a>
                 </li>
               )}
+              <li className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                <button
+                  onClick={() => setIsChatOpen(true)}
+                  className="text-gray-400 hover:text-white transition-colors flex items-center gap-1"
+                  data-testid="button-open-sales-chat"
+                >
+                  Live Chat with Sales
+                  <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                </button>
+              </li>
             </ul>
           </div>
         </div>
+
+        {/* Sales Live Chat Widget */}
+        <SalesLiveChatWidget isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
 
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
