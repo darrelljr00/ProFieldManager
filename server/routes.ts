@@ -26826,7 +26826,9 @@ ${fromName || ''}
       const showSales = req.query.sales === 'true';
       // If sales flag is set, show sessions from Pro Field Manager org (4) for sales inquiries
       const orgId = showSales ? 4 : user.organizationId;
+      console.log('📨 LIVE CHAT SESSIONS REQUEST:', { showSales, userOrgId: user.organizationId, queryOrgId: orgId });
       const sessions = await storage.getLiveChatSessions(orgId);
+      console.log('📨 LIVE CHAT SESSIONS RESULT:', { count: sessions.length, ids: sessions.map(s => s.id) });
       res.json(sessions);
     } catch (error: any) {
       console.error('Error fetching chat sessions:', error);
