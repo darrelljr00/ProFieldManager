@@ -305,7 +305,7 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Inspections",
   "Team Messages",
   "Image Gallery",
-  "Text Messaging",
+  "Talk/Text",
   "Live Tracking",
   "Market Research",
   "Screen Sharing",
@@ -696,11 +696,15 @@ export function Sidebar() {
       permission: "canAccessImageGallery",
     },
     {
-      name: "Text Messaging",
-      href: "/messages",
-      icon: Mail,
+      name: "Talk/Text",
+      href: "/sms",
+      icon: Phone,
       requiresAuth: true,
       permission: "canAccessMessages",
+      subItems: [
+        { name: "SMS", href: "/sms", icon: Smartphone },
+        { name: "Messages", href: "/messages", icon: Mail },
+      ],
     },
     {
       name: "Live Tracking",
