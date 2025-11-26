@@ -114,7 +114,7 @@ export function SalesLiveChatWidget({ isOpen, onClose }: SalesLiveChatWidgetProp
   }
 
   return (
-    <Card className="fixed bottom-6 right-6 w-96 h-[550px] shadow-2xl z-50 flex flex-col border-blue-500/20" data-testid="card-sales-chat-widget">
+    <Card className="fixed bottom-4 right-6 w-96 h-[480px] shadow-2xl z-50 flex flex-col border-blue-500/20" data-testid="card-sales-chat-widget">
       <CardHeader className="flex-shrink-0 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
         <div className="flex justify-between items-start">
           <div>
@@ -151,18 +151,18 @@ export function SalesLiveChatWidget({ isOpen, onClose }: SalesLiveChatWidgetProp
 
       <CardContent className="flex-1 flex flex-col p-4 overflow-hidden bg-white dark:bg-gray-900">
         {!hasStartedChat ? (
-          <div className="space-y-4">
-            <div className="text-center py-4">
-              <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                <User className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+          <div className="space-y-3">
+            <div className="text-center py-2">
+              <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="font-semibold text-lg mb-2 text-gray-900 dark:text-white">Welcome! 👋</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Have questions about Pro Field Manager? Our sales team is ready to help!
+              <h3 className="font-semibold text-base mb-1 text-gray-900 dark:text-white">Welcome! 👋</h3>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                Questions about Pro Field Manager? We're here to help!
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div>
                 <label className="text-sm font-medium mb-1 block text-gray-700 dark:text-gray-300">Your Name *</label>
                 <Input
