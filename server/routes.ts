@@ -26843,19 +26843,21 @@ ${fromName || ''}
     }
   });
 
-
   // Public: Create sales chat session (Pro Field Manager platform)
   app.post("/api/live-chat/sessions/sales", async (req, res) => {
     try {
       const { visitorName, visitorEmail, visitorPhone, source } = req.body;
       // Use Pro Field Manager organization (org 4) for sales inquiries
       const PRO_FIELD_MANAGER_ORG_ID = 4;
+      // Generate unique visitor ID for anonymous visitors
+      const visitorId = `sales_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const session = await storage.createLiveChatSession({
         organizationId: PRO_FIELD_MANAGER_ORG_ID,
         visitorName,
         visitorEmail,
-        metadata: { phone: visitorPhone, source: source || "footer_widget", type: "sales" },
+        visitorId,
         status: "waiting",
+        tags: [visitorPhone || "", source || "footer_widget", "sales"],
       });
       res.status(201).json(session);
     } catch (error: any) {
