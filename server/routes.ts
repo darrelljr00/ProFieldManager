@@ -26928,8 +26928,16 @@ ${fromName || ''}
     try {
       const { message, senderRole, senderName } = req.body;
       const sessionId = Number(req.params.sessionId);
+      
+      // Get the session first to get the organizationId
+      const session = await storage.getLiveChatSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+      
       const chatMessage = await storage.createLiveChatMessage({
         sessionId,
+        organizationId: session.organizationId,
         senderRole,
         message,
         senderName,
@@ -26937,14 +26945,11 @@ ${fromName || ''}
       
       // Broadcast new message via WebSocket
       if (broadcastToOrganization) {
-        const session = await storage.getLiveChatSession(sessionId, 4);
-        if (session) {
-          broadcastToOrganization(session.organizationId, {
-            eventType: 'live_chat_message',
-            sessionId: session.id,
-            message: chatMessage
-          });
-        }
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_message',
+          sessionId: session.id,
+          message: chatMessage
+        });
       }
       
       res.status(201).json(chatMessage);
