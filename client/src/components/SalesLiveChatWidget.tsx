@@ -151,63 +151,65 @@ export function SalesLiveChatWidget({ isOpen, onClose }: SalesLiveChatWidgetProp
 
       <CardContent className="flex-1 flex flex-col p-4 overflow-hidden bg-white dark:bg-gray-900">
         {!hasStartedChat ? (
-          <div className="space-y-3">
-            <div className="text-center py-2">
-              <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <ScrollArea className="flex-1">
+            <div className="space-y-3 pr-4">
+              <div className="text-center py-2">
+                <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
+                  <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="font-semibold text-base mb-1 text-gray-900 dark:text-white">Welcome! 👋</h3>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Questions about Pro Field Manager? We're here to help!
+                </p>
               </div>
-              <h3 className="font-semibold text-base mb-1 text-gray-900 dark:text-white">Welcome! 👋</h3>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Questions about Pro Field Manager? We're here to help!
-              </p>
+
+              <div className="space-y-2">
+                <div>
+                  <label className="text-sm font-medium mb-1 block text-gray-700 dark:text-gray-300">Your Name *</label>
+                  <Input
+                    value={visitorName}
+                    onChange={(e) => setVisitorName(e.target.value)}
+                    placeholder="John Doe"
+                    className="bg-white dark:bg-gray-800"
+                    data-testid="input-sales-visitor-name"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block text-gray-700 dark:text-gray-300">Email</label>
+                  <Input
+                    type="email"
+                    value={visitorEmail}
+                    onChange={(e) => setVisitorEmail(e.target.value)}
+                    placeholder="john@company.com"
+                    className="bg-white dark:bg-gray-800"
+                    data-testid="input-sales-visitor-email"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block text-gray-700 dark:text-gray-300">Phone (Optional)</label>
+                  <Input
+                    type="tel"
+                    value={visitorPhone}
+                    onChange={(e) => setVisitorPhone(e.target.value)}
+                    placeholder="(555) 123-4567"
+                    className="bg-white dark:bg-gray-800"
+                    data-testid="input-sales-visitor-phone"
+                  />
+                </div>
+
+                <Button
+                  onClick={handleStartChat}
+                  disabled={createSessionMutation.isPending || !visitorName.trim()}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  data-testid="button-start-sales-chat"
+                >
+                  {createSessionMutation.isPending ? "Connecting..." : "Start Chat with Sales"}
+                </Button>
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <div>
-                <label className="text-sm font-medium mb-1 block text-gray-700 dark:text-gray-300">Your Name *</label>
-                <Input
-                  value={visitorName}
-                  onChange={(e) => setVisitorName(e.target.value)}
-                  placeholder="John Doe"
-                  className="bg-white dark:bg-gray-800"
-                  data-testid="input-sales-visitor-name"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-1 block text-gray-700 dark:text-gray-300">Email</label>
-                <Input
-                  type="email"
-                  value={visitorEmail}
-                  onChange={(e) => setVisitorEmail(e.target.value)}
-                  placeholder="john@company.com"
-                  className="bg-white dark:bg-gray-800"
-                  data-testid="input-sales-visitor-email"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-1 block text-gray-700 dark:text-gray-300">Phone (Optional)</label>
-                <Input
-                  type="tel"
-                  value={visitorPhone}
-                  onChange={(e) => setVisitorPhone(e.target.value)}
-                  placeholder="(555) 123-4567"
-                  className="bg-white dark:bg-gray-800"
-                  data-testid="input-sales-visitor-phone"
-                />
-              </div>
-
-              <Button
-                onClick={handleStartChat}
-                disabled={createSessionMutation.isPending || !visitorName.trim()}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                data-testid="button-start-sales-chat"
-              >
-                {createSessionMutation.isPending ? "Connecting..." : "Start Chat with Sales"}
-              </Button>
-            </div>
-          </div>
+          </ScrollArea>
         ) : (
           <>
             <ScrollArea className="flex-1 pr-4 mb-4">
