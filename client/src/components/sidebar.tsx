@@ -701,10 +701,6 @@ export function Sidebar() {
       icon: Phone,
       requiresAuth: true,
       permission: "canAccessMessages",
-      subItems: [
-        { name: "SMS", href: "/sms", icon: Smartphone },
-        { name: "Messages", href: "/messages", icon: Mail },
-      ],
     },
     {
       name: "Live Tracking",
