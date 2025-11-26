@@ -695,6 +695,7 @@ export function Sidebar() {
       subItems: [
         { name: "SMS", href: "/sms", icon: Smartphone },
         { name: "Team Messages", href: "/internal-messages", icon: MessageSquare, unreadCount: unreadCount },
+        { name: "Call Manager", href: "/call-manager", icon: Phone },
       ],
     },
     {
@@ -716,13 +717,6 @@ export function Sidebar() {
       icon: BarChart3,
       requiresAuth: true,
       permission: "canAccessMarketResearch",
-    },
-    {
-      name: "Call Manager",
-      href: "/call-manager",
-      icon: Phone,
-      requiresAuth: true,
-      permission: "canAccessSaasAdmin",
     },
     {
       name: "Tutorials",
