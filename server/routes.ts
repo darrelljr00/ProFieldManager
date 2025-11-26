@@ -26823,14 +26823,16 @@ ${fromName || ''}
   app.get('/api/live-chat/sessions', requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
-      const sessions = await storage.getLiveChatSessions(user.organizationId);
+      const showSales = req.query.sales === 'true';
+      // If sales flag is set, show sessions from Pro Field Manager org (4) for sales inquiries
+      const orgId = showSales ? 4 : user.organizationId;
+      const sessions = await storage.getLiveChatSessions(orgId);
       res.json(sessions);
     } catch (error: any) {
       console.error('Error fetching chat sessions:', error);
       res.status(500).json({ message: 'Failed to fetch chat sessions' });
     }
   });
-
   // Public: Create new chat session
   app.post('/api/live-chat/sessions', async (req, res) => {
     try {

@@ -56,6 +56,7 @@ export default function LiveChatManagement() {
   const [messageText, setMessageText] = useState("");
   const [isDepartmentDialogOpen, setIsDepartmentDialogOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<LiveChatDepartment | null>(null);
+  const [showSalesInquiries, setShowSalesInquiries] = useState(false);
   const [departmentFormData, setDepartmentFormData] = useState({
     name: '',
     description: '',
@@ -67,7 +68,13 @@ export default function LiveChatManagement() {
   const { lastMessage } = useWebSocket();
 
   const { data: sessions, isLoading: sessionsLoading } = useQuery<LiveChatSession[]>({
-    queryKey: ['/api/live-chat/sessions'],
+    queryKey: ['/api/live-chat/sessions', showSalesInquiries ? 'sales' : 'org'],
+    queryFn: async () => {
+      const url = showSalesInquiries ? '/api/live-chat/sessions?sales=true' : '/api/live-chat/sessions';
+      const response = await fetch(url, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch sessions');
+      return response.json();
+    },
   });
 
   const { data: messages, isLoading: messagesLoading } = useQuery<LiveChatMessage[]>({
@@ -99,8 +106,9 @@ export default function LiveChatManagement() {
   // Listen for WebSocket updates for real-time messages
   useEffect(() => {
     if (lastMessage?.eventType === 'live_chat_message') {
-      // Invalidate sessions list to update unread counts
-      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions'] });
+      // Invalidate both org and sales sessions lists to update unread counts
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'org'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'sales'] });
       
       // If the message is for the selected session, invalidate messages
       if (lastMessage?.data?.sessionId === selectedSession) {
@@ -120,7 +128,8 @@ export default function LiveChatManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/live-chat/messages', selectedSession] });
-      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'org'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'sales'] });
       setMessageText("");
     },
     onError: (error: Error) => {
@@ -135,7 +144,8 @@ export default function LiveChatManagement() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'org'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'sales'] });
       toast({ title: "Session assigned to you" });
     },
   });
@@ -147,7 +157,8 @@ export default function LiveChatManagement() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'org'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'sales'] });
       toast({ title: "Chat session closed" });
       setSelectedSession(null);
     },
@@ -282,9 +293,24 @@ export default function LiveChatManagement() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-280px)]">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>Chat Sessions</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>{showSalesInquiries ? 'Sales Inquiries' : 'Chat Sessions'}</CardTitle>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="sales-toggle" className="text-xs text-muted-foreground">Sales</Label>
+                <Switch 
+                  id="sales-toggle"
+                  checked={showSalesInquiries}
+                  onCheckedChange={(checked) => {
+                    setShowSalesInquiries(checked);
+                    setSelectedSession(null);
+                  }}
+                  data-testid="switch-sales-inquiries"
+                />
+              </div>
+            </div>
             <CardDescription>
               {sessions?.filter(s => s.status === 'active' || s.status === 'waiting').length || 0} active conversations
+              {showSalesInquiries && ' (Platform Sales)'}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
