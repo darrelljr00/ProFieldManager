@@ -26928,7 +26928,7 @@ ${fromName || ''}
   // Admin/Public: Send a message in a session
   app.post('/api/live-chat/sessions/:sessionId/messages', async (req, res) => {
     try {
-      const { message, senderRole, senderName } = req.body;
+      const { message, senderRole, senderName, senderType } = req.body;
       const sessionId = Number(req.params.sessionId);
       
       // Get the session first to get the organizationId
@@ -26937,12 +26937,16 @@ ${fromName || ''}
         return res.status(404).json({ message: 'Session not found' });
       }
       
+      // Use senderType if provided, otherwise derive from senderRole for backwards compatibility
+      const finalSenderType = senderType || senderRole || 'agent';
+      const finalSenderName = senderName || 'Agent';
+
       const chatMessage = await storage.createLiveChatMessage({
         sessionId,
         organizationId: session.organizationId,
-        senderRole,
+        senderType: finalSenderType,
         message,
-        senderName,
+        senderName: finalSenderName,
       });
       
       // Broadcast new message via WebSocket
