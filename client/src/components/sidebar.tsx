@@ -307,7 +307,6 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Image Gallery",
   "Text Messaging",
   "Live Tracking",
-  "Reviews",
   "Market Research",
   "Screen Sharing",
   "Human Resources",
@@ -642,6 +641,7 @@ export function Sidebar() {
         { name: "All Customers", href: "/customers", icon: Users },
         { name: "Leads", href: "/leads", icon: UserPlus },
         { name: "Quotes", href: "/quotes", icon: Quote },
+        { name: "Reviews", href: "/reviews", icon: Star },
       ],
     },
     {
@@ -714,13 +714,6 @@ export function Sidebar() {
         { name: "Analytics", href: "/gps-analytics", icon: BarChart3 },
         { name: "Settings", href: "/gps-settings", icon: Settings },
       ],
-    },
-    {
-      name: "Reviews",
-      href: "/reviews",
-      icon: Star,
-      requiresAuth: true,
-      permission: "canAccessReviews",
     },
     {
       name: "Market Research",
