@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -11,23 +12,38 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install SSH key
+      - name: Start ssh-agent and add key
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
-      - name: Add server to known hosts
+      - name: Ensure ~/.ssh exists and has correct perms
         run: |
-          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
 
-      - name: Deploy to CWP
+      - name: Add server to known_hosts (safe)
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            cd ${{ secrets.APP_DIR }} &&
-            git pull origin ${{ secrets.GIT_BRANCH }} &&
-            npm install --legacy-peer-deps &&
-            npm run build &&
-            echo 'Restarting Node App in CWP...' 
-          "
+          # try to fetch the host key; if it fails, retry once (helps transient networking)
+          for i in 1 2; do
+            ssh-keyscan -H "${SERVER_HOST}" >> ~/.ssh/known_hosts && break || sleep 2
+          done
+
+          # make sure known_hosts is readable
+          chmod 644 ~/.ssh/known_hosts
+          echo "known_hosts entries:"
+          tail -n +1 ~/.ssh/known_hosts || true
+
+      - name: Deploy to CWP using SSH
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          APP_DIR: ${{ secrets.APP_DIR }}
+          GIT_BRANCH: ${{ secrets.GIT_BRANCH }}
+        run: |
+          # run remote deploy command over SSH (wrap in quotes so it runs on remote)
+          ssh -o StrictHostKeyChecking=yes "${SERVER_USER}@${SERVER_HOST}" "bash /home/deploy/deploy.sh"
