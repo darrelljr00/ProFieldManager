@@ -303,7 +303,6 @@ const DEFAULT_NAVIGATION_ORDER = [
   "File Manager",
   "Parts & Supplies",
   "Inspections",
-  "Team Messages",
   "Image Gallery",
   "Talk/Text",
   "Live Tracking",
@@ -666,14 +665,6 @@ export function Sidebar() {
       permission: "canAccessInspections",
     },
     {
-      name: "Team Messages",
-      href: "/internal-messages",
-      icon: MessageSquare,
-      requiresAuth: true,
-      permission: "canAccessInternalMessages",
-      unreadCount: unreadCount,
-    },
-    {
       name: "Live Stream",
       href: "/live-stream",
       icon: Video,
@@ -701,6 +692,10 @@ export function Sidebar() {
       icon: Phone,
       requiresAuth: true,
       permission: "canAccessMessages",
+      subItems: [
+        { name: "SMS", href: "/sms", icon: Smartphone },
+        { name: "Team Messages", href: "/internal-messages", icon: MessageSquare, unreadCount: unreadCount },
+      ],
     },
     {
       name: "Live Tracking",
