@@ -114,7 +114,7 @@ export function SalesLiveChatWidget({ isOpen, onClose }: SalesLiveChatWidgetProp
   }
 
   return (
-    <Card className="fixed bottom-4 right-6 w-96 h-[480px] shadow-2xl z-50 flex flex-col border-blue-500/20" data-testid="card-sales-chat-widget">
+    <Card className="fixed bottom-4 right-6 w-96 h-[420px] shadow-2xl z-50 flex flex-col border-blue-500/20" data-testid="card-sales-chat-widget">
       <CardHeader className="flex-shrink-0 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
         <div className="flex justify-between items-start">
           <div>
