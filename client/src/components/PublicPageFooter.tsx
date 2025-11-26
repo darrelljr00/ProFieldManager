@@ -172,15 +172,15 @@ export function PublicPageFooter() {
                   </a>
                 </li>
               )}
-              <li className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-blue-500 flex-shrink-0" />
+              <li className="mt-4">
                 <button
                   onClick={() => setIsChatOpen(true)}
-                  className="text-gray-400 hover:text-white transition-colors flex items-center gap-1"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-3 text-lg shadow-lg hover:shadow-xl"
                   data-testid="button-open-sales-chat"
                 >
+                  <MessageCircle className="h-6 w-6" />
                   Live Chat with Sales
-                  <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="inline-flex h-3 w-3 rounded-full bg-green-400 animate-pulse" />
                 </button>
               </li>
             </ul>
