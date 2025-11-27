@@ -12,8 +12,15 @@ import {
   Truck, Calculator, FileSpreadsheet, Bell,
   Cloud, Wrench, Target, TrendingUp, Award,
   Headphones, Palette, Cog, Share2, Mail,
-  ArrowRight, ChevronLeft, ChevronRight, Menu
+  ArrowRight, ChevronLeft, ChevronRight, Menu,
+  ChevronDown, Droplets, HardHat, Hammer, Sparkles, Glasses
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +35,18 @@ import { useHeroSlides } from "@/hooks/useHeroSlides";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { useAnalytics } from "@/hooks/use-analytics";
+
+const industries = [
+  { icon: Wrench, name: "General Contractors", path: "/services/general-contractors" },
+  { icon: Zap, name: "Electricians", path: "/services/electricians" },
+  { icon: Droplets, name: "Plumbers", path: "/services/plumbers" },
+  { icon: HardHat, name: "Construction", path: "/services/construction" },
+  { icon: Hammer, name: "Handyman Services", path: "/services/handyman" },
+  { icon: Truck, name: "HVAC Technicians", path: "/services/hvac" },
+  { icon: Sparkles, name: "Pressure Washers", path: "/services/pressure-washers" },
+  { icon: Glasses, name: "Window Washers", path: "/services/window-washers" },
+  { icon: Settings, name: "Service Techs", path: "/services/service-techs" },
+];
 
 const subscriptionPlans = [
   {
@@ -181,6 +200,24 @@ export default function FeaturesPage() {
           <nav className="hidden md:flex items-center space-x-8">
             <Link href="/" className="text-white hover:text-blue-200 transition-colors">Home</Link>
             <Link href="/features" className="text-white hover:text-blue-200 transition-colors">Features</Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="text-white hover:text-blue-200 transition-colors flex items-center gap-1">
+                Industries <ChevronDown className="h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-56">
+                {industries.map((industry) => {
+                  const Icon = industry.icon;
+                  return (
+                    <DropdownMenuItem key={industry.path} asChild>
+                      <Link href={industry.path} className="flex items-center gap-2 cursor-pointer">
+                        <Icon className="h-4 w-4" />
+                        {industry.name}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Link href="/features#pricing" className="text-white hover:text-blue-200 transition-colors">Pricing</Link>
             <Button variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900">
               <Link href="/login">Login</Link>

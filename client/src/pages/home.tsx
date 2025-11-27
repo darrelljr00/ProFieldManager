@@ -17,6 +17,7 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Shield,
   Award,
   Users,
@@ -28,6 +29,12 @@ import {
   Settings,
 } from "lucide-react";
 import { Link } from "wouter";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useHeroSlides } from "@/hooks/useHeroSlides";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
@@ -248,6 +255,24 @@ export default function HomePage() {
             >
               Features
             </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="text-white hover:text-blue-200 transition-colors flex items-center gap-1">
+                Industries <ChevronDown className="h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-56">
+                {serviceTypes.map((service) => {
+                  const Icon = service.icon;
+                  return (
+                    <DropdownMenuItem key={service.path} asChild>
+                      <Link href={service.path} className="flex items-center gap-2 cursor-pointer">
+                        <Icon className="h-4 w-4" />
+                        {service.name}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Link
               href="/features#pricing"
               className="text-white hover:text-blue-200 transition-colors"
