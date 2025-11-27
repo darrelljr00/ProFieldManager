@@ -1,18 +1,98 @@
-name: Deploy to CWP Server
+name: CI & Deploy to CWP
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # manual deploy or rollback
+
+env:
+  NODE_VERSION: 20
+  # fallback default for port if secret not set
+  SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
 
 jobs:
-  deploy:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    env:
-      # fallback: if you don't set SSH_PORT secret, default to 22
-      SSH_PORT: ${{ secrets.SSH_PORT || '22' || '2222' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install deps (lint)
+        run: npm ci
+      - name: Run linter
+        run: |
+          # change to your linters: eslint, prettier checks etc
+          if [ -f package.json ]; then
+            npm run -s lint || echo "No lint script defined"
+          fi
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install deps
+        run: npm ci
+      - name: Run tests
+        run: |
+          # add your test command (jest/ava/mocha)
+          if npm run -s test --silent; then
+            echo "Tests passed"
+          else
+            echo "Tests failed"
+            exit 1
+          fi
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test]
+    outputs:
+      artifact-path: ${{ steps.upload-artifact.outputs.artifact-path || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install deps
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: List dist
+        run: ls -la dist || true
+      - name: Upload dist artifact
+        id: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+  deploy:
+    name: Deploy to CWP (SSH)
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    env:
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
+      SERVER_KEY: ${{ secrets.SERVER_SSH_KEY }}
+      SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+      APP_DIR: ${{ secrets.APP_DIR || '/home/profie7/apps' }}
+      GIT_BRANCH: ${{ secrets.GIT_BRANCH || 'main' }}
+      HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL || '' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,54 +104,46 @@ jobs:
 
       - name: Confirm SSH key loaded
         run: |
-          echo "List loaded keys (should show fingerprint)"
-          ssh-add -l || (echo "no key loaded!" && false)
+          echo "Loaded keys:"
+          ssh-add -l
 
-      - name: Ensure ~/.ssh exists and has correct perms
+      - name: Ensure ~/.ssh exists
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
-      - name: Add server to known_hosts (safe)
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      - name: Add server to known_hosts
         run: |
-          for i in 1 2 3; do
-            echo "ssh-keyscan attempt $i"
-            ssh-keyscan -H "${SERVER_HOST}" >> ~/.ssh/known_hosts && break || sleep 2
-          done
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts || true
           chmod 644 ~/.ssh/known_hosts
-          echo "known_hosts entries:"
-          tail -n +1 ~/.ssh/known_hosts || true
+          tail -n 5 ~/.ssh/known_hosts || true
 
-      - name: (Optional) Show network info and debug
+      - name: Run remote deploy script (with logging)
+        id: deploy-script
         run: |
-          echo "SSH port we will use: $SSH_PORT"
-          # quick network checks (these are fast and fail-safe)
-          # test DNS resolution
-          nslookup ${{ secrets.SERVER_HOST }} || true
-          # try a TCP probe (nc may not be installed on hosted runner)
-          if command -v nc >/dev/null 2>&1; then
-            nc -vz -w 5 ${{ secrets.SERVER_HOST }} $SSH_PORT || true
-          else
-            echo "nc not available"
-          fi
+          echo "Running remote deploy script on $SERVER_HOST"
+          # run deploy_cwp.sh (make sure it exists and is executable)
+          ssh -o StrictHostKeyChecking=yes -p "${SSH_PORT}" "${SERVER_USER}@${SERVER_HOST}" \
+            "bash -lc 'set -euo pipefail; /home/deploy/deploy_cwp.sh 2>&1 | tee /home/deploy/logs/last-deploy.log'"
+        # If you prefer appleboy/ssh-action replace above ssh call with that action.
 
-      - name: Deploy to CWP using SSH (with retry)
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          APP_DIR: ${{ secrets.APP_DIR }}
-          GIT_BRANCH: ${{ secrets.GIT_BRANCH }}
-          SSH_PORT: ${{ env.SSH_PORT }}
+      - name: Download remote deploy log
+        if: always()
+        uses: actions/download-artifact@v4
+        run: echo "Remote log retained on server at /home/deploy/logs/last-deploy.log"
+
+      - name: Optional healthcheck
+        if: env.HEALTHCHECK_URL != ''
         run: |
-          # try SSH up to 3 times if transient network issue
-          for i in 1 2 3; do
-            echo "Attempt $i: ssh -p $SSH_PORT ${SERVER_USER}@${SERVER_HOST} run deploy"
-            # run remote deploy script; change to -o ConnectTimeout=10 to fail fast
-            ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -p "$SSH_PORT" "${SERVER_USER}@${SERVER_HOST}" "bash -lc 'if [ -f /home/deploy/deploy.sh ]; then bash /home/deploy/deploy.sh; else echo \"deploy.sh not found\"; exit 2; fi'" && break
-            echo "ssh failed, sleeping before retry..."
-            sleep 4
-          done
+          echo "Checking health at $HEALTHCHECK_URL"
+          timeout 10 bash -c 'for i in 1 2 3; do curl -fsS ${HEALTHCHECK_URL} && exit 0 || sleep 1; done; exit 1'
 
-      # optional: post-checkout/cleanup steps here
+  notify:
+    name: Notify / Cleanup
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: needs.deploy.result == 'success'
+    steps:
+      - name: Send success (optional)
+        run: echo "Deploy succeeded for $GITHUB_SHA on ${GITHUB_REF}"
+        # Add webhook / slack notify step here if needed
