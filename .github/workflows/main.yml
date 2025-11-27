@@ -9,6 +9,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      # fallback: if you don't set SSH_PORT secret, default to 22
+      SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
 
     steps:
       - name: Checkout repository
@@ -19,6 +22,11 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
+      - name: Confirm SSH key loaded
+        run: |
+          echo "List loaded keys (should show fingerprint)"
+          ssh-add -l || (echo "no key loaded!" && false)
+
       - name: Ensure ~/.ssh exists and has correct perms
         run: |
           mkdir -p ~/.ssh
@@ -28,22 +36,42 @@ jobs:
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
         run: |
-          # try to fetch the host key; if it fails, retry once (helps transient networking)
-          for i in 1 2; do
+          for i in 1 2 3; do
+            echo "ssh-keyscan attempt $i"
             ssh-keyscan -H "${SERVER_HOST}" >> ~/.ssh/known_hosts && break || sleep 2
           done
-
-          # make sure known_hosts is readable
           chmod 644 ~/.ssh/known_hosts
           echo "known_hosts entries:"
           tail -n +1 ~/.ssh/known_hosts || true
 
-      - name: Deploy to CWP using SSH
+      - name: (Optional) Show network info and debug
+        run: |
+          echo "SSH port we will use: $SSH_PORT"
+          # quick network checks (these are fast and fail-safe)
+          # test DNS resolution
+          nslookup ${{ secrets.SERVER_HOST }} || true
+          # try a TCP probe (nc may not be installed on hosted runner)
+          if command -v nc >/dev/null 2>&1; then
+            nc -vz -w 5 ${{ secrets.SERVER_HOST }} $SSH_PORT || true
+          else
+            echo "nc not available"
+          fi
+
+      - name: Deploy to CWP using SSH (with retry)
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
           APP_DIR: ${{ secrets.APP_DIR }}
           GIT_BRANCH: ${{ secrets.GIT_BRANCH }}
+          SSH_PORT: ${{ env.SSH_PORT }}
         run: |
-          # run remote deploy command over SSH (wrap in quotes so it runs on remote)
-          ssh -o StrictHostKeyChecking=yes "${SERVER_USER}@${SERVER_HOST}" "bash /home/deploy/deploy.sh"
+          # try SSH up to 3 times if transient network issue
+          for i in 1 2 3; do
+            echo "Attempt $i: ssh -p $SSH_PORT ${SERVER_USER}@${SERVER_HOST} run deploy"
+            # run remote deploy script; change to -o ConnectTimeout=10 to fail fast
+            ssh -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -p "$SSH_PORT" "${SERVER_USER}@${SERVER_HOST}" "bash -lc 'if [ -f /home/deploy/deploy.sh ]; then bash /home/deploy/deploy.sh; else echo \"deploy.sh not found\"; exit 2; fi'" && break
+            echo "ssh failed, sleeping before retry..."
+            sleep 4
+          done
+
+      # optional: post-checkout/cleanup steps here
