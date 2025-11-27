@@ -16,8 +16,8 @@ on:
 
 env:
   NODE_VERSION: 20
-  # default ssh port fallback
-  SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+  # fallback default for port if secret not set (we still reference secrets directly in job env)
+  DEFAULT_SSH_PORT: 22
 
 jobs:
   lint:
@@ -92,7 +92,7 @@ jobs:
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
       # connect as the app user so build runs as profie7
       SERVER_USER: ${{ secrets.SERVER_USER || 'profie7' }}
-      SSH_PORT: ${{ env.SSH_PORT }}
+      SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
       APP_DIR: ${{ secrets.APP_DIR || '/home/profie7/apps' }}
       GIT_REF: ${{ github.event.inputs.ref || github.ref_name || 'main' }}
       HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL || '' }}
@@ -126,7 +126,6 @@ jobs:
         id: deploy-script
         run: |
           echo "Running remote deploy script on $SERVER_HOST as $SERVER_USER (ref=${GIT_REF})"
-          # run server deploy script and tee remote log into /home/deploy/logs/last-deploy.log
           ssh -o StrictHostKeyChecking=yes -p "${SSH_PORT}" "${SERVER_USER}@${SERVER_HOST}" \
             "bash -lc 'set -euo pipefail; /home/deploy/deploy_cwp.sh ${GIT_REF} 2>&1 | tee /home/deploy/logs/last-deploy.log'"
 
