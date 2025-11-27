@@ -7,11 +7,16 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch: # manual deploy or rollback
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref (branch/tag/commit) to deploy'
+        required: false
+        default: 'main'
 
 env:
   NODE_VERSION: 20
-  # fallback default for port if secret not set
+  # default ssh port fallback
   SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
 
 jobs:
@@ -28,7 +33,6 @@ jobs:
         run: npm ci
       - name: Run linter
         run: |
-          # change to your linters: eslint, prettier checks etc
           if [ -f package.json ]; then
             npm run -s lint || echo "No lint script defined"
           fi
@@ -47,7 +51,6 @@ jobs:
         run: npm ci
       - name: Run tests
         run: |
-          # add your test command (jest/ava/mocha)
           if npm run -s test --silent; then
             echo "Tests passed"
           else
@@ -60,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     outputs:
-      artifact-path: ${{ steps.upload-artifact.outputs.artifact-path || '' }}
+      dist-artifact: ${{ steps.upload-artifact.outputs.artifact-path || '' }}
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ env.NODE_VERSION }}
@@ -87,11 +90,11 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     env:
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
-      SERVER_USER: profie7
-      SERVER_KEY: ${{ secrets.SERVER_SSH_KEY }}
-      SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+      # connect as the app user so build runs as profie7
+      SERVER_USER: ${{ secrets.SERVER_USER || 'profie7' }}
+      SSH_PORT: ${{ env.SSH_PORT }}
       APP_DIR: ${{ secrets.APP_DIR || '/home/profie7/apps' }}
-      GIT_BRANCH: ${{ secrets.GIT_BRANCH || 'main' }}
+      GIT_REF: ${{ github.event.inputs.ref || github.ref_name || 'main' }}
       HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL || '' }}
     steps:
       - name: Checkout repository
@@ -105,7 +108,7 @@ jobs:
       - name: Confirm SSH key loaded
         run: |
           echo "Loaded keys:"
-          ssh-add -l
+          ssh-add -l || true
 
       - name: Ensure ~/.ssh exists
         run: |
@@ -114,6 +117,7 @@ jobs:
 
       - name: Add server to known_hosts
         run: |
+          # add server to known_hosts so ssh/scp are non-interactive
           ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts || true
           chmod 644 ~/.ssh/known_hosts
           tail -n 5 ~/.ssh/known_hosts || true
@@ -121,16 +125,22 @@ jobs:
       - name: Run remote deploy script (with logging)
         id: deploy-script
         run: |
-          echo "Running remote deploy script on $SERVER_HOST"
-          # run deploy_cwp.sh (make sure it exists and is executable)
+          echo "Running remote deploy script on $SERVER_HOST as $SERVER_USER (ref=${GIT_REF})"
+          # run server deploy script and tee remote log into /home/deploy/logs/last-deploy.log
           ssh -o StrictHostKeyChecking=yes -p "${SSH_PORT}" "${SERVER_USER}@${SERVER_HOST}" \
-            "bash -lc 'set -euo pipefail; /home/deploy/deploy_cwp.sh 2>&1 | tee /home/deploy/logs/last-deploy.log'"
-        # If you prefer appleboy/ssh-action replace above ssh call with that action.
+            "bash -lc 'set -euo pipefail; /home/deploy/deploy_cwp.sh ${GIT_REF} 2>&1 | tee /home/deploy/logs/last-deploy.log'"
 
-      - name: Download remote deploy log
+      - name: Fetch remote deploy log (and print)
         if: always()
-        uses: actions/download-artifact@v4
-        run: echo "Remote log retained on server at /home/deploy/logs/last-deploy.log"
+        run: |
+          echo "Copying remote log to runner (if exists)..."
+          scp -P "${SSH_PORT}" -o StrictHostKeyChecking=yes "${SERVER_USER}@${SERVER_HOST}:/home/deploy/logs/last-deploy.log" ./last-deploy.log || true
+          echo "------ remote log (tail -n 300) ------"
+          if [ -f ./last-deploy.log ]; then
+            tail -n 300 ./last-deploy.log
+          else
+            echo "No remote log file found on server (check /home/deploy/logs)."
+          fi
 
       - name: Optional healthcheck
         if: env.HEALTHCHECK_URL != ''
@@ -146,4 +156,4 @@ jobs:
     steps:
       - name: Send success (optional)
         run: echo "Deploy succeeded for $GITHUB_SHA on ${GITHUB_REF}"
-        # Add webhook / slack notify step here if needed
+        # add Slack/webhook notify step here if needed
