@@ -839,7 +839,7 @@ export default function FrontendManagement() {
         </TabsList>
           <Button
             variant="outline"
-            onClick={() => window.open('/front', '_blank')}
+            onClick={() => window.open('/website-preview', '_blank')}
             className="flex items-center gap-2 whitespace-nowrap"
             data-testid="button-view-website"
           >

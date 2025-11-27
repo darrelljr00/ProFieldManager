@@ -264,6 +264,7 @@ function AuthenticatedApp() {
           <Route path="/settings" component={Settings} />
           <Route path="/deploy-cwp" component={DeployCWP} />
           <Route path="/website-analytics" component={WebsiteAnalytics} />
+          <Route path="/website-preview" component={HomePage} />
           <Route path="/reports" component={Reports} />
           <Route path="/logout" component={Logout} />
           <Route component={NotFound} />
