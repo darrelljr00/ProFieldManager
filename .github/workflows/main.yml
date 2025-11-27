@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # fallback: if you don't set SSH_PORT secret, default to 22
-      SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+      SSH_PORT: ${{ secrets.SSH_PORT || '22' || '2222' }}
 
     steps:
       - name: Checkout repository
