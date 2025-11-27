@@ -87,7 +87,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     env:
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
-      SERVER_USER: ${{ secrets.SERVER_USER }}
+      SERVER_USER: profie7
       SERVER_KEY: ${{ secrets.SERVER_SSH_KEY }}
       SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
       APP_DIR: ${{ secrets.APP_DIR || '/home/profie7/apps' }}
