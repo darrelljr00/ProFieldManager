@@ -49,13 +49,13 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install deps
         run: npm ci
-      - name: Run tests
+      - name: Run tests (skip if no script)
         run: |
-          if npm run -s test --silent; then
-            echo "Tests passed"
+          if [ -f package.json ] && grep -q '"test"' package.json; then
+            echo "Found test script — running tests"
+            npm run test
           else
-            echo "Tests failed"
-            exit 1
+            echo "No test script defined in package.json — skipping tests"
           fi
 
   build:
