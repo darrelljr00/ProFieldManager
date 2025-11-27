@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Save, X, Eye, Settings, Layout, Image, FileText, Globe, Sliders, Box, Palette, Monitor, Smartphone, Tablet, Crown } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Eye, Settings, Layout, Image, FileText, Globe, Sliders, Box, Palette, Monitor, Smartphone, Tablet, Crown, ExternalLink } from "lucide-react";
 
 interface FrontendPage {
   id: number;
@@ -806,7 +806,8 @@ export default function FrontendManagement() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7">
+        <div className="flex items-center gap-4">
+          <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="design" className="flex items-center space-x-2">
             <Palette className="h-4 w-4" />
             <span>Design</span>
@@ -836,6 +837,16 @@ export default function FrontendManagement() {
             <span>Layout</span>
           </TabsTrigger>
         </TabsList>
+          <Button
+            variant="outline"
+            onClick={() => window.open('/front', '_blank')}
+            className="flex items-center gap-2 whitespace-nowrap"
+            data-testid="button-view-website"
+          >
+            <ExternalLink className="h-4 w-4" />
+            <span>View Website</span>
+          </Button>
+        </div>
 
         {/* Design Tab - Drag and Drop Page Builder */}
         <TabsContent value="design" className="space-y-6">
