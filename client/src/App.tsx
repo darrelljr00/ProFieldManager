@@ -267,16 +267,6 @@ function AuthenticatedApp() {
           <Route path="/website-preview" component={HomePage} />
           {/* Public page previews for admin viewing while logged in */}
           <Route path="/features" component={FeaturesPage} />
-          {/* Industry landing pages - accessible by both authenticated and public users */}
-          <Route path="/services/general-contractors" component={GeneralContractorsPage} />
-          <Route path="/services/electricians" component={ElectriciansPage} />
-          <Route path="/services/plumbers" component={PlumbersPage} />
-          <Route path="/services/construction" component={ConstructionPage} />
-          <Route path="/services/handyman" component={HandymanPage} />
-          <Route path="/services/hvac" component={HVACPage} />
-          <Route path="/services/pressure-washers" component={PressureWashersPage} />
-          <Route path="/services/window-washers" component={WindowWashersPage} />
-          <Route path="/services/service-techs" component={ServiceTechsPage} />
           <Route path="/reports" component={Reports} />
           <Route path="/logout" component={Logout} />
           <Route component={NotFound} />
@@ -318,6 +308,7 @@ function PublicRoutes() {
       }>
         <Switch>
           <Route path="/" component={HomePage} />
+          <Route path="/website-preview" component={HomePage} />
           <Route path="/features" component={FeaturesPage} />
           <Route path="/signup" component={FeaturesPage} />
           <Route path="/demo-signup" component={DemoSignupPage} />
@@ -352,6 +343,16 @@ function PublicRoutes() {
     </div>
   );
 }
+// Marketing/public paths that should always render PublicRoutes regardless of auth state
+const PUBLIC_MARKETING_PATHS = [
+  '/services/',
+  '/website-preview',
+];
+
+function isPublicMarketingPath(path: string): boolean {
+  return PUBLIC_MARKETING_PATHS.some(prefix => path.startsWith(prefix));
+}
+
 function Router() {
   const authHook = useAuth();
   const isAuthenticated = authHook?.isAuthenticated ?? false;
@@ -404,6 +405,11 @@ function Router() {
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
+  }
+
+  // Always render PublicRoutes for marketing/public paths regardless of auth state
+  if (isPublicMarketingPath(location)) {
+    return <PublicRoutes />;
   }
 
   if (isAuthenticated) {
