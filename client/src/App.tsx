@@ -110,6 +110,9 @@ import PublicInvoicePayment from "@/pages/public-invoice-payment";
 import PublicQuotePayment from "@/pages/public-quote-payment";
 import PaymentSuccess from "@/pages/payment-success";
 import PaymentError from "@/pages/payment-error";
+import TermsOfService from "@/pages/legal/terms";
+import PrivacyPolicy from "@/pages/legal/privacy";
+import CookiePolicy from "@/pages/legal/cookies";
 
 function AuthenticatedApp() {
   const { isAdmin, user } = useAuth();
@@ -321,6 +324,10 @@ function PublicRoutes() {
           <Route path="/services/pressure-washers" component={PressureWashersPage} />
           <Route path="/services/window-washers" component={WindowWashersPage} />
           <Route path="/services/service-techs" component={ServiceTechsPage} />
+          {/* Legal pages */}
+          <Route path="/terms" component={TermsOfService} />
+          <Route path="/privacy" component={PrivacyPolicy} />
+          <Route path="/cookies" component={CookiePolicy} />
           <Route path="/login" component={UniversalLogin} />
           <Route path="/password-reset-request" component={PasswordResetRequest} />
           <Route path="/password-reset-complete" component={PasswordResetComplete} />
@@ -348,6 +355,9 @@ const PUBLIC_MARKETING_PATHS = [
   '/services/',
   '/website-preview',
   '/features',
+  '/terms',
+  '/privacy',
+  '/cookies',
 ];
 
 function isPublicMarketingPath(path: string): boolean {

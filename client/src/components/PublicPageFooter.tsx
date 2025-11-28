@@ -196,15 +196,15 @@ export function PublicPageFooter() {
             © {currentYear} {copyright}
           </p>
           <div className="flex gap-6 text-sm">
-            <a href="/privacy" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-privacy">
+            <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-privacy">
               Privacy Policy
-            </a>
-            <a href="/terms" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-terms">
+            </Link>
+            <Link href="/terms" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-terms">
               Terms of Service
-            </a>
-            <a href="/cookies" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-cookies">
+            </Link>
+            <Link href="/cookies" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-cookies">
               Cookie Policy
-            </a>
+            </Link>
           </div>
         </div>
       </div>
