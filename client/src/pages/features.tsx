@@ -198,7 +198,7 @@ export default function FeaturesPage() {
             <span className="text-xl font-bold text-white">Pro Field Manager</span>
           </div>
           <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-white hover:text-blue-200 transition-colors">Home</Link>
+            <Link href="/website-preview" className="text-white hover:text-blue-200 transition-colors">Home</Link>
             <Link href="/features" className="text-white hover:text-blue-200 transition-colors">Features</Link>
             <DropdownMenu>
               <DropdownMenuTrigger className="text-white hover:text-blue-200 transition-colors flex items-center gap-1">

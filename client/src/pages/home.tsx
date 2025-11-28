@@ -244,7 +244,7 @@ export default function HomePage() {
           </div>
           <nav className="hidden md:flex items-center space-x-8">
             <Link
-              href="/"
+              href="/website-preview"
               className="text-white hover:text-blue-200 transition-colors"
             >
               Home
@@ -305,7 +305,7 @@ export default function HomePage() {
           <div className="md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 z-40">
             <div className="container mx-auto px-4 py-6 space-y-4">
               <Link
-                href="/"
+                href="/website-preview"
                 className="block text-slate-900 hover:text-blue-600 transition-colors text-lg font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >

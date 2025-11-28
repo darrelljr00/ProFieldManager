@@ -44,7 +44,7 @@ export function PublicPageHeader() {
       {/* Navigation Header */}
       <header className="absolute top-0 left-0 right-0 z-50 bg-white/10 backdrop-blur-md border-b border-white/20">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/website-preview" className="flex items-center space-x-2">
             <Building2 className="h-8 w-8 text-white" />
             <span className="text-xl font-bold text-white">
               Pro Field Manager
@@ -52,7 +52,7 @@ export function PublicPageHeader() {
           </Link>
           <nav className="hidden md:flex items-center space-x-8">
             <Link
-              href="/"
+              href="/website-preview"
               className="text-white hover:text-blue-200 transition-colors"
               data-testid="nav-link-home"
             >
@@ -105,7 +105,7 @@ export function PublicPageHeader() {
           <div className="md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border-b border-gray-200 z-40">
             <div className="container mx-auto px-4 py-6 space-y-4">
               <Link
-                href="/"
+                href="/website-preview"
                 className="block text-slate-900 hover:text-blue-600 transition-colors text-lg font-medium"
                 onClick={() => setMobileMenuOpen(false)}
                 data-testid="mobile-nav-link-home"
