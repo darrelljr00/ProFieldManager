@@ -347,6 +347,7 @@ function PublicRoutes() {
 const PUBLIC_MARKETING_PATHS = [
   '/services/',
   '/website-preview',
+  '/features',
 ];
 
 function isPublicMarketingPath(path: string): boolean {
