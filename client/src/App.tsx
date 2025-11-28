@@ -267,6 +267,16 @@ function AuthenticatedApp() {
           <Route path="/website-preview" component={HomePage} />
           {/* Public page previews for admin viewing while logged in */}
           <Route path="/features" component={FeaturesPage} />
+          {/* Industry landing pages - accessible by both authenticated and public users */}
+          <Route path="/services/general-contractors" component={GeneralContractorsPage} />
+          <Route path="/services/electricians" component={ElectriciansPage} />
+          <Route path="/services/plumbers" component={PlumbersPage} />
+          <Route path="/services/construction" component={ConstructionPage} />
+          <Route path="/services/handyman" component={HandymanPage} />
+          <Route path="/services/hvac" component={HVACPage} />
+          <Route path="/services/pressure-washers" component={PressureWashersPage} />
+          <Route path="/services/window-washers" component={WindowWashersPage} />
+          <Route path="/services/service-techs" component={ServiceTechsPage} />
           <Route path="/reports" component={Reports} />
           <Route path="/logout" component={Logout} />
           <Route component={NotFound} />
