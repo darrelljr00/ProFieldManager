@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,7 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Rocket, CheckCircle, Building2, Users, TrendingUp, Clock, Shield, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Eye, EyeOff, Rocket, CheckCircle, Building2, Users, TrendingUp, Clock, Shield, Star, ChevronLeft, ChevronRight, FileText, Scale } from "lucide-react";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { useAnalytics } from "@/hooks/use-analytics";
@@ -35,6 +38,9 @@ export default function DemoSignupPage() {
   const queryClient = useQueryClient();
   const [currentSlide, setCurrentSlide] = useState(0);
   const { data: slides = [], isLoading: slidesLoading } = useHeroSlides();
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState(false);
   
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
@@ -95,12 +101,8 @@ export default function DemoSignupPage() {
 
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
 
-      toast({
-        title: "Demo Account Created!",
-        description: "Your 30-day demo account is ready with sample data. Explore all features risk-free!",
-      });
-
-      setLocation("/dashboard");
+      setPendingRedirect(true);
+      setShowTermsModal(true);
     },
     onError: (error: Error) => {
       toast({
@@ -627,6 +629,128 @@ export default function DemoSignupPage() {
 
       {/* Footer */}
       <PublicPageFooter />
+
+      {/* Terms of Service Agreement Modal */}
+      <Dialog open={showTermsModal} onOpenChange={() => {}}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Scale className="h-6 w-6 text-blue-600" />
+              Terms of Service Agreement
+            </DialogTitle>
+            <DialogDescription>
+              Please review and accept our Terms of Service to continue
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="h-[400px] w-full rounded-md border p-4 bg-gray-50 dark:bg-gray-900">
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <h3 className="text-lg font-semibold mb-4">Pro Field Manager Terms of Service</h3>
+              
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                <strong>Effective Date:</strong> January 1, 2025
+              </p>
+
+              <h4 className="font-semibold mt-4 mb-2">1. Acceptance of Terms</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                By accessing or using Pro Field Manager ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not use the Service.
+              </p>
+
+              <h4 className="font-semibold mt-4 mb-2">2. Description of Service</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Pro Field Manager is a cloud-based field service management platform that provides tools for invoicing, project management, customer management, team coordination, GPS tracking, and real-time communication.
+              </p>
+
+              <h4 className="font-semibold mt-4 mb-2">3. User Accounts</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You must immediately notify us of any unauthorized use of your account.
+              </p>
+
+              <h4 className="font-semibold mt-4 mb-2">4. Acceptable Use</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                You agree not to use the Service for any unlawful purpose or in any way that could damage, disable, or impair the Service. You may not attempt to gain unauthorized access to any part of the Service.
+              </p>
+
+              <h4 className="font-semibold mt-4 mb-2">5. Data Privacy</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Your use of the Service is also governed by our Privacy Policy. By using the Service, you consent to our collection and use of personal data as described in our Privacy Policy.
+              </p>
+
+              <h4 className="font-semibold mt-4 mb-2">6. Subscription and Billing</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Some features of the Service require a paid subscription. You agree to pay all fees associated with your subscription plan. Fees are non-refundable except as required by law.
+              </p>
+
+              <h4 className="font-semibold mt-4 mb-2">7. Demo Account Terms</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Demo accounts are provided for evaluation purposes and expire after 30 days. Demo data may be deleted upon expiration. No credit card is required for demo accounts.
+              </p>
+
+              <h4 className="font-semibold mt-4 mb-2">8. Intellectual Property</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                The Service and its original content, features, and functionality are owned by Pro Field Manager and are protected by international copyright, trademark, and other intellectual property laws.
+              </p>
+
+              <h4 className="font-semibold mt-4 mb-2">9. Limitation of Liability</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                In no event shall Pro Field Manager be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the Service.
+              </p>
+
+              <h4 className="font-semibold mt-4 mb-2">10. Changes to Terms</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                We reserve the right to modify these Terms at any time. We will notify you of any changes by posting the new Terms on this page. Your continued use of the Service after changes constitutes acceptance of the modified Terms.
+              </p>
+
+              <h4 className="font-semibold mt-4 mb-2">11. Contact Information</h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                If you have any questions about these Terms, please contact us at support@profieldmanager.com.
+              </p>
+            </div>
+          </ScrollArea>
+
+          <div className="flex items-start space-x-3 mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+            <Checkbox
+              id="terms-agreement"
+              checked={termsAccepted}
+              onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+              data-testid="checkbox-terms-agreement"
+            />
+            <label
+              htmlFor="terms-agreement"
+              className="text-sm font-medium leading-tight cursor-pointer"
+            >
+              I have read and agree to the{" "}
+              <Link href="/terms" className="text-blue-600 hover:underline" target="_blank">
+                Terms of Service
+              </Link>
+              {" "}and{" "}
+              <Link href="/privacy" className="text-blue-600 hover:underline" target="_blank">
+                Privacy Policy
+              </Link>
+            </label>
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button
+              onClick={() => {
+                if (termsAccepted) {
+                  toast({
+                    title: "Demo Account Created!",
+                    description: "Your 30-day demo account is ready with sample data. Explore all features risk-free!",
+                  });
+                  setLocation("/dashboard");
+                }
+              }}
+              disabled={!termsAccepted}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              data-testid="button-accept-terms"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              {termsAccepted ? "Accept & Continue to Dashboard" : "Please Accept Terms to Continue"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
