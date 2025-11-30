@@ -3002,6 +3002,21 @@ export default function Settings() {
                             </label>
                           </div>
                           
+                          <div className="flex items-center space-x-2 p-3 border rounded-lg border-orange-200 dark:border-orange-800">
+                            <input
+                              type="radio"
+                              id="profile-technician"
+                              name="dashboardProfile"
+                              value="technician"
+                              className="text-orange-600"
+                              defaultChecked={(dashboardSettings as any)?.profileType === 'technician'}
+                            />
+                            <label htmlFor="profile-technician" className="cursor-pointer flex-1">
+                              <div className="font-medium text-orange-700 dark:text-orange-300">Technician Dashboard</div>
+                              <div className="text-xs text-muted-foreground">Jobs, time clock, and field work widgets</div>
+                            </label>
+                          </div>
+                          
                           <div className="flex items-center space-x-2 p-3 border rounded-lg">
                             <input
                               type="radio"
