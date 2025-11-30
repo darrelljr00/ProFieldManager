@@ -2113,10 +2113,14 @@ export default function UsersPage() {
             <CardContent>
               <div className="space-y-6">
                 {/* Permission Rules Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                   <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
                     <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">User</h4>
                     <p className="text-sm text-blue-700 dark:text-blue-300">Can only see their own HR profile</p>
+                  </div>
+                  <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">Technician</h4>
+                    <p className="text-sm text-orange-700 dark:text-orange-300">Field worker with time clock and job access</p>
                   </div>
                   <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                     <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2">Manager</h4>
@@ -2170,6 +2174,13 @@ export default function UsersPage() {
                             case 'manager':
                               switch (permissionType) {
                                 case 'canViewHREmployees':
+                                case 'canViewOwnHRProfile':
+                                  return true;
+                                default:
+                                  return false;
+                              }
+                            case 'technician':
+                              switch (permissionType) {
                                 case 'canViewOwnHRProfile':
                                   return true;
                                 default:
@@ -2298,10 +2309,15 @@ export default function UsersPage() {
 
                   <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
                     <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Role-Based Default Permissions:</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 text-sm">
                       <div className="text-blue-700 dark:text-blue-300">
                         <strong>User:</strong><br/>
                         • View/Edit Own Profile Only
+                      </div>
+                      <div className="text-orange-700 dark:text-orange-300">
+                        <strong>Technician:</strong><br/>
+                        • View Own Profile<br/>
+                        • Time Clock & Jobs Access
                       </div>
                       <div className="text-blue-700 dark:text-blue-300">
                         <strong>Manager:</strong><br/>
