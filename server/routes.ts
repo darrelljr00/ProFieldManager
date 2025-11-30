@@ -94,6 +94,7 @@ import { Client } from '@googlemaps/google-maps-services-js';
 import marketResearchRouter from "./marketResearch";
 import deployRouter from "./routes/deploy";
 import analyticsRouter from "./routes/analytics";
+import { generatePuzzleChallenge, validatePuzzleSolution } from "./services/puzzleCaptcha";
 import { s3Service } from "./s3Service";
 import { fileManager } from "./fileManager";
 import { CloudinaryService } from "./cloudinary";
@@ -2323,6 +2324,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('🚨 GET Login error:', error);
       res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+
+  // ================== PUZZLE CAPTCHA ==================
+  
+  // Generate puzzle captcha challenge
+  app.get("/api/captcha/generate", async (req, res) => {
+    try {
+      const challenge = generatePuzzleChallenge();
+      res.json(challenge);
+    } catch (error) {
+      console.error("Error generating captcha:", error);
+      res.status(500).json({ message: "Failed to generate captcha" });
+    }
+  });
+  
+  // Validate puzzle captcha solution
+  app.post("/api/captcha/validate", async (req, res) => {
+    try {
+      const { token, x } = req.body;
+      
+      if (!token || typeof x !== 'number') {
+        return res.status(400).json({ valid: false, message: "Missing token or position" });
+      }
+      
+      const result = validatePuzzleSolution(token, x);
+      res.json(result);
+    } catch (error) {
+      console.error("Error validating captcha:", error);
+      res.status(500).json({ valid: false, message: "Failed to validate captcha" });
     }
   });
 
