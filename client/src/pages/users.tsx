@@ -424,12 +424,22 @@ export default function UsersPage() {
   };
 
   const getRoleBadge = (role: string) => {
+    const safeRole = role || 'user';
     const colors: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
       admin: "destructive",
       manager: "secondary",
+      technician: "default",
       user: "outline"
     };
-    return <Badge variant={colors[role] || "outline"}>{role || 'user'}</Badge>;
+    const isTechnician = safeRole === 'technician';
+    return (
+      <Badge 
+        variant={colors[safeRole] || "outline"} 
+        className={isTechnician ? "bg-orange-600 hover:bg-orange-700" : ""}
+      >
+        {safeRole.charAt(0).toUpperCase() + safeRole.slice(1)}
+      </Badge>
+    );
   };
 
   const getUserTypeBadge = (userType: string) => {
