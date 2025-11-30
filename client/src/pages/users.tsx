@@ -1411,8 +1411,8 @@ export default function UsersPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={user.role === 'admin' ? 'default' : user.role === 'manager' ? 'secondary' : 'outline'}>
-                              {user.role}
+                            <Badge variant={user.role === 'admin' ? 'default' : user.role === 'manager' ? 'secondary' : user.role === 'technician' ? 'default' : 'outline'} className={user.role === 'technician' ? 'bg-orange-600' : ''}>
+                              {user.role?.charAt(0).toUpperCase() + user.role?.slice(1) || 'User'}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -2200,8 +2200,9 @@ export default function UsersPage() {
                                 user.role === 'admin' ? 'destructive' : 
                                 user.role === 'hr' ? 'default' : 
                                 user.role === 'manager' ? 'secondary' : 
+                                user.role === 'technician' ? 'default' :
                                 'outline'
-                              }>
+                              } className={user.role === 'technician' ? 'bg-orange-600' : ''}>
                                 {user.role?.toUpperCase() || 'USER'}
                               </Badge>
                             </TableCell>
