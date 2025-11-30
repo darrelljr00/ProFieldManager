@@ -41,8 +41,17 @@ export default function DemoSignupPage() {
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [pendingRedirect, setPendingRedirect] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>("professional");
+  const [billingCycle, setBillingCycle] = useState<string>("monthly");
   
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
+
+  useEffect(() => {
+    const storedPlan = localStorage.getItem('selectedPlan');
+    const storedBilling = localStorage.getItem('selectedBillingCycle');
+    if (storedPlan) setSelectedPlan(storedPlan);
+    if (storedBilling) setBillingCycle(storedBilling);
+  }, []);
 
   const form = useForm<DemoSignupFormValues>({
     resolver: zodResolver(demoSignupSchema),
@@ -84,7 +93,12 @@ export default function DemoSignupPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ ...data, isDemo: true }),
+        body: JSON.stringify({ 
+          ...data, 
+          isDemo: true,
+          subscriptionPlan: selectedPlan,
+          billingInterval: billingCycle
+        }),
       });
 
       if (!response.ok) {
@@ -569,6 +583,30 @@ export default function DemoSignupPage() {
                         </FormItem>
                       )}
                     />
+
+                    {/* Selected Plan Display */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 p-4 rounded-lg border border-blue-200 dark:border-blue-800" data-testid="card-selected-plan">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">Selected Plan</p>
+                          <p className="font-bold text-lg text-slate-900 dark:text-white capitalize">
+                            {selectedPlan} Plan
+                          </p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Billed {billingCycle}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setLocation("/get-started#pricing")}
+                          data-testid="button-change-plan"
+                        >
+                          Change Plan
+                        </Button>
+                      </div>
+                    </div>
 
                     {/* Features List */}
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg" data-testid="card-features-included">

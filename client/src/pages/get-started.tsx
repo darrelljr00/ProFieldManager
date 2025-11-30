@@ -1,28 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Check, ArrowRight, Building2, Users, Zap, Shield, Star, Clock, 
   CreditCard, Rocket, Target, Award, ChevronRight, Phone, Mail,
   CheckCircle, Play, Calendar, Headphones, TrendingUp, Lock,
-  Gift, Timer, Sparkles, MessageCircle
+  Gift, Timer, Sparkles, MessageCircle, Loader2
 } from "lucide-react";
 import { PublicPageHeader } from "@/components/PublicPageHeader";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { useAnalytics } from "@/hooks/use-analytics";
+import type { SubscriptionPlan } from "@shared/schema";
 
-const subscriptionPlans = [
+interface PlanWithFeatures extends SubscriptionPlan {
+  features?: string[];
+  yearlyPrice?: number;
+}
+
+const fallbackPlans = [
   {
+    id: 1,
     name: "Starter",
     slug: "starter",
-    price: 49,
-    yearlyPrice: 39,
+    price: "49",
     description: "Perfect for small field service teams",
+    billingInterval: "month",
+    maxUsers: 5,
+    maxProjects: 50,
+    maxStorageGB: 10,
+    maxCustomers: 100,
+    isPopular: false,
     features: [
       "Up to 5 team members",
       "50 active projects",
@@ -32,20 +48,20 @@ const subscriptionPlans = [
       "Mobile app access",
       "Customer management",
       "Invoice creation"
-    ],
-    limitations: [
-      "Limited integrations",
-      "Standard support only"
-    ],
-    popular: false,
-    cta: "Start Free Trial"
+    ]
   },
   {
+    id: 2,
     name: "Professional",
     slug: "professional", 
-    price: 99,
-    yearlyPrice: 79,
+    price: "99",
     description: "Best for growing businesses",
+    billingInterval: "month",
+    maxUsers: 25,
+    maxProjects: -1,
+    maxStorageGB: 50,
+    maxCustomers: 500,
+    isPopular: true,
     features: [
       "Up to 25 team members",
       "Unlimited projects",
@@ -58,17 +74,20 @@ const subscriptionPlans = [
       "GPS tracking & route optimization",
       "Automated notifications",
       "Quote & proposal builder"
-    ],
-    limitations: [],
-    popular: true,
-    cta: "Start Free Trial"
+    ]
   },
   {
+    id: 3,
     name: "Enterprise",
     slug: "enterprise",
-    price: 199,
-    yearlyPrice: 159,
+    price: "199",
     description: "For large organizations",
+    billingInterval: "month",
+    maxUsers: -1,
+    maxProjects: -1,
+    maxStorageGB: 500,
+    maxCustomers: -1,
+    isPopular: false,
     features: [
       "Unlimited team members",
       "Unlimited projects", 
@@ -83,10 +102,7 @@ const subscriptionPlans = [
       "Custom deployment options",
       "SLA guarantee",
       "Training & onboarding"
-    ],
-    limitations: [],
-    popular: false,
-    cta: "Contact Sales"
+    ]
   }
 ];
 
@@ -191,15 +207,79 @@ const trustBadges = [
 export default function GetStartedPage() {
   const [, setLocation] = useLocation();
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const [selectedPlanSlug, setSelectedPlanSlug] = useState<string>("professional");
   
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
-  const getPrice = (plan: typeof subscriptionPlans[0]) => {
-    return billingCycle === "yearly" ? plan.yearlyPrice : plan.price;
+  const { data: apiPlans, isLoading: isLoadingPlans } = useQuery<SubscriptionPlan[]>({
+    queryKey: ['/api/pricing-plans'],
+  });
+
+  const subscriptionPlans = apiPlans && apiPlans.length > 0 
+    ? apiPlans.map(plan => ({
+        ...plan,
+        features: generateFeaturesFromPlan(plan),
+        isPopular: plan.isPopular || plan.slug === "professional"
+      }))
+    : fallbackPlans;
+
+  function generateFeaturesFromPlan(plan: SubscriptionPlan): string[] {
+    const features: string[] = [];
+    
+    if (plan.maxUsers === -1 || plan.maxUsers === null) {
+      features.push("Unlimited team members");
+    } else {
+      features.push(`Up to ${plan.maxUsers} team members`);
+    }
+    
+    if (plan.maxProjects === -1 || plan.maxProjects === null) {
+      features.push("Unlimited projects");
+    } else {
+      features.push(`${plan.maxProjects} active projects`);
+    }
+    
+    if (plan.maxStorageGB) {
+      features.push(`${plan.maxStorageGB}GB cloud storage`);
+    }
+    
+    if (plan.slug === "starter") {
+      features.push("Basic analytics & reports", "Email support", "Mobile app access", "Customer management", "Invoice creation");
+    } else if (plan.slug === "professional") {
+      features.push("Advanced analytics & custom reports", "Priority email & chat support", "Full API access", "Custom branding", "All integrations (Stripe, Twilio, etc.)", "GPS tracking & route optimization", "Automated notifications", "Quote & proposal builder");
+    } else if (plan.slug === "enterprise") {
+      features.push("Enterprise analytics & BI tools", "24/7 priority phone & chat support", "Full API access with higher limits", "White-label branding", "All integrations + custom", "Advanced GPS fleet tracking", "Dedicated account manager", "Custom deployment options", "SLA guarantee", "Training & onboarding");
+    }
+    
+    return features;
+  }
+
+  const getPrice = (plan: any) => {
+    const monthlyPrice = parseFloat(plan.price) || 0;
+    if (billingCycle === "yearly") {
+      return Math.round(monthlyPrice * 0.8);
+    }
+    return monthlyPrice;
   };
 
-  const getSavings = (plan: typeof subscriptionPlans[0]) => {
-    return (plan.price - plan.yearlyPrice) * 12;
+  const getSavings = (plan: any) => {
+    const monthlyPrice = parseFloat(plan.price) || 0;
+    const yearlyPrice = Math.round(monthlyPrice * 0.8);
+    return (monthlyPrice - yearlyPrice) * 12;
+  };
+
+  const handleSelectPlan = (planSlug: string) => {
+    setSelectedPlanSlug(planSlug);
+    localStorage.setItem('selectedPlan', planSlug);
+    localStorage.setItem('selectedBillingCycle', billingCycle);
+  };
+
+  const handleStartTrial = (planSlug: string) => {
+    if (planSlug === "enterprise") {
+      document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    handleSelectPlan(planSlug);
+    setLocation("/demo-signup");
   };
 
   return (
@@ -348,27 +428,70 @@ export default function GetStartedPage() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {subscriptionPlans.map((plan, index) => (
+          {isLoadingPlans ? (
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="relative overflow-hidden">
+                  <CardHeader className="text-center pb-2">
+                    <Skeleton className="h-8 w-32 mx-auto mb-2" />
+                    <Skeleton className="h-4 w-48 mx-auto" />
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <Skeleton className="h-12 w-24 mx-auto mb-4" />
+                    <Skeleton className="h-10 w-full mb-6" />
+                    <div className="space-y-3">
+                      {[1, 2, 3, 4, 5].map((j) => (
+                        <Skeleton key={j} className="h-4 w-full" />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+          <RadioGroup value={selectedPlanSlug} onValueChange={handleSelectPlan} className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {subscriptionPlans.map((plan, index) => {
+              const isSelected = selectedPlanSlug === plan.slug;
+              const isPopular = plan.isPopular || plan.slug === "professional";
+              
+              return (
               <Card 
                 key={plan.slug}
-                className={`relative overflow-hidden ${
-                  plan.popular 
-                    ? "border-2 border-blue-600 shadow-xl scale-105" 
-                    : "border hover:border-blue-200 dark:hover:border-blue-800"
-                } transition-all`}
+                onClick={() => handleSelectPlan(plan.slug)}
+                className={`relative overflow-hidden cursor-pointer transition-all ${
+                  isSelected
+                    ? "border-2 border-blue-600 shadow-xl ring-2 ring-blue-600 ring-offset-2" 
+                    : isPopular 
+                      ? "border-2 border-blue-400 shadow-lg" 
+                      : "border hover:border-blue-200 dark:hover:border-blue-800"
+                } ${isPopular ? "scale-105" : ""}`}
                 data-testid={`card-plan-${plan.slug}`}
               >
-                {plan.popular && (
+                {isPopular && (
                   <div className="absolute top-0 right-0 bg-blue-600 text-white px-4 py-1 text-sm font-medium rounded-bl-lg">
                     Most Popular
                   </div>
                 )}
+
+                {isSelected && (
+                  <div className="absolute top-0 left-0 bg-green-600 text-white px-4 py-1 text-sm font-medium rounded-br-lg flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4" />
+                    Selected
+                  </div>
+                )}
                 
-                <CardHeader className="text-center pb-2">
-                  <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {plan.name}
-                  </CardTitle>
+                <CardHeader className="text-center pb-2 pt-8">
+                  <div className="flex items-center justify-center gap-3 mb-2">
+                    <RadioGroupItem 
+                      value={plan.slug} 
+                      id={`plan-${plan.slug}`}
+                      className="h-5 w-5"
+                      data-testid={`radio-plan-${plan.slug}`}
+                    />
+                    <Label htmlFor={`plan-${plan.slug}`} className="text-2xl font-bold text-slate-900 dark:text-white cursor-pointer">
+                      {plan.name}
+                    </Label>
+                  </div>
                   <CardDescription className="text-slate-600 dark:text-slate-400">
                     {plan.description}
                   </CardDescription>
@@ -396,28 +519,36 @@ export default function GetStartedPage() {
 
                   <Button 
                     className={`w-full mb-6 ${
-                      plan.popular 
-                        ? "bg-blue-600 hover:bg-blue-700" 
-                        : plan.slug === "enterprise" 
-                          ? "bg-slate-800 hover:bg-slate-900 dark:bg-slate-600" 
-                          : ""
+                      isSelected 
+                        ? "bg-green-600 hover:bg-green-700" 
+                        : isPopular 
+                          ? "bg-blue-600 hover:bg-blue-700" 
+                          : plan.slug === "enterprise" 
+                            ? "bg-slate-800 hover:bg-slate-900 dark:bg-slate-600" 
+                            : ""
                     }`}
-                    variant={plan.popular || plan.slug === "enterprise" ? "default" : "outline"}
-                    onClick={() => {
-                      if (plan.slug === "enterprise") {
-                        document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
-                      } else {
-                        setLocation("/demo-signup");
-                      }
+                    variant={isSelected || isPopular || plan.slug === "enterprise" ? "default" : "outline"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStartTrial(plan.slug);
                     }}
                     data-testid={`button-select-${plan.slug}`}
                   >
-                    {plan.cta}
+                    {isSelected ? (
+                      <>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Continue with {plan.name}
+                      </>
+                    ) : plan.slug === "enterprise" ? (
+                      <>Contact Sales</>
+                    ) : (
+                      <>Start Free Trial</>
+                    )}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
 
                   <div className="space-y-3">
-                    {plan.features.map((feature, idx) => (
+                    {(plan.features || []).map((feature: string, idx: number) => (
                       <div key={idx} className="flex items-start gap-3">
                         <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                         <span className="text-sm text-slate-600 dark:text-slate-400">{feature}</span>
@@ -426,8 +557,10 @@ export default function GetStartedPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            );
+            })}
+          </RadioGroup>
+          )}
 
           {/* Enterprise CTA */}
           <div className="mt-12 text-center">
