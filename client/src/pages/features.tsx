@@ -218,12 +218,12 @@ export default function FeaturesPage() {
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
-            <Link href="/features#pricing" className="text-white hover:text-blue-200 transition-colors">Pricing</Link>
+            <Link href="/get-started#pricing" className="text-white hover:text-blue-200 transition-colors">Pricing</Link>
             <Button variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900">
               <Link href="/login">Login</Link>
             </Button>
             <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-              <Link href="/features#signup">Get Started</Link>
+              <Link href="/get-started">Get Started</Link>
             </Button>
           </nav>
           <div className="md:hidden">

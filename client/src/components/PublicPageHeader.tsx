@@ -66,7 +66,7 @@ export function PublicPageHeader() {
               Features
             </Link>
             <Link
-              href="/features#pricing"
+              href="/get-started#pricing"
               className="text-white hover:text-blue-200 transition-colors"
               data-testid="nav-link-pricing"
             >
@@ -85,7 +85,7 @@ export function PublicPageHeader() {
               asChild
               data-testid="button-nav-get-started"
             >
-              <Link href="/features#signup">Get Started</Link>
+              <Link href="/get-started">Get Started</Link>
             </Button>
           </nav>
           <div className="md:hidden">
@@ -121,7 +121,7 @@ export function PublicPageHeader() {
                 Features
               </Link>
               <Link
-                href="/features#pricing"
+                href="/get-started#pricing"
                 className="block text-slate-900 hover:text-blue-600 transition-colors text-lg font-medium"
                 onClick={() => setMobileMenuOpen(false)}
                 data-testid="mobile-nav-link-pricing"
@@ -139,7 +139,7 @@ export function PublicPageHeader() {
                   </Button>
                 </Link>
                 <Link
-                  href="/features#signup"
+                  href="/get-started"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Button
@@ -170,7 +170,7 @@ export function PublicPageHeader() {
               </Link>{" "}
               or{" "}
               <Link
-                href="/features#signup"
+                href="/get-started"
                 className="underline font-semibold hover:text-blue-200"
               >
                 start your free trial

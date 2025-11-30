@@ -113,6 +113,7 @@ import PaymentError from "@/pages/payment-error";
 import TermsOfService from "@/pages/legal/terms";
 import PrivacyPolicy from "@/pages/legal/privacy";
 import CookiePolicy from "@/pages/legal/cookies";
+import GetStartedPage from "@/pages/get-started";
 
 function AuthenticatedApp() {
   const { isAdmin, user } = useAuth();
@@ -328,6 +329,8 @@ function PublicRoutes() {
           <Route path="/terms" component={TermsOfService} />
           <Route path="/privacy" component={PrivacyPolicy} />
           <Route path="/cookies" component={CookiePolicy} />
+          {/* Get Started / Pricing page */}
+          <Route path="/get-started" component={GetStartedPage} />
           <Route path="/login" component={UniversalLogin} />
           <Route path="/password-reset-request" component={PasswordResetRequest} />
           <Route path="/password-reset-complete" component={PasswordResetComplete} />
@@ -358,6 +361,7 @@ const PUBLIC_MARKETING_PATHS = [
   '/terms',
   '/privacy',
   '/cookies',
+  '/get-started',
 ];
 
 function isPublicMarketingPath(path: string): boolean {
