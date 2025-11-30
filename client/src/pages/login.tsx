@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Lock, User } from "lucide-react";
+import { PuzzleCaptcha } from "@/components/PuzzleCaptcha";
 
 export default function LoginPage() {
   const { toast } = useToast();
@@ -21,8 +22,9 @@ export default function LoginPage() {
   const [location, setLocation] = useLocation();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
-  // Clear auth data when entering login page
   useEffect(() => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_data");
@@ -57,11 +59,27 @@ export default function LoginPage() {
         description: err?.message || "Invalid username or password.",
         variant: "destructive",
       });
+      setCaptchaVerified(false);
+      setCaptchaToken(null);
     },
   });
 
+  const handleCaptchaVerified = (token: string) => {
+    setCaptchaVerified(true);
+    setCaptchaToken(token);
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!captchaVerified) {
+      toast({
+        title: "Captcha Required",
+        description: "Please complete the puzzle captcha before signing in.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const fd = new FormData(e.currentTarget);
     const username = fd.get("real_username") as string;
@@ -80,7 +98,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
           <CardTitle className="text-center text-xl flex items-center justify-center gap-2">
@@ -98,7 +116,6 @@ export default function LoginPage() {
             autoComplete="off"
             className="space-y-5"
           >
-            {/* Autofill trap fields */}
             <input
               type="text"
               name="trap_username"
@@ -112,7 +129,6 @@ export default function LoginPage() {
               style={{ opacity: 0, height: 0, position: "absolute" }}
             />
 
-            {/* Username */}
             <div>
               <Label>Username</Label>
               <div className="relative">
@@ -126,11 +142,11 @@ export default function LoginPage() {
                   autoCorrect="off"
                   spellCheck="false"
                   className="pl-10"
+                  data-testid="input-username"
                 />
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <Label>Password</Label>
               <div className="relative">
@@ -142,6 +158,7 @@ export default function LoginPage() {
                   placeholder="Enter password"
                   autoComplete="new-password"
                   className="pl-10 pr-10"
+                  data-testid="input-password"
                 />
 
                 <Button
@@ -150,6 +167,7 @@ export default function LoginPage() {
                   size="sm"
                   className="absolute right-1 top-1/2 -translate-y-1/2"
                   onClick={() => setShowPassword(!showPassword)}
+                  data-testid="button-toggle-password"
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -160,10 +178,18 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="flex justify-center">
+              <PuzzleCaptcha 
+                onVerified={handleCaptchaVerified}
+                onError={(msg) => toast({ title: "Captcha Error", description: msg, variant: "destructive" })}
+              />
+            </div>
+
             <Button
               type="submit"
               className="w-full"
-              disabled={loginMutation.isPending}
+              disabled={loginMutation.isPending || !captchaVerified}
+              data-testid="button-submit-login"
             >
               {loginMutation.isPending ? "Signing In..." : "Sign In"}
             </Button>
