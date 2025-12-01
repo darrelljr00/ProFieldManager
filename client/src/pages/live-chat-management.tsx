@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { LiveChatNotificationQueue, type ChatNotification } from "@/components/LiveChatNotification";
+import { useSoundNotifications } from "@/hooks/useSoundNotifications";
 
 interface LiveChatSession {
   id: number;
@@ -64,8 +66,33 @@ export default function LiveChatManagement() {
     isActive: true,
     displayOrder: 0,
   });
+  const [notificationQueue, setNotificationQueue] = useState<ChatNotification[]>([]);
+  const processedEventsRef = useRef<Set<string>>(new Set());
   const { toast } = useToast();
   const { lastMessage } = useWebSocket();
+  const { playTeamMessageSound, initializeAudioContext } = useSoundNotifications();
+
+  const addNotification = useCallback((notification: ChatNotification) => {
+    const eventKey = `${notification.type}-${notification.sessionId}-${notification.timestamp.getTime()}`;
+    if (processedEventsRef.current.has(eventKey)) return;
+    processedEventsRef.current.add(eventKey);
+    
+    if (processedEventsRef.current.size > 100) {
+      const entries = Array.from(processedEventsRef.current);
+      processedEventsRef.current = new Set(entries.slice(-50));
+    }
+    
+    setNotificationQueue(prev => [...prev, notification]);
+    playTeamMessageSound();
+  }, [playTeamMessageSound]);
+
+  const dismissNotification = useCallback((id: string) => {
+    setNotificationQueue(prev => prev.filter(n => n.id !== id));
+  }, []);
+
+  const handleViewChatFromNotification = useCallback((sessionId: number) => {
+    setSelectedSession(sessionId);
+  }, []);
 
   const { data: sessions, isLoading: sessionsLoading } = useQuery<LiveChatSession[]>({
     queryKey: ['/api/live-chat/sessions', showSalesInquiries ? 'sales' : 'org'],
@@ -103,19 +130,67 @@ export default function LiveChatManagement() {
     },
   });
 
-  // Listen for WebSocket updates for real-time messages
+  // Listen for WebSocket updates for real-time messages and new sessions
   useEffect(() => {
-    if (lastMessage?.eventType === 'live_chat_message') {
-      // Invalidate both org and sales sessions lists to update unread counts
+    if (!lastMessage) return;
+    
+    if (lastMessage.eventType === 'live_chat_message') {
       queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'org'] });
       queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'sales'] });
       
-      // If the message is for the selected session, invalidate messages
-      if (lastMessage?.data?.sessionId === selectedSession) {
+      if (lastMessage.data?.sessionId === selectedSession) {
         queryClient.invalidateQueries({ queryKey: ['/api/live-chat/messages', selectedSession] });
       }
+      
+      if (lastMessage.data?.senderRole === 'visitor' && lastMessage.data?.sessionId !== selectedSession) {
+        const notification: ChatNotification = {
+          id: `msg-${lastMessage.data.sessionId}-${Date.now()}`,
+          type: 'new_message',
+          sessionId: lastMessage.data.sessionId,
+          visitorName: lastMessage.data.visitorName,
+          visitorEmail: lastMessage.data.visitorEmail,
+          message: lastMessage.data.message,
+          departmentName: lastMessage.data.departmentName,
+          departmentColor: lastMessage.data.departmentColor,
+          timestamp: new Date(),
+        };
+        addNotification(notification);
+      }
     }
-  }, [lastMessage, selectedSession]);
+    
+    if (lastMessage.eventType === 'live_chat_session_created') {
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'org'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/live-chat/sessions', 'sales'] });
+      
+      const notification: ChatNotification = {
+        id: `session-${lastMessage.data?.sessionId}-${Date.now()}`,
+        type: 'new_session',
+        sessionId: lastMessage.data?.sessionId,
+        visitorName: lastMessage.data?.visitorName,
+        visitorEmail: lastMessage.data?.visitorEmail,
+        message: lastMessage.data?.initialMessage,
+        departmentName: lastMessage.data?.departmentName,
+        departmentColor: lastMessage.data?.departmentColor,
+        timestamp: new Date(),
+      };
+      addNotification(notification);
+    }
+  }, [lastMessage, selectedSession, addNotification]);
+
+  // Initialize audio context on first user interaction
+  useEffect(() => {
+    const handleInteraction = () => {
+      initializeAudioContext();
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('keydown', handleInteraction);
+    };
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('keydown', handleInteraction);
+    return () => {
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('keydown', handleInteraction);
+    };
+  }, [initializeAudioContext]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ sessionId, message }: { sessionId: number, message: string }) => {
@@ -274,6 +349,12 @@ export default function LiveChatManagement() {
 
   return (
     <div className="p-6">
+      <LiveChatNotificationQueue
+        notifications={notificationQueue}
+        onDismiss={dismissNotification}
+        onViewChat={handleViewChatFromNotification}
+      />
+      
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Live Chat Management</h1>
         <p className="text-muted-foreground">Manage customer conversations and departments</p>

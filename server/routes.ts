@@ -269,6 +269,22 @@ async function compressImage(inputPath: string, outputPath: string, organization
             fit: 'inside',
             withoutEnlargement: true
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         
         // Always use JPEG for better compression to reach under 1MB target
         await sharpInstance
@@ -748,6 +764,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         streamerId: user.id,
         organizationId: user.organizationId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.status(201).json(streamSession);
     } catch (error) {
@@ -865,6 +896,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'Recording uploaded successfully',
         recordingUrl: cloudinaryResult.secure_url 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error('Error uploading recording:', error);
       res.status(500).json({ message: 'Failed to upload recording' });
@@ -903,6 +949,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tags: { value: tags, type: typeof tags, isArray: Array.isArray(tags) },
         folderId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Convert tags to array early to avoid issues
       const processedTags = tags ? (Array.isArray(tags) ? tags : [tags]) : [];
@@ -943,6 +1004,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: cloudinaryResult.error || 'Cloudinary upload error'
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       console.log('☁️ Cloudinary upload successful:', cloudinaryResult.publicId);
 
@@ -976,6 +1053,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cloudinaryUrl: cloudinaryResult.secureUrl,
         publicId: cloudinaryResult.publicId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error) {
       console.error('❌ Direct file upload error:', error);
@@ -984,6 +1076,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'File upload failed',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -1004,6 +1111,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         origin: req.headers.origin,
         contentType: req.headers['content-type']
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
     
     next();
@@ -1279,6 +1401,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fieldUserIds.add(session.userId);
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       const inFieldCount = fieldUserIds.size;
 
       // Get WebSocket connected clients count for verification
@@ -1295,6 +1432,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         organizationId: organizationId,
         timestamp: new Date().toISOString()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       console.log(`📊 Team status broadcasted to org ${organizationId}: ${onlineCount} online, ${inFieldCount} in field`);
     } catch (error) {
@@ -1327,6 +1479,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             paymentSettings[key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
       
       console.log('Returning payment settings:', paymentSettings);
@@ -1373,6 +1541,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json(emailSettings);
     } catch (error: any) {
       console.error('Error fetching email settings:', error);
@@ -1412,6 +1595,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           notificationSettings[key] = setting.value === 'true';
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(notificationSettings);
     } catch (error: any) {
@@ -1581,6 +1779,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateKeys: Object.keys(updates)
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // First, ensure settings exist by getting them
       const existingSettings = await NotificationService.getNotificationSettings(
         user.id, 
@@ -1612,6 +1825,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'Notification settings updated successfully',
         settings: updatedSettings
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('❌ Error updating notification settings:', {
         message: error.message,
@@ -1619,10 +1847,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         code: error.code,
         detail: error.detail
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       res.status(500).json({ 
         message: 'Failed to update notification settings',
         error: error.message
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -1645,6 +1903,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
                              ['sessionTimeout', 'loginAttempts'].includes(key) ? parseInt(setting.value) || securitySettings[key] : setting.value;
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(securitySettings);
     } catch (error: any) {
@@ -1695,6 +1968,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(integrationSettings);
     } catch (error: any) {
@@ -1796,6 +2084,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         
         console.log('🔍 Final company settings for org', user.organizationId, ':', companySettings);
       }
@@ -1840,6 +2144,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eq(settings.key, settingKey)
         )
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       const showTimestampOptions = setting?.value === 'false' ? false : true;
       
@@ -1886,6 +2205,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trackingEnabled: true,
         smsTemplate: "Hi {customerName}, {technicianName} from {companyName} is about {estimatedMinutes} minutes away from your location at {address}. Track their arrival: {trackingLink}"
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error fetching customer ETA settings:', error);
       res.status(500).json({ message: 'Failed to fetch customer ETA settings' });
@@ -1926,6 +2260,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           smsTemplate,
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       res.json({ message: 'Customer ETA settings updated successfully' });
     } catch (error: any) {
@@ -1951,6 +2301,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sendReminderNotifications: true,
         notifyManagers: false
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error fetching vehicle inspection alert settings:', error);
       res.status(500).json({ message: 'Failed to fetch vehicle inspection alert settings' });
@@ -1989,6 +2354,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sendReminderNotifications,
           notifyManagers,
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       res.json({ message: 'Vehicle inspection alert settings updated successfully' });
@@ -2086,6 +2467,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         token,
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
     } catch (error) {
       console.error('🚨 Validation error:', error);
       res.status(500).json({ message: "Validation failed" });
@@ -2133,6 +2529,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subscriptionPlan: "starter",
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       organizationId = organization.id;
       
       // For demo accounts, set expiration to 30 days from now
@@ -2175,6 +2586,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sameSite: 'none', // Allow cross-origin for all domains
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.status(201).json({
         user: {
@@ -2190,6 +2616,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         token: session.token,
         isDemo: isDemo,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       if (error instanceof ZodError) {
         return res.status(400).json({ message: error.errors[0].message });
@@ -2308,6 +2749,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         domain: isCustomDomain ? '.profieldmanager.com' : undefined
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({
         user: {
@@ -2320,6 +2776,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         token: session.token
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error) {
       console.error('🚨 GET Login error:', error);
@@ -2471,6 +2942,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         host: req.headers.host
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.cookie('auth_token', session.token, cookieConfig);
 
       const response = {
@@ -2512,6 +2998,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sameSite: 'none',
         path: '/'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       res.json({ message: "Logged out successfully" });
     } catch (error) {
       console.error("Logout error:", error);
@@ -2569,6 +3070,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
               
               const result = await response.json();
               document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
@@ -2576,6 +3093,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               document.getElementById('result').innerHTML = 'Error: ' + error.message;
             }
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         </script>
       </body>
       </html>
@@ -2716,6 +3249,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         path: '/' // Ensure cookie is available for all paths
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Also set a non-httpOnly version for client-side access
       res.cookie('has_auth', 'true', {
         httpOnly: false,
@@ -2724,6 +3272,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       const userData = {
         id: user.id,
@@ -2787,6 +3350,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isDemo: isDemo,
         isCustomDomain: isFromCustomDomain // Tell frontend it came from custom domain
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error) {
       console.error('🚨 GET Login fallback error:', error);
@@ -2840,6 +3418,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           timestamp: new Date().toISOString()
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
 
     try {
@@ -2858,6 +3451,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       // Test password verification
       const isValidPassword = await AuthService.verifyPassword(password as string, user.password);
       
@@ -2868,6 +3477,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'Invalid password',
           debug: { userId: user.id }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       // Create session
@@ -2886,6 +3511,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         domain: isCustomDomain ? '.profieldmanager.com' : undefined
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ 
         success: true,
@@ -2905,6 +3545,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sessionCreated: true
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error('🚨 CUSTOM DOMAIN DEBUG ERROR:', error);
       res.json({ 
@@ -2913,6 +3568,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: error.message,
         debug: { errorType: error.name }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -2949,6 +3619,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           organizationId: user.organizationId
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error('🔬 DEBUG LOGIN TEST - Error:', error);
       res.status(500).json({ success: false, step: 'error', message: error.message });
@@ -3057,6 +3742,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         results: migrationResults
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
     } catch (error) {
       console.error('❌ DATABASE MIGRATION - Fatal error:', error);
       res.status(500).json({ 
@@ -3064,6 +3764,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message,
         message: 'Database migration failed'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -3139,6 +3854,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             maxUsers: 10,
             isActive: true
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       } catch (orgError) {
         console.log('🔧 Organization creation skipped:', orgError.message);
@@ -3160,6 +3891,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           organizationId: newUser.organizationId
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
     } catch (error) {
       console.error('❌ PRODUCTION FIX - User creation error:', error);
@@ -3186,6 +3932,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`  - ID: ${user.id}, Username: ${user.username}, Email: ${user.email}, Active: ${user.isActive}, Org: ${user.organizationId}`);
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Try specific user lookup
       const targetUser = await storage.getUserByUsername('sales@texaspowerwash.net');
       const targetByEmail = await storage.getUserByEmail('sales@texaspowerwash.net');
@@ -3201,6 +3962,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetUser: targetUser || targetByEmail,
         searchTerm: 'sales@texaspowerwash.net'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error('🔍 PRODUCTION DEBUG - Database error:', error);
       res.status(500).json({ error: error.message });
@@ -3257,6 +4033,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message,
         message: 'Database export failed'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -3337,6 +4128,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         results: importResults
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
     } catch (error) {
       console.error('❌ DATABASE IMPORT - Fatal error:', error);
       res.status(500).json({
@@ -3344,6 +4150,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message,
         message: 'Database import failed'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -3368,6 +4189,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userFound: false
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       const foundUser = user[0];
       console.log('✅ Password debug - User found:', {
@@ -3379,6 +4216,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: foundUser.isActive,
         organization: foundUser.organizationId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Test password verification with both bcrypt methods
       let bcryptCompareResult = false;
@@ -3420,6 +4272,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           match: bcryptCompareResult || authServiceResult
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error) {
       console.error('❌ Password debug error:', error);
@@ -3427,6 +4294,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false, 
         error: error.message 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -3536,6 +4418,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             user: transformedUser, 
             token: sessionData.session.token 
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         } else {
           console.log('❌ ENHANCED FALLBACK: No valid sessions found for user');
         }
@@ -3624,6 +4522,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: transformedUser, 
         token: token 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
     
     res.json({ user: transformedUser });
@@ -3653,6 +4566,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isActive: true,
           emailVerified: true,
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         // Create manager user  
         const managerPassword = await AuthService.hashPassword("manager123");
@@ -3666,6 +4595,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isActive: true,
           emailVerified: true,
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         // Create regular user
         const userPassword = await AuthService.hashPassword("user123");
@@ -3681,6 +4626,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isDemoAccount: isDemo,
         demoExpiresAt: demoExpiresAt,
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         console.log("✅ Created sample user accounts");
         console.log("Admin: username=admin, password=admin123");
@@ -3791,6 +4752,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accessCount: link.accessCount,
         isActive: link.isActive
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Check if link has expired
       if (new Date() > new Date(link.expiresAt)) {
@@ -3869,6 +4845,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectName,
         createdBy: creator?.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({
         id: link.id,
@@ -3896,6 +4887,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: link.isActive,
         createdAt: link.createdAt
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error accessing shared photo link:', error);
       res.status(500).json({ message: 'Failed to access shared link' });
@@ -3923,6 +4929,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userFound: false
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       const foundUser = user[0];
       console.log('✅ Password debug - User found:', {
@@ -3934,6 +4956,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: foundUser.isActive,
         organization: foundUser.organizationId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Test password verification with both bcrypt methods
       let bcryptCompareResult = false;
@@ -3981,6 +5018,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           authServiceError: authError
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error) {
       console.error('❌ Password debug error:', error);
@@ -3988,6 +5040,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false, 
         error: error.message 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -4082,6 +5149,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userKeys: Object.keys(user || {})
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       if (!user || !user.organizationId) {
         console.log("❌ User validation failed:", { user: !!user, organizationId: user?.organizationId });
         return res.status(401).json({ message: "User not found or missing organization" });
@@ -4095,16 +5177,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         organizationId: user.organizationId,
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       console.log("📋 Parsed customer data:", customerData);
       console.log("📋 Final customer data with userId:", {
         ...customerData,
         userId: user.id,
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       const customer = await storage.createCustomer({
         ...customerData,
         userId: user.id,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       // Broadcast to all web users except the creator
       (app as any).broadcastToWebUsers('customer_created', {
@@ -4262,6 +5389,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         errors: errors.slice(0, 10), // Limit error messages
         totalProcessed: imported + skipped
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error: any) {
       console.error("Error importing customers:", error);
@@ -4420,6 +5562,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         filename: req.file.filename,
         originalName: originalFileName
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error uploading invoice:", error);
       res.status(500).json({ message: error.message || "Failed to upload invoice" });
@@ -4476,6 +5633,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           pass: smtpPassword,
         },
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Get company settings for email
       const companySettingsRows = await db
@@ -4490,6 +5662,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const keyPart = setting.key.replace(`company_org_${user.organizationId}_`, '');
         companySettings[keyPart] = setting.value;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Build company info HTML
       let companyInfoHTML = '';
@@ -4611,16 +5798,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subject: `Invoice #${invoice.invoiceNumber} from ${companySettings.companyName || 'Pro Field Manager'}`,
         html: emailHTML,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Update invoice status to sent
       const updatedInvoice = await storage.updateInvoice(invoiceId, { 
         status: 'sent' 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ 
         message: "Invoice sent successfully",
         invoice: updatedInvoice 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Invoice send error:', error);
       res.status(500).json({ message: `Failed to send invoice: ${error.message}` });
@@ -4676,6 +5908,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const keyPart = setting.key.replace(`company_org_${user.organizationId}_`, '');
         companySettings[keyPart] = setting.value;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       const companyName = companySettings.companyName || 'Pro Field Manager';
 
@@ -4697,16 +5944,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         from: twilioPhoneNumber,
         to: customerPhone
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Update invoice status to sent
       const updatedInvoice = await storage.updateInvoice(invoiceId, { 
         status: 'sent' 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ 
         message: "Invoice sent via SMS successfully",
         invoice: updatedInvoice 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Invoice SMS send error:', error);
       res.status(500).json({ message: `Failed to send invoice via SMS: ${error.message}` });
@@ -4748,6 +6040,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ 
           message: "Invalid status. Must be one of: " + validStatuses.join(', ') 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       // Parse paidAt date if provided
@@ -4828,6 +6136,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       const useStripeConnect = hasConnectAccount && chargesEnabled;
 
       let paymentIntent;
@@ -4849,6 +6173,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             platformFee: platformFeeAmount.toString(),
           },
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         // Direct payment on platform account (for orgs without Stripe Connect)
         paymentIntent = await stripe.paymentIntents.create({
@@ -4862,17 +6202,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       // Update quote with payment intent ID
       await storage.updateQuote(quoteId, req.user.id, {
         stripePaymentIntentId: paymentIntent.id,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ 
         clientSecret: paymentIntent.client_secret,
         connectedAccount: useStripeConnect,
         platformFee: platformFeeAmount / 100, // Return in dollars for frontend display
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error creating quote payment intent:", error);
       res.status(500).json({ message: "Error creating quote payment intent: " + error.message });
@@ -4921,6 +6307,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       const useStripeConnect = hasConnectAccount && chargesEnabled;
 
       let paymentIntent;
@@ -4942,6 +6344,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             platformFee: platformFeeAmount.toString(),
           },
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         // Direct payment on platform account (for orgs without Stripe Connect)
         paymentIntent = await stripe.paymentIntents.create({
@@ -4955,17 +6373,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       // Update quote with payment intent ID
       await storage.updateQuote(quoteId, req.user.id, {
         stripePaymentIntentId: paymentIntent.id,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ 
         clientSecret: paymentIntent.client_secret,
         connectedAccount: useStripeConnect,
         platformFee: platformFeeAmount / 100, // Return in dollars for frontend display
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error creating quote payment intent:", error);
       res.status(500).json({ message: "Error creating quote payment intent: " + error.message });
@@ -5026,6 +6490,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ 
           message: "Online payments are currently unavailable. Please contact the business directly." 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
       
       const useStripeConnect = hasConnectAccount && chargesEnabled;
@@ -5141,6 +6621,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ 
           message: "Online payments are currently unavailable. Please contact the business directly." 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
       
       const useStripeConnect = hasConnectAccount && chargesEnabled;
@@ -5270,6 +6766,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: customerResult[0].email,
         } : null,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching public invoice:", error);
       res.status(500).json({ message: "Error fetching invoice" });
@@ -5341,6 +6852,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: customerResult[0].email,
         } : null,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching public quote:", error);
       res.status(500).json({ message: "Error fetching quote" });
@@ -5397,6 +6923,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       const useStripeConnect = hasConnectAccount && chargesEnabled;
 
       let paymentIntent;
@@ -5418,6 +6960,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             publicPayment: 'true',
           },
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         // Direct payment on platform account (for orgs without Stripe Connect)
         paymentIntent = await stripe.paymentIntents.create({
@@ -5431,12 +6989,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       res.json({ 
         clientSecret: paymentIntent.client_secret,
         connectedAccount: useStripeConnect,
         platformFee: platformFeeAmount / 100,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error creating public invoice payment intent:", error);
       res.status(500).json({ message: "Error creating payment intent: " + error.message });
@@ -5492,6 +7081,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       const useStripeConnect = hasConnectAccount && chargesEnabled;
 
       let paymentIntent;
@@ -5513,6 +7118,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             publicPayment: 'true',
           },
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         // Direct payment on platform account (for orgs without Stripe Connect)
         paymentIntent = await stripe.paymentIntents.create({
@@ -5526,12 +7147,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       res.json({ 
         clientSecret: paymentIntent.client_secret,
         connectedAccount: useStripeConnect,
         platformFee: platformFeeAmount / 100,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error creating public quote payment intent:", error);
       res.status(500).json({ message: "Error creating payment intent: " + error.message });
@@ -5579,6 +7231,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           data: event as any,
           processed: false,
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } catch (logError) {
         console.error('Failed to log webhook event:', logError);
         // If event already exists (race condition), treat as duplicate
@@ -5605,12 +7273,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
               status: 'completed',
               externalId: paymentIntent.id,
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
             await storage.updateInvoice(parseInt(invoiceId), parseInt(userId), {
               status: 'paid',
               paidAt: new Date(),
               paymentMethod: 'stripe',
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
 
           // Handle quote payment
@@ -5621,6 +7321,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               paidAt: new Date(),
               paymentMethod: 'stripe',
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
         } else if (event.type === 'payment_intent.payment_failed') {
           const paymentIntent = event.data.object;
@@ -5635,6 +7351,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               status: 'failed',
               externalId: paymentIntent.id,
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
         }
 
@@ -5683,6 +7415,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'completed',
         externalId: notes || null,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Update invoice status
       const updatedInvoice = await storage.updateInvoice(invoiceId, req.user.id, {
@@ -5690,6 +7437,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paidAt: new Date(),
         paymentMethod: method,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Broadcast to all web users except the processor
       (app as any).broadcastToWebUsers('payment_processed', {
@@ -5730,6 +7492,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       res.json(quote);
     } catch (error: any) {
       console.error("Error fetching quote by token:", error);
@@ -5761,6 +7539,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       // Update quote with response
       const updatedQuote = await storage.updateQuoteResponse(action as 'approve' | 'deny', token, responseMethod);
       
@@ -5783,6 +7577,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       // Generate availability token for approved quotes
       let availabilityToken;
       if (action === 'approve') {
@@ -5799,12 +7609,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       res.json({
         success: true,
         quote: updatedQuote,
         message: `Quote ${action === 'approve' ? 'approved' : 'denied'} successfully`,
         availabilityToken: action === 'approve' ? availabilityToken : undefined
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error updating quote response:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -5888,6 +7729,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           month: 'long',
           day: 'numeric'
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         return `${date}: ${d.times.join(', ')}`;
       }).join('\n');
 
@@ -5917,6 +7774,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             priority: 'normal',
             category: 'team_based'
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
         
         console.log(`📢 Availability notifications sent to ${adminsAndManagers.length} admins/managers`);
@@ -5961,6 +7834,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             subject: `Availability Confirmation - Quote ${quote.quoteNumber}`,
             html: customerEmailContent
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
           // Send to organization
           await sgMail.send({
@@ -5972,6 +7861,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             subject: `Customer Availability Submitted - Quote ${quote.quoteNumber}`,
             html: orgEmailContent
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
           // Mark emails as sent
           await db
@@ -5990,6 +7895,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         message: "Availability submitted successfully" 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error submitting availability:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -6122,6 +8042,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       // Send confirmation email to customer
       const sendgridApiKey = process.env.SENDGRID_API_KEY;
@@ -6157,6 +8093,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             subject: `Appointment Confirmed - ${jobDate.toLocaleDateString()}`,
             html: confirmationEmail
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         } catch (emailError) {
           console.error("Error sending confirmation email:", emailError);
         }
@@ -6167,6 +8119,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Availability confirmed and job created",
         job: result
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error confirming availability:", error);
       res.status(500).json({ message: error.message });
@@ -6209,6 +8176,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         total: parseFloat(req.body.total || 0),
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Extract line items from the data
       const { lineItems, ...quoteWithoutLineItems } = quoteData;
       
@@ -6216,6 +8198,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...quoteWithoutLineItems,
         userId: req.user!.id,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Create line items for the quote
       if (lineItems && lineItems.length > 0) {
@@ -6328,6 +8325,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const quote = await storage.updateQuote(parseInt(req.params.id), req.user.id, { 
         status: 'sent' 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       if (!quote) {
         return res.status(404).json({ message: "Quote not found" });
       }
@@ -6344,6 +8356,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'accepted',
         acceptedAt: new Date()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       if (!quote) {
         return res.status(404).json({ message: "Quote not found" });
       }
@@ -6412,6 +8439,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           pass: smtpPassword,
         },
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Get company settings for email
       const companySettingsRows = await db
@@ -6445,6 +8487,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           companySettings.logo = setting.value;
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Create email HTML content - match quote preview format
       const lineItemsHTML = quote.lineItems.map(item => {
@@ -6626,6 +8683,21 @@ ${fromName || ''}
           'Importance': 'normal',
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ message: "Email sent successfully" });
     } catch (error: any) {
@@ -6719,6 +8791,22 @@ ${fromName || ''}
           createdAt: new Date()
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       // Get customer info for availability record (reuse quoteUser/quoteOrgId from above)
       const customer = await db.select().from(customers).where(eq(customers.id, quoteData.customerId)).limit(1);
@@ -6747,6 +8835,22 @@ ${fromName || ''}
           selectedDates: [],
           availabilityToken: availabilityToken,
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       // Show success with integrated calendar
@@ -6942,6 +9046,22 @@ ${fromName || ''}
                 header.textContent = day;
                 calendar.appendChild(header);
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
               // Get first day of month and total days
               const firstDay = new Date(currentYear, currentMonth, 1).getDay();
@@ -7018,10 +9138,42 @@ ${fromName || ''}
                   }
                   slotsGrid.appendChild(slot);
                 });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
                 
                 dateSection.appendChild(slotsGrid);
                 container.appendChild(dateSection);
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
             }
 
             function toggleTime(dateStr, time, element) {
@@ -7059,6 +9211,22 @@ ${fromName || ''}
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ selectedDates: selectedData })
                 });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
                 if (response.ok) {
                   document.getElementById('availability-section').classList.add('hidden');
@@ -7079,6 +9247,22 @@ ${fromName || ''}
               generateCalendar();
               document.getElementById('submit-btn').onclick = submitAvailability;
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           </script>
         </body>
         </html>
@@ -7126,6 +9310,21 @@ ${fromName || ''}
         ]
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       const page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
       
@@ -7140,6 +9339,21 @@ ${fromName || ''}
         }
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       await browser.close();
       
       res.setHeader('Content-Type', 'application/pdf');
@@ -7153,6 +9367,21 @@ ${fromName || ''}
         error: error.message,
         details: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -7207,6 +9436,21 @@ ${fromName || ''}
       fileStream.on('end', () => {
         fs.default.unlinkSync(tempPath);
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
     } catch (error: any) {
       console.error("Error generating Word document:", error);
@@ -7383,6 +9627,21 @@ ${fromName || ''}
         sentAt: new Date()
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json({ 
         message: "Quote emailed successfully with approval links", 
         to: emailData.to, 
@@ -7393,6 +9652,21 @@ ${fromName || ''}
           deny: denyUrl
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error sending quote email:", error);
       res.status(500).json({ message: error.message });
@@ -7424,6 +9698,21 @@ ${fromName || ''}
         organizationId: user.organizationId
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       const [service] = await db
         .insert(services)
         .values(validated)
@@ -7448,6 +9737,21 @@ ${fromName || ''}
         ...req.body,
         organizationId: user.organizationId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       const [service] = await db
         .update(services)
@@ -7555,6 +9859,21 @@ ${fromName || ''}
         message: "Logo uploaded successfully",
         logoUrl: `/uploads/org-${user.organizationId}/files/${fileName}`
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       res.status(500).json({ message: "Error uploading logo: " + error.message });
     }
@@ -7596,6 +9915,21 @@ ${fromName || ''}
         message: `${files.length} inspection image(s) uploaded successfully`,
         filePaths: processedFilePaths
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error uploading inspection images:', error);
       res.status(500).json({ message: "Error uploading inspection images: " + error.message });
@@ -7610,6 +9944,21 @@ ${fromName || ''}
         body: req.body,
         user: req.user?.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       if (!req.file) {
         console.log('No file in request');
@@ -7624,6 +9973,21 @@ ${fromName || ''}
         mimetype: req.file.mimetype,
         size: req.file.size
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Apply compression if it's an image file
       let finalFileName = req.file.filename;
@@ -7670,6 +10034,21 @@ ${fromName || ''}
         size: finalSize,
         mimetype: req.file.mimetype.startsWith('image/') && finalFileName.includes('compressed-') ? 'image/jpeg' : req.file.mimetype
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('File upload error:', error);
       res.status(500).json({ message: "Error uploading file: " + error.message });
@@ -7687,6 +10066,21 @@ ${fromName || ''}
         authenticated: !!req.user,
         authenticationMethod: req.user ? 'SUCCESS' : 'FAILED'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       if (!req.file) {
         console.log('No image file in request');
@@ -7705,6 +10099,21 @@ ${fromName || ''}
         customDomain: req.get('origin')?.includes('profieldmanager.com')
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // BYPASS strict configuration check for custom domain compatibility
       // Environment variables are properly set but isConfigured() may return false in some scenarios
       if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
@@ -7718,6 +10127,21 @@ ${fromName || ''}
         mimetype: req.file.mimetype,
         size: req.file.size
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Upload to Cloudinary with automatic optimization
       console.log('☁️ Uploading image to Cloudinary...');
@@ -7731,6 +10155,21 @@ ${fromName || ''}
         maxWidth: 2400,
         maxHeight: 2400
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       if (!cloudinaryResult.success) {
         console.error('❌ Cloudinary image gallery upload failed:', cloudinaryResult.error);
@@ -7773,6 +10212,21 @@ ${fromName || ''}
         mimetype: cloudinaryResult.format ? `image/${cloudinaryResult.format}` : req.file.mimetype,
         cloudinaryPublicId: cloudinaryResult.publicId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Image upload error:', error);
       res.status(500).json({ message: "Error uploading image: " + error.message });
@@ -7851,6 +10305,21 @@ ${fromName || ''}
         message: 'Image duplicated successfully',
         image: newImage
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error duplicating image:', error);
       res.status(500).json({ message: 'Failed to duplicate image' });
@@ -8017,6 +10486,21 @@ ${fromName || ''}
         organizationId: user.organizationId,
         imageIdsCount: imageIds?.length || 0
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       if (!Array.isArray(imageIds) || imageIds.length === 0) {
         return res.status(400).json({ message: 'Image IDs array is required' });
@@ -8058,6 +10542,21 @@ ${fromName || ''}
           res.status(500).json({ message: 'Failed to create archive' });
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Pipe archive to response
       archive.pipe(res);
@@ -8205,6 +10704,21 @@ ${fromName || ''}
   //         from: process.env.TWILIO_PHONE_NUMBER || "+15551234567",
   //         to: to,
   //       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
   //       // Update message with Twilio SID and delivered status
   //       await storage.updateMessageStatus(twilioMessage.sid, "sent");
@@ -8469,6 +10983,21 @@ ${fromName || ''}
         recentSessions: recentSessions.count,
         mobilePercentage: totalSessions.count > 0 ? Math.round((mobileSessions.count / totalSessions.count) * 100) : 0,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching GPS stats:", error);
       res.status(500).json({ message: "Error fetching GPS stats: " + error.message });
@@ -8488,12 +11017,42 @@ ${fromName || ''}
         success: true, 
         message: 'All query caches cleared successfully' 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error clearing caches:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Failed to clear caches: ' + error.message 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -8524,6 +11083,21 @@ ${fromName || ''}
         message_cache_enabled: true,
         has_override: null
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error fetching cache settings:', error);
       res.status(500).json({ message: 'Failed to fetch cache settings' });
@@ -8682,6 +11256,21 @@ ${fromName || ''}
           fieldUserIds.add(session.userId);
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       const inFieldCount = fieldUserIds.size;
 
       // Get WebSocket connected clients count for verification
@@ -8696,6 +11285,21 @@ ${fromName || ''}
         webSocketConnected: webConnectedCount,
         organizationId: user.organizationId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching team status:", error);
       res.status(500).json({ message: "Error fetching team status: " + error.message });
@@ -8795,6 +11399,21 @@ ${fromName || ''}
         passwordResetExpires: tokenExpires
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Get admins and managers for notifications
       const adminUsers = await storage.getOrganizationAdminsAndManagers(adminUser.organizationId);
       
@@ -8824,10 +11443,40 @@ ${fromName || ''}
         action: 'created'
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.status(201).json({
         ...user,
         password: undefined, // Don't return password
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       if (error instanceof ZodError) {
         return res.status(400).json({ message: error.errors[0].message });
@@ -8863,6 +11512,22 @@ ${fromName || ''}
               password: undefined, // Don't return password
             }
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         } catch (error) {
           console.error(`Failed to update user ${userId}:`, error);
           updates.push({
@@ -8870,6 +11535,22 @@ ${fromName || ''}
             success: false,
             error: error.message || 'Update failed'
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       }
 
@@ -8881,6 +11562,21 @@ ${fromName || ''}
         updates,
         success: successCount === totalCount
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error("Batch permissions update error:", error);
       res.status(500).json({ message: "Failed to update user permissions" });
@@ -8917,11 +11613,41 @@ ${fromName || ''}
         updatedBy: req.user!.username,
         action: 'updated'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({
         ...updatedUser,
         password: undefined, // Don't return password
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error("User update error:", error);
       res.status(500).json({ message: "User update failed" });
@@ -8957,11 +11683,41 @@ ${fromName || ''}
         updatedBy: req.user!.username,
         action: 'permissions_updated'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({
         ...updatedUser,
         password: undefined, // Don't return password
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error("User permissions update error:", error);
       res.status(500).json({ message: "Failed to update user permissions" });
@@ -8991,6 +11747,21 @@ ${fromName || ''}
         deactivatedBy: req.user!.username,
         action: 'deactivated'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ message: "User deactivated successfully" });
     } catch (error: any) {
@@ -9023,6 +11794,21 @@ ${fromName || ''}
         activatedBy: req.user!.username,
         action: 'activated'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ message: "User activated successfully" });
     } catch (error: any) {
@@ -9063,6 +11849,22 @@ ${fromName || ''}
           userId: userId,
           organizationId: userToDelete.organizationId
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         return res.json({ message: "User permanently deleted", hardDelete: true });
       }
@@ -9075,6 +11877,21 @@ ${fromName || ''}
         userId: userId,
         organizationId: userToDelete.organizationId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ message: "User deactivated successfully", hardDelete: false });
     } catch (error) {
@@ -9106,6 +11923,21 @@ ${fromName || ''}
         passwordResetToken: resetToken,
         passwordResetExpires: tokenExpires
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Get admins and managers for notifications
       const adminUsers = await storage.getOrganizationAdminsAndManagers(user.organizationId);
@@ -9151,6 +11983,21 @@ ${fromName || ''}
           email: user.email 
         } 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error("Token verification error:", error);
       res.status(500).json({ error: "Failed to verify token" });
@@ -9185,6 +12032,21 @@ ${fromName || ''}
         passwordResetToken: null,
         passwordResetExpires: null
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ success: true, message: "Password has been set successfully. You can now log in." });
     } catch (error) {
@@ -9238,6 +12100,22 @@ ${fromName || ''}
           sameSite: 'none', // Allow cross-origin for all domains
           maxAge: 24 * 60 * 60 * 1000
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       res.json({ message: "Password changed successfully" });
@@ -9346,6 +12224,22 @@ ${fromName || ''}
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       console.log(`📅 Calendar API returning ${calendarJobs.length} jobs:`, calendarJobs.map(job => ({
         id: job.id,
         title: job.title,
@@ -9435,6 +12329,22 @@ ${fromName || ''}
               quantity: service.quantity || 1,
               organizationId: user.organizationId,
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
           console.log(`✅ Associated ${services.length} service(s) with project ${project.id}`);
         } catch (servicesError) {
@@ -9452,6 +12362,22 @@ ${fromName || ''}
             description: `Draft invoice for ${project.name}`,
             notes: "Auto-generated invoice for Smart Capture project"
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           
           console.log(`✅ Auto-created draft invoice for Smart Capture project ${project.id}`);
           
@@ -9462,6 +12388,22 @@ ${fromName || ''}
             createdBy: user.username,
             timestamp: new Date().toISOString()
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         } catch (draftInvoiceError) {
           console.error("❌ Error creating draft invoice for Smart Capture project:", draftInvoiceError);
           // Continue with project creation even if draft invoice creation fails
@@ -9491,6 +12433,22 @@ ${fromName || ''}
             isActive: true,
             createdBy: user.id
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           
           // Generate initial set of recurring job occurrences
           await storage.generateRecurringJobOccurrences(recurringJobSeries.id, user.organizationId);
@@ -9506,6 +12464,22 @@ ${fromName || ''}
             createdBy: user.username,
             timestamp: new Date().toISOString()
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         } catch (recurringJobError) {
           console.error("❌ Error creating recurring job series:", recurringJobError);
           // Continue with project creation even if recurring job creation fails
@@ -9613,6 +12587,22 @@ ${fromName || ''}
           projectId
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       // Broadcast to WebSocket clients
       broadcastToWebUsers('historical_job_images_uploaded', {
@@ -9625,6 +12615,21 @@ ${fromName || ''}
         message: "Images uploaded successfully",
         images: uploadedImages
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error uploading historical job images:", error);
       res.status(500).json({ message: "Failed to upload images" });
@@ -9744,6 +12749,22 @@ ${fromName || ''}
                 category: 'team_based',
                 createdBy: userId
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
             }
             
             console.log(`📢 Job start notifications sent to ${adminUsers.length} admins/managers`);
@@ -9774,6 +12795,22 @@ ${fromName || ''}
                 status: 'sent',
                 requestDate: new Date()
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
               // Log the SMS that would be sent (implement actual Twilio here)
               const message = `Hi ${customer.name}! Thanks for choosing ${reviewSettings.businessName}. We'd love a 5-star review if you're happy with our work: ${reviewSettings.reviewUrl}`;
@@ -9794,6 +12831,22 @@ ${fromName || ''}
               const pendingInvoice = await storage.updateInvoice(draftInvoice.id, userId, {
                 status: 'pending_approval'
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
               
               console.log(`✅ Smart Capture invoice ${draftInvoice.id} marked for approval - project ${projectId} completed`);
               
@@ -9806,6 +12859,22 @@ ${fromName || ''}
                 submittedBy: `${user.firstName} ${user.lastName}`,
                 timestamp: new Date().toISOString()
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
             }
           } catch (invoiceError) {
             console.error('❌ Error marking Smart Capture invoice for approval:', invoiceError);
@@ -9840,6 +12909,22 @@ ${fromName || ''}
               category: 'team_based',
               createdBy: userId
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
           
           console.log(`📢 Job completion notifications sent to ${adminUsers.length} admins/managers`);
@@ -9893,6 +12978,21 @@ ${fromName || ''}
         startDate: new Date()
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       if (!updatedProject) {
         return res.status(500).json({ message: "Failed to start job" });
       }
@@ -9941,6 +13041,22 @@ ${fromName || ''}
               category: 'team_based',
               createdBy: userId
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
           
           console.log(`📢 Job start notifications sent to ${adminUsers.length} admins/managers`);
@@ -10035,12 +13151,42 @@ ${fromName || ''}
         project: updatedProject
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Broadcast employee metrics update for real-time performance tracking
       broadcastToWebUsers(user.organizationId, 'employee_project_assignment_updated', {
         projectId,
         userId: projectUserData.userId,
         action: 'assigned'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.status(201).json(projectUser);
     } catch (error: any) {
@@ -10068,6 +13214,21 @@ ${fromName || ''}
         userId,
         project: updatedProject
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json({ message: "User removed from project successfully" });
     } catch (error: any) {
@@ -10115,6 +13276,21 @@ ${fromName || ''}
         assignmentsCount: assignments.length
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Broadcast employee metrics update for real-time performance tracking
       broadcastToWebUsers(user.organizationId, 'employee_project_assignments_updated', {
         projectId,
@@ -10122,11 +13298,41 @@ ${fromName || ''}
         action: 'assigned'
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.status(201).json({
         message: `Successfully assigned ${assignments.length} users to project`,
         assignments,
         project: updatedProject
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error bulk assigning users to project:", error);
       res.status(500).json({ message: "Failed to assign users to project" });
@@ -10167,11 +13373,41 @@ ${fromName || ''}
         removedCount
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json({
         message: `Successfully removed ${removedCount} users from project`,
         removedCount,
         project: updatedProject
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error bulk removing users from project:", error);
       res.status(500).json({ message: "Failed to remove users from project" });
@@ -10276,6 +13512,22 @@ ${fromName || ''}
               category: 'team_based',
               createdBy: req.user!.id
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
           
           console.log(`📢 Task completion notifications sent to ${adminUsers.length} admins/managers`);
@@ -10350,6 +13602,21 @@ ${fromName || ''}
         completedAt: new Date().toISOString()
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       if (!updatedTask) {
         return res.status(404).json({ message: "Task not found" });
       }
@@ -10359,6 +13626,21 @@ ${fromName || ''}
         imagePath,
         task: updatedTask 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error uploading task image:", error);
       res.status(500).json({ message: "Failed to upload task image" });
@@ -10509,6 +13791,21 @@ ${fromName || ''}
         isCustomDomain: req.headers.origin?.includes('profieldmanager.com') || req.headers.host?.includes('profieldmanager.com'),
         timestamp: new Date().toISOString()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
     next();
   });
@@ -10532,6 +13829,21 @@ ${fromName || ''}
         message: 'File upload error: ' + error.message,
         error: error.code
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
     
     next(error);
@@ -10565,6 +13877,21 @@ ${fromName || ''}
         size: req.file.size,
         path: req.file.path
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
     next();
   }, async (req, res) => {
@@ -10626,6 +13953,21 @@ ${fromName || ''}
         isConfigured: CloudinaryService.isConfigured(),
         origin: req.get('origin')
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       console.log('📍 STEP 7: Proceeding with upload (configuration check bypassed)');
 
       // Get project settings to check if timestamp overlay is enabled
@@ -10640,6 +13982,21 @@ ${fromName || ''}
         timestampPosition: project?.timestampPosition,
         includeGpsCoords: project?.includeGpsCoords
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       console.log('File MIME type:', req.file.mimetype);
       console.log('Is image?', req.file.mimetype.startsWith('image/'));
       
@@ -10760,6 +14117,21 @@ ${fromName || ''}
         isCustomDomain: req.get('host')?.includes('profieldmanager.com'),
         timestamp: new Date().toISOString()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Upload to Cloudinary
       console.log('☁️ Uploading to Cloudinary...');
@@ -10786,6 +14158,21 @@ ${fromName || ''}
         mimeType: req.file.mimetype
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Force custom domain uploads to use Cloudinary with extra debugging
       if (req.headers.origin?.includes('profieldmanager.com')) {
         console.log('🔍 CUSTOM DOMAIN DETECTED - Forcing Cloudinary upload with enhanced logging');
@@ -10803,6 +14190,21 @@ ${fromName || ''}
         maxHeight: 2000,
         bufferSize: uploadBuffer.length
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       if (!cloudinaryResult.success) {
         console.error('❌ CLOUDINARY UPLOAD FAILED - DETAILED ERROR:', cloudinaryResult.error);
@@ -10816,6 +14218,22 @@ ${fromName || ''}
           fileSize: req.file.size,
           mimeType: req.file.mimetype
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         
         // Check if this is the intermittent signatureUrl issue
         if (cloudinaryResult.error?.includes('signatureUrl')) {
@@ -10850,6 +14268,22 @@ ${fromName || ''}
               organizationId: user.organizationId,
               // Minimal options for retry
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
             
             if (retryResult.success) {
               console.log('✅ Cloudinary retry successful:', retryResult.secureUrl);
@@ -10882,6 +14316,22 @@ ${fromName || ''}
                 isCloudStored: true,
                 message: "File uploaded successfully to Cloudinary (retry)"
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
             }
           } catch (retryError) {
             console.error('❌ Cloudinary retry also failed:', retryError);
@@ -10944,6 +14394,22 @@ ${fromName || ''}
           compressionApplied: localFileSize < req.file.size
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       console.log('✅ Cloudinary upload successful:', cloudinaryResult.secureUrl);
       console.log('📊 Compression stats:', {
@@ -10951,6 +14417,21 @@ ${fromName || ''}
         compressedSize: cloudinaryResult.bytes,
         reduction: req.file.size > 0 ? ((req.file.size - (cloudinaryResult.bytes || 0)) / req.file.size * 100).toFixed(1) + '%' : 'N/A'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Save file data with Cloudinary URL and compressed size
       const fileData = {
@@ -11021,6 +14502,21 @@ ${fromName || ''}
         hasFile: !!req.file,
         fileName: req.file?.originalname
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       // Ensure proper JSON response headers and CORS for custom domain errors
       res.setHeader('Content-Type', 'application/json');
@@ -11233,6 +14729,22 @@ ${fromName || ''}
           message: "OCR feature is not available. Please configure OPENAI_API_KEY." 
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       const { image } = req.body; // Expecting base64 image
       
@@ -11271,6 +14783,21 @@ ${fromName || ''}
         response_format: { type: "json_object" },
         max_completion_tokens: 500,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       const extractedData = JSON.parse(response.choices[0].message.content || '{}');
       
@@ -11287,6 +14814,21 @@ ${fromName || ''}
           pricePerGallon: extractedData.pricePerGallon || null,
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error processing OCR:", error);
       res.status(500).json({ 
@@ -11294,6 +14836,21 @@ ${fromName || ''}
         message: "Failed to process receipt image",
         error: error.message 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -11407,6 +14964,21 @@ ${fromName || ''}
         tags: expenseData.tags && typeof expenseData.tags === 'string' ? expenseData.tags.split(',').map((tag: string) => tag.trim()) : (Array.isArray(expenseData.tags) ? expenseData.tags : []),
         source: expenseData.source || 'general',
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       console.log("Expense created successfully:", expense);
 
@@ -11631,6 +15203,21 @@ ${fromName || ''}
         ...categoryData,
         organizationId: user.organizationId,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.status(201).json(category);
     } catch (error: any) {
@@ -11702,6 +15289,22 @@ ${fromName || ''}
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
     } catch (error: any) {
       console.error("Error creating vendor:", error);
       res.status(500).json({ message: "Failed to create vendor" });
@@ -11724,6 +15327,22 @@ ${fromName || ''}
             }));
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
     } catch (error: any) {
       console.error("Error updating vendor:", error);
@@ -11749,6 +15368,22 @@ ${fromName || ''}
               }));
             }
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       } else {
         res.status(404).json({ message: "Vendor not found" });
@@ -11797,6 +15432,21 @@ ${fromName || ''}
         ...providerData,
         organizationId: user.organizationId,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.status(201).json(provider);
 
@@ -11810,6 +15460,22 @@ ${fromName || ''}
             }));
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
     } catch (error: any) {
       console.error("Error creating gas card provider:", error);
@@ -11842,6 +15508,22 @@ ${fromName || ''}
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
     } catch (error: any) {
       console.error("Error updating gas card provider:", error);
       res.status(500).json({ message: "Failed to update gas card provider" });
@@ -11872,6 +15554,22 @@ ${fromName || ''}
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
     } catch (error: any) {
       console.error("Error deleting gas card provider:", error);
       res.status(500).json({ message: "Failed to delete gas card provider" });
@@ -11899,6 +15597,21 @@ ${fromName || ''}
         ...reportData,
         userId,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.status(201).json(report);
     } catch (error: any) {
@@ -11967,6 +15680,21 @@ ${fromName || ''}
         unitPrice: parseFloat(lineItemData.unitPrice) || 0,
         totalAmount: parseFloat(lineItemData.totalAmount) || 0,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.status(201).json(lineItem);
     } catch (error: any) {
@@ -12110,6 +15838,21 @@ ${fromName || ''}
         },
         imagePath: `uploads/org-${user.organizationId}/receipt_images/${finalFileName}`
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error processing receipt:", error);
       res.status(500).json({ message: "Failed to process receipt" });
@@ -12181,6 +15924,22 @@ ${fromName || ''}
             weatherSettings.apiKey = setting.value;
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       res.json(weatherSettings);
@@ -12259,6 +16018,22 @@ ${fromName || ''}
             dispatchSettings[key] = setting.value;
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       res.json(dispatchSettings);
@@ -12356,6 +16131,22 @@ ${fromName || ''}
             }
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
       
       res.json(invoiceSettings);
@@ -12463,6 +16254,21 @@ ${fromName || ''}
         defaultSettings[tab.key] = tab.defaultEnabled;
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Merge with stored settings
       const mergedSettings = { ...defaultSettings };
       settings.forEach((setting: any) => {
@@ -12477,6 +16283,21 @@ ${fromName || ''}
           mergedSettings[key] = setting.value === 'true';
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       // Include available tabs metadata for frontend
       mergedSettings.availableWidgetTabs = availableWidgetTabs;
@@ -12522,6 +16343,21 @@ ${fromName || ''}
           settingsMap[widgetKey] = settingsData[widgetKey]?.toString();
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Update each setting individually
       for (const [key, value] of Object.entries(settingsMap)) {
@@ -12608,6 +16444,21 @@ ${fromName || ''}
         message: "Dashboard profile applied successfully",
         settings 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error applying dashboard profile:", error);
       res.status(500).json({ message: "Failed to apply dashboard profile" });
@@ -12624,6 +16475,21 @@ ${fromName || ''}
         message: "Dashboard settings updated successfully",
         settings: updatedSettings 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error updating dashboard settings:", error);
       res.status(500).json({ message: "Failed to update dashboard settings" });
@@ -12648,6 +16514,22 @@ ${fromName || ''}
           ...parsedSettings,
           profileType: userSettings.profileType || 'user'
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         // Return default user profile settings
         const defaultProfile = await storage.getDashboardProfile('user');
@@ -12678,6 +16560,22 @@ ${fromName || ''}
             compactMode: false,
             widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         } else {
           // Fallback to basic defaults
           res.json({
@@ -12706,6 +16604,22 @@ ${fromName || ''}
             compactMode: false,
             widgetOrder: ['stats', 'revenue', 'activity', 'invoices']
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       }
     } catch (error: any) {
@@ -12803,6 +16717,22 @@ ${fromName || ''}
           lastUpdateTime,
           message: 'Navigation has been updated'
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         res.json({ hasUpdates: false, lastUpdateTime });
       }
@@ -12842,6 +16772,21 @@ ${fromName || ''}
         console.log(`  - User ${clientInfo.userId} (${clientInfo.username}) - Org: ${clientInfo.organizationId} - Type: ${clientInfo.userType} - State: ${ws.readyState === WebSocket.OPEN ? 'OPEN' : 'CLOSED'}`);
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Broadcast navigation order update to all organization users
       const broadcastData = {
         navigationItems: navigationOrder,
@@ -12860,6 +16805,21 @@ ${fromName || ''}
         message: 'User permissions updated, refreshing authentication data',
         timestamp: new Date().toISOString() 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       // Store the navigation update timestamp for fallback polling
       try {
@@ -12889,12 +16849,42 @@ ${fromName || ''}
         timestamp: new Date().toISOString(),
         organizationId: organizationId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error pushing navigation updates:", error);
       res.status(500).json({ 
         success: false,
         message: "Failed to push navigation updates" 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -12931,6 +16921,22 @@ ${fromName || ''}
           volume: parseFloat(settings.volume) || 0.7,
           enabled: settings.enabled
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
     } catch (error: any) {
       console.error("Error fetching sound settings:", error);
@@ -12970,6 +16976,22 @@ ${fromName || ''}
           organizationId,
           ...settingsData
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         // Update existing settings
         await db.update(soundSettings)
@@ -13029,6 +17051,22 @@ ${fromName || ''}
           alertPattern: settings.alertPattern
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching vibration settings:", error);
       res.status(500).json({ message: "Failed to fetch vibration settings" });
@@ -13070,6 +17108,22 @@ ${fromName || ''}
           organizationId,
           ...settingsData
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         // Update existing settings
         await db.update(vibrationSettings)
@@ -13120,6 +17174,22 @@ ${fromName || ''}
           emailOnFailure: true,
           notificationEmails: []
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
       
       res.json(settings);
@@ -13397,6 +17467,22 @@ ${fromName || ''}
           const itemDate = new Date(item[dateField]);
           return itemDate >= startDate! && itemDate <= endDate!;
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       };
 
       const filteredInvoices = filterByDate(invoices);
@@ -13520,6 +17606,22 @@ ${fromName || ''}
           dateRange: responseData.dateRange,
           organizationId: user.organizationId
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } catch (error) {
         console.log('WebSocket broadcast error (non-critical):', error);
       }
@@ -13600,6 +17702,21 @@ ${fromName || ''}
         const projectDate = new Date(p.createdAt);
         return projectDate >= startDate && projectDate <= endDate;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Fetch quotes for revenue calculation
       // Join with users to get organization-wide quotes
@@ -13673,6 +17790,22 @@ ${fromName || ''}
               onsiteLaborCost += onsiteHours * hourlyRate;
             }
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         } else if (project.startDate && !project.endDate && project.status !== 'completed' && project.status !== 'cancelled') {
           // In-progress job - calculate current elapsed time from active time clock entries
           isActiveJob = true;
@@ -13693,6 +17826,22 @@ ${fromName || ''}
               onsiteLaborCost += onsiteHours * hourlyRate;
             }
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           
           console.log(`🔄 ACTIVE JOB: ${project.name} - Current hours: ${onsiteHours.toFixed(2)}, Current cost: $${onsiteLaborCost.toFixed(2)}`);
         }
@@ -13735,6 +17884,21 @@ ${fromName || ''}
           isActive: isActiveJob, // Flag for real-time active jobs
         };
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Group by view type
       let groupedData: any[] = [];
@@ -13782,10 +17946,42 @@ ${fromName || ''}
             dailyMap[dayKey].jobs.push(job);
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         
         Object.values(dailyMap).forEach((day: any) => {
           day.profitMargin = day.revenue > 0 ? ((day.netProfit / day.revenue) * 100) : 0;
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         groupedData = Object.values(dailyMap).sort((a: any, b: any) => a.date.localeCompare(b.date));
       } else if (view === 'monthly' || view === 'weekly') {
         // Monthly or weekly grouping
@@ -13840,10 +18036,42 @@ ${fromName || ''}
             periodMap[periodKey].jobs.push(job);
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         
         Object.values(periodMap).forEach((period: any) => {
           period.profitMargin = period.revenue > 0 ? ((period.netProfit / period.revenue) * 100) : 0;
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         groupedData = Object.values(periodMap).sort((a: any, b: any) => a.date.localeCompare(b.date));
       }
 
@@ -13863,6 +18091,21 @@ ${fromName || ''}
           totalNetProfit: jobProfitData.reduce((s, j) => s + j.netProfit, 0),
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error calculating profit/loss:", error);
       console.error("Error stack:", error.stack);
@@ -13998,6 +18241,21 @@ ${fromName || ''}
         }
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Process maintenance records
       maintenanceRecords.forEach((record: any) => {
         const maintenanceDate = new Date(record.performedDate);
@@ -14024,6 +18282,21 @@ ${fromName || ''}
         groupedData[key].maintenanceCost += parseFloat(record.cost || '0');
         groupedData[key].maintenanceCount += 1;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       // Process GPS trips - aggregate in JavaScript (limited dataset)
       gpsTripsFuel.forEach((row) => {
@@ -14064,6 +18337,21 @@ ${fromName || ''}
         groupedData[key].gpsTripCount += 1;
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Calculate totals
       const data = Object.values(groupedData).map((item: any) => ({
         ...item,
@@ -14088,12 +18376,42 @@ ${fromName || ''}
         vehicles: allVehicles
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
     } catch (error: any) {
       console.error('⛽ GAS-MAINTENANCE ERROR:', error);
       return res.status(500).json({ 
         message: 'Failed to fetch gas & maintenance data',
         error: error.message 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
   // Profit per Vehicle API endpoint
@@ -14195,7 +18513,38 @@ ${fromName || ''}
           avgOnsiteDuration: 0,
           avgTimePerTask: 0
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Process each project
       allProjects.forEach(project => {
@@ -14247,6 +18596,22 @@ ${fromName || ''}
               projectLaborCost += hoursWorked * hourlyRate;
             }
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
           vehicleData.onsiteLaborCosts += projectLaborCost;
           vehicleData.onsiteHours += hoursWorked;
@@ -14268,6 +18633,21 @@ ${fromName || ''}
         vehicleData.totalTasks += projectTasks.length;
         vehicleData.tasksCompleted += projectTasks.filter(t => t.tasks.status === 'completed').length;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Process travel segments for each vehicle
       allTravelSegments.forEach(segment => {
@@ -14279,6 +18659,21 @@ ${fromName || ''}
         vehicleData.travelLaborCosts += Number(segment.laborCostCalculated) || 0;
         vehicleData.travelSegments++;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Calculate profit and margin for each vehicle
       const vehicleResults = Array.from(vehicleMap.values()).map(vehicle => {
@@ -14334,6 +18729,21 @@ ${fromName || ''}
         totals,
         dateRange: { startDate, endDate }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error calculating profit per vehicle:", error);
       res.status(500).json({ message: "Failed to calculate profit per vehicle", error: error.message });
@@ -14537,6 +18947,22 @@ ${fromName || ''}
           );
           return !hasMatchingDeparture;
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         // For ongoing sessions, estimate time until now or job end
         let ongoingMinutes = 0;
@@ -14546,6 +18972,22 @@ ${fromName || ''}
           const minutesSinceArrival = Math.max(0, (endTime.getTime() - arrivalTime.getTime()) / (1000 * 60));
           ongoingMinutes += minutesSinceArrival;
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         const totalActualOnsiteHours = totalOnsiteHours + (ongoingMinutes / 60);
 
@@ -14583,6 +19025,22 @@ ${fromName || ''}
           .forEach(entry => {
             if (entry.userName) technicianNamesSet.add(entry.userName);
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         
         // 3. From tasks assigned to this job
         jobTasks
@@ -14591,6 +19049,22 @@ ${fromName || ''}
             const assignedUser = timeClockEntries.find(tc => tc.userId === task.assignedToId);
             if (assignedUser?.userName) technicianNamesSet.add(assignedUser.userName);
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         
         
         // 4. From assigned team members (project_users)
@@ -14599,6 +19073,22 @@ ${fromName || ''}
           .forEach(pu => {
             if (pu.userName) technicianNamesSet.add(pu.userName);
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         const technicianNames = Array.from(technicianNamesSet);
         const techniciansText = technicianNames.length > 0 
           ? technicianNames.join(', ') : 'No technicians assigned';
@@ -14616,6 +19106,21 @@ ${fromName || ''}
           totalOnsiteEvents: jobEvents.length
         };
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Task efficiency data (daily aggregation)
       const taskEfficiencyData = [];
@@ -14629,6 +19134,22 @@ ${fromName || ''}
           const completedDate = new Date(t.completedAt).toISOString().split('T')[0];
           return completedDate === dateStr;
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         
         const avgTimePerTask = dayTasks.length > 0 ? (8 * 60) / dayTasks.length : 0; // Estimate based on 8-hour workday
         
@@ -14637,6 +19158,22 @@ ${fromName || ''}
           tasksCompleted: dayTasks.length,
           avgTimePerTask: Math.round(avgTimePerTask)
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       // Enhanced Technician performance with GPS tracking data
@@ -14693,6 +19230,22 @@ ${fromName || ''}
               jobCount: 1,
               avgJobTime: hours
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
           return acc;
         }, []).map(tech => ({
@@ -14763,6 +19316,21 @@ ${fromName || ''}
           tasksWithData: tasksWithEstimates.length
         };
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // GPS tracking summary
       const totalArrivals = jobSiteEventsData.filter(e => e.eventType === 'arrival').length;
@@ -14876,6 +19444,21 @@ ${fromName || ''}
           range: timeRange
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching task analytics:", error);
       res.status(500).json({ message: "Failed to fetch task analytics" });
@@ -14923,6 +19506,21 @@ ${fromName || ''}
         leadPrice: leadData.leadPrice ? parseFloat(leadData.leadPrice) : null,
         followUpDate: leadData.followUpDate ? new Date(leadData.followUpDate) : null,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Broadcast to all web users except the creator
       (app as any).broadcastToWebUsers('lead_created', {
@@ -14955,6 +19553,21 @@ ${fromName || ''}
         lastAutomaticFollowUp: leadData.lastAutomaticFollowUp ? new Date(leadData.lastAutomaticFollowUp) : null,
         nextAutomaticFollowUp: leadData.nextAutomaticFollowUp ? new Date(leadData.nextAutomaticFollowUp) : null,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       if (!updatedLead) {
         return res.status(404).json({ message: "Lead not found" });
@@ -15095,6 +19708,21 @@ ${fromName || ''}
         projectId,
         createdBy: user.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.status(201).json(signature);
     } catch (error: any) {
@@ -15156,6 +19784,21 @@ ${fromName || ''}
         body: req.body,
         user: req.user?.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       const { subject, content, priority = 'normal', messageType = 'individual', recipientIds = [], groupIds = [] } = req.body;
       
@@ -15175,6 +19818,22 @@ ${fromName || ''}
             messageType: 'group',
             priority
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           return res.json(groupMessage);
         }
       }
@@ -15200,6 +19859,22 @@ ${fromName || ''}
           return res.status(403).json({ 
             message: "Cannot send messages to users outside your organization" 
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       }
 
@@ -15219,6 +19894,21 @@ ${fromName || ''}
       finalRecipientIds.forEach(recipientId => {
         invalidateMessageCache(recipientId, req.user!.organizationId);
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Broadcast message to recipients via WebSocket for instant delivery
       if (finalRecipientIds && finalRecipientIds.length > 0) {
@@ -15228,6 +19918,22 @@ ${fromName || ''}
             timestamp: new Date().toISOString()
           }, recipientId);
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       // Also broadcast to sender for confirmation
@@ -15292,6 +19998,21 @@ ${fromName || ''}
         description,
         createdBy: req.user!.id
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Add creator as admin
       await storage.addUserToGroup(group.id, req.user!.id, 'admin');
@@ -15409,6 +20130,21 @@ ${fromName || ''}
         profilePicture: profilePicturePath 
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       if (!updatedUser) {
         return res.status(500).json({ message: 'Failed to update user profile picture' });
       }
@@ -15421,6 +20157,21 @@ ${fromName || ''}
         },
         profilePictureUrl: `/api/files/profile-pictures/${path.basename(finalFilePath)}?org=${user.organizationId}`
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Profile picture upload error:', error);
       res.status(500).json({ message: 'Failed to upload profile picture: ' + error.message });
@@ -15491,6 +20242,21 @@ ${fromName || ''}
         profilePicture: null 
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       if (!updatedUser) {
         return res.status(500).json({ message: 'Failed to remove profile picture' });
       }
@@ -15502,6 +20268,21 @@ ${fromName || ''}
           password: undefined, // Don't return password
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Profile picture deletion error:', error);
       res.status(500).json({ message: 'Failed to delete profile picture: ' + error.message });
@@ -15597,6 +20378,21 @@ ${fromName || ''}
         }
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json(paymentSettings);
     } catch (error: any) {
       console.error('Error fetching payment settings:', error);
@@ -15641,6 +20437,21 @@ ${fromName || ''}
         }
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json(emailSettings);
     } catch (error: any) {
       console.error('Error fetching email settings:', error);
@@ -15682,6 +20493,21 @@ ${fromName || ''}
         }
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json(notificationSettings);
     } catch (error: any) {
       console.error('Error fetching notification settings:', error);
@@ -15722,6 +20548,21 @@ ${fromName || ''}
                              ['sessionTimeout', 'loginAttempts'].includes(key) ? parseInt(setting.value) || securitySettings[key] : setting.value;
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(securitySettings);
     } catch (error: any) {
@@ -15772,6 +20613,21 @@ ${fromName || ''}
           compressionSettings.retainFilename = setting.value === 'true';
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(compressionSettings);
     } catch (error: any) {
@@ -15853,6 +20709,21 @@ ${fromName || ''}
         }
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json(integrationSettings);
     } catch (error: any) {
       console.error('Error fetching integration settings:', error);
@@ -15902,6 +20773,21 @@ ${fromName || ''}
         twilioPhoneNumber: '',
         webhookUrl: ''
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       res.json(twilioSettings);
     } catch (error: any) {
       console.error('Error fetching Twilio settings:', error);
@@ -15931,6 +20817,21 @@ ${fromName || ''}
         message: 'Twilio settings updated successfully',
         settings: settings
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error updating Twilio settings:', error);
       res.status(500).json({ message: 'Failed to update Twilio settings' });
@@ -15947,6 +20848,22 @@ ${fromName || ''}
           message: 'Account SID, Auth Token, and Phone Number are required for testing' 
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       // Import Twilio and test the connection
       // twilio already imported
@@ -15960,12 +20877,43 @@ ${fromName || ''}
         phoneNumber: twilioPhoneNumber,
         limit: 1
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       if (phoneNumber.length === 0) {
         return res.status(400).json({
           success: false,
           message: 'Phone number not found in your Twilio account'
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       res.json({
@@ -15975,6 +20923,21 @@ ${fromName || ''}
         phoneNumber: twilioPhoneNumber,
         status: account.status
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error: any) {
       console.error('Twilio test error:', error);
@@ -15983,6 +20946,21 @@ ${fromName || ''}
         message: `Connection failed: ${error.message}`,
         details: error.code || 'Unknown error'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -15999,6 +20977,21 @@ ${fromName || ''}
         provider: 'azure',
         endpoint: ''
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       res.json(ocrSettings);
     } catch (error: any) {
       console.error('Error fetching OCR settings:', error);
@@ -16035,6 +21028,21 @@ ${fromName || ''}
         workingHoursEnd: 17,
         workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       res.json(calendarSettings);
     } catch (error: any) {
       console.error('Error fetching calendar settings:', error);
@@ -16170,6 +21178,22 @@ ${fromName || ''}
           from: phoneNumber,
           to: recipient
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         // Get user's organization ID
         const user = getAuthenticatedUser(req);
@@ -16185,6 +21209,22 @@ ${fromName || ''}
           twilioSid: twilioMessage.sid,
           sentBy: req.user!.id
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         // Broadcast to all web users except the creator
         (app as any).broadcastToWebUsers('sms_sent', {
@@ -16197,6 +21237,22 @@ ${fromName || ''}
           twilioSid: twilioMessage.sid,
           status: 'sent'
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       } catch (twilioError: any) {
         console.error('Twilio SMS sending failed:', twilioError);
@@ -16215,12 +21271,44 @@ ${fromName || ''}
           errorMessage: twilioError.message,
           sentBy: req.user!.id
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         return res.status(400).json({ 
           message: `Failed to send SMS: ${twilioError.message}`,
           error: twilioError.code || 'SMS_SEND_FAILED',
           smsMessage
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
     } catch (error: any) {
       console.error('Error sending SMS:', error);
@@ -16256,6 +21344,21 @@ ${fromName || ''}
         category,
         createdBy: req.user!.id
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json(template);
     } catch (error: any) {
@@ -16297,6 +21400,21 @@ ${fromName || ''}
         userId: req.user!.id,
         isActive: true
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       res.json(settings);
     } catch (error: any) {
       console.error('Error creating review settings:', error);
@@ -16365,6 +21483,21 @@ ${fromName || ''}
         status: 'sent',
         requestDate: new Date()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Send SMS (implement actual Twilio integration here)
       const message = `Hi ${customerName}! Thanks for choosing ${reviewSettings.businessName}. We'd love a 5-star review if you're happy with our work: ${reviewSettings.reviewUrl}`;
@@ -16466,6 +21599,21 @@ ${fromName || ''}
         assignedDate: req.body.assignedDate ? new Date(req.body.assignedDate) : new Date(),
         expectedReturnDate: req.body.expectedReturnDate ? new Date(req.body.expectedReturnDate) : undefined
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       const assignment = await storage.createGasCardAssignment(validatedData);
       res.json(assignment);
     } catch (error: any) {
@@ -16640,6 +21788,21 @@ ${fromName || ''}
         imageIdsLength: Array.isArray(imageIds) ? imageIds.length : 'not array',
         requestBody: JSON.stringify(req.body)
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       if (!imageIds || !Array.isArray(imageIds) || imageIds.length === 0) {
         console.log('❌ Share link validation failed:', {
@@ -16648,6 +21811,22 @@ ${fromName || ''}
           isImageIdsArray: Array.isArray(imageIds),
           imageIdsLength: Array.isArray(imageIds) ? imageIds.length : 'not array'
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         return res.status(400).json({ message: 'Image IDs are required' });
       }
 
@@ -16680,6 +21859,21 @@ ${fromName || ''}
         ...link,
         shareUrl
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error creating shared photo link:', error);
       if (error instanceof ZodError) {
@@ -16867,6 +22061,21 @@ ${fromName || ''}
         message: 'Job status updated successfully',
         data: updateData
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error updating job status:', error);
       res.status(500).json({ message: 'Failed to update job status' });
@@ -16913,6 +22122,21 @@ ${fromName || ''}
         message: 'Job assigned to vehicle successfully',
         data: updateData
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error assigning job to vehicle:', error);
       res.status(500).json({ message: 'Failed to assign job to vehicle' });
@@ -16969,6 +22193,21 @@ ${fromName || ''}
         message: 'Job scheduled successfully',
         data: scheduleData
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error scheduling job:', error);
       res.status(500).json({ message: 'Failed to schedule job' });
@@ -16990,6 +22229,21 @@ ${fromName || ''}
       const projects = await storage.getProjectsWithLocation({ 
         userId: userId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       // Filter projects based on date and status - synchronized with Progress tab "In Progress" logic
       let dispatchProjects = projects;
@@ -17042,6 +22296,22 @@ ${fromName || ''}
           
           return false;
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         // If no date specified, show all jobs that would appear in Progress tab "In Progress"
         dispatchProjects = projects.filter(project => {
@@ -17065,6 +22335,22 @@ ${fromName || ''}
           
           return false;
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       // Filter by assigned user if provided
@@ -17183,6 +22469,21 @@ ${fromName || ''}
         return expenseDate.getTime() === today.getTime();
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       if (todayExpenses.length > 0) {
         const todayPrices = todayExpenses
           .map(e => parseFloat(e.pricePerGallon?.toString() || '0'))
@@ -17228,6 +22529,22 @@ ${fromName || ''}
                 key: googleMapsApiKey,
               },
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
             
             if (response.data.routes.length > 0) {
               const route = response.data.routes[0];
@@ -17269,6 +22586,22 @@ ${fromName || ''}
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       // Calculate totals
       const totalDistance = travelSegments.reduce((sum, seg) => sum + seg.distanceMiles, 0);
       const totalDuration = travelSegments.reduce((sum, seg) => sum + seg.durationMinutes, 0);
@@ -17288,6 +22621,21 @@ ${fromName || ''}
           totalTravelCost: Math.round(totalTravelCost * 100) / 100,
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error calculating travel costs:', error);
       res.status(500).json({ message: 'Failed to calculate travel costs' });
@@ -17430,12 +22778,43 @@ ${fromName || ''}
             actualFuelCost: 0,
             fuelPriceUsed: 0,
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
         
         const usage = dailyUsage.get(key);
         usage.totalMiles += parseFloat(segment.distanceMiles?.toString() || '0');
         usage.segmentCount += 1;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       // Calculate fuel usage for each day
       const results = Array.from(dailyUsage.values()).map(usage => {
@@ -17444,6 +22823,22 @@ ${fromName || ''}
           const expenseDate = new Date(e.expenseDate).toISOString().split('T')[0];
           return expenseDate === usage.date;
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         
         let fuelPrice = 3.50; // Default fallback
         
@@ -17476,6 +22871,22 @@ ${fromName || ''}
           const expenseDate = new Date(e.expenseDate).toISOString().split('T')[0];
           return expenseDate === usage.date;
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         
         usage.actualFuelCost = actualExpenses.reduce((sum, e) => 
           sum + parseFloat(e.amount?.toString() || '0'), 0);
@@ -17496,6 +22907,21 @@ ${fromName || ''}
         
         return usage;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       // Sort by date descending
       results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -17602,12 +23028,43 @@ ${fromName || ''}
             actualFuelCost: 0,
             fuelPriceUsed: 0,
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
 
         const usage = aggregated.get(key);
         usage.totalMiles += parseFloat(trip.distanceMiles?.toString() || '0');
         usage.tripCount += 1;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Calculate fuel costs for each aggregation
       const results = Array.from(aggregated.values()).map(usage => {
@@ -17619,6 +23076,22 @@ ${fromName || ''}
             const expenseDate = new Date(e.expenseDate).toISOString().split('T')[0];
             return expenseDate === usage.period;
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         } else if (view === 'weekly') {
           periodExpenses = fuelExpenses.filter(e => {
             const expenseDate = new Date(e.expenseDate);
@@ -17627,17 +23100,65 @@ ${fromName || ''}
             const weekKey = weekStart.toISOString().split('T')[0];
             return weekKey === usage.period;
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         } else if (view === 'monthly') {
           periodExpenses = fuelExpenses.filter(e => {
             const expenseDate = new Date(e.expenseDate);
             const monthKey = `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, '0')}`;
             return monthKey === usage.period;
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         } else {
           periodExpenses = fuelExpenses.filter(e => {
             const expenseDate = new Date(e.expenseDate).toISOString().split('T')[0];
             return expenseDate === usage.period;
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
 
         let fuelPrice = 3.50; // Default fallback
@@ -17686,6 +23207,21 @@ ${fromName || ''}
 
         return usage;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Sort by period descending
       results.sort((a, b) => {
@@ -17693,6 +23229,21 @@ ${fromName || ''}
         const dateB = new Date(b.period).getTime();
         return dateB - dateA;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json(results);
     } catch (error: any) {
@@ -17769,6 +23320,21 @@ ${fromName || ''}
           estimatedCost: Math.round(estimatedCost * 100) / 100,
         };
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       console.log(`📤 Returning data for ${vehicleData.length} vehicles`);
       res.json(vehicleData);
@@ -17829,6 +23395,22 @@ ${fromName || ''}
                 key: apiKey,
               },
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
             if (response.data.routes.length > 0) {
               const route = response.data.routes[0];
@@ -17845,6 +23427,22 @@ ${fromName || ''}
                 trafficCondition: leg.duration_in_traffic && 
                   leg.duration_in_traffic.value > leg.duration.value * 1.2 ? 'heavy' : 'normal'
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
             }
           } catch (error) {
             console.warn(`Failed to get directions for leg ${i}:`, error);
@@ -17858,6 +23456,22 @@ ${fromName || ''}
               trafficDelay: 0,
               trafficCondition: 'unknown'
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
         }
       } catch (error) {
@@ -17892,6 +23506,21 @@ ${fromName || ''}
         trafficDelay: Math.random() * 10, // 0-10 minutes delay
         trafficCondition: ['normal', 'light', 'moderate', 'heavy'][Math.floor(Math.random() * 4)]
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
     
     return routeLegs;
@@ -17962,6 +23591,21 @@ ${fromName || ''}
         status: envelope.status,
         message: "Document sent for signature successfully"
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error("Error sending document for signature:", error);
       res.status(500).json({ message: "Failed to send document for signature" });
@@ -18052,6 +23696,21 @@ ${fromName || ''}
         status: 'voided',
         signingUrl: null
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ success: true, message: "Envelope voided successfully" });
     } catch (error) {
@@ -18151,6 +23810,21 @@ ${fromName || ''}
         documentName: fileName,
         message: 'Document uploaded successfully'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error uploading disciplinary document:', error);
       res.status(500).json({ message: 'Failed to upload document' });
@@ -18256,6 +23930,22 @@ ${fromName || ''}
           return res.status(403).json({ 
             message: "Only managers and administrators can delegate tasks to other users" 
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       }
 
@@ -18283,6 +23973,22 @@ ${fromName || ''}
             projectId: task.projectId,
             organizationId: req.user!.organizationId
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         } catch (error) {
           console.log('WebSocket broadcast error (non-critical):', error);
         }
@@ -18315,6 +24021,22 @@ ${fromName || ''}
             completedById: task.completedById,
             organizationId: user.organizationId
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
           // Broadcast updated task analytics for real-time dashboard updates
           if (req.body.isCompleted === true) {
@@ -18344,6 +24066,22 @@ ${fromName || ''}
               updatedBy: user.id,
               taskId: task.id
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
         } catch (error) {
           console.log('WebSocket broadcast error (non-critical):', error);
@@ -18608,6 +24346,21 @@ ${fromName || ''}
         fullUpdates: updates
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       const employee = await storage.updateEmployee(parseInt(id), updates);
       
       console.log('✅ UPDATE EMPLOYEE - Result:', {
@@ -18616,6 +24369,21 @@ ${fromName || ''}
         salary: employee.salary,
         hourlyRate: employee.hourlyRate
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(employee);
     } catch (error: any) {
@@ -18848,6 +24616,21 @@ ${fromName || ''}
         downloadCount: document.downloadCount + 1,
         lastAccessedAt: new Date()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Set appropriate headers
       res.setHeader('Content-Disposition', `attachment; filename="${document.originalName}"`);
@@ -19084,6 +24867,21 @@ ${fromName || ''}
         churnRate,
         churnTrend
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching SaaS metrics:", error);
       res.status(500).json({ message: "Failed to fetch SaaS metrics" });
@@ -19178,6 +24976,21 @@ ${fromName || ''}
         subscriptionStatus: 'suspended'
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json(organization);
     } catch (error: any) {
       console.error("Error suspending organization:", error);
@@ -19222,6 +25035,21 @@ ${fromName || ''}
         recentPayments,
         failedPayments
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching billing data:", error);
       res.status(500).json({ message: "Failed to fetch billing data" });
@@ -19527,6 +25355,22 @@ ${fromName || ''}
           subscriptionPlanId: parseInt(planId),
           trialEndsAt: trialEndsAt,
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         // Create folder structure for the new organization
         await createOrgFolderStructure(organization.id);
@@ -19542,6 +25386,22 @@ ${fromName || ''}
           isActive: true,
           organizationId: organization.id,
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         res.json({
           message: "Organization and subscription created successfully",
@@ -19561,6 +25421,22 @@ ${fromName || ''}
             role: adminUser.role
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         // Update existing organization
         // Calculate trial end date if it's a trial
@@ -19575,11 +25451,43 @@ ${fromName || ''}
           subscriptionStatus: status,
           trialEndsAt: trialEndsAt,
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         res.json({
           message: "Subscription created successfully",
           organization: organization
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
     } catch (error: any) {
       console.error("Error creating subscription:", error);
@@ -19603,6 +25511,21 @@ ${fromName || ''}
         planId: parseInt(planId),
         updates: featureUpdates
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error updating subscription plan features:", error);
       res.status(500).json({ message: "Failed to update subscription plan features" });
@@ -19638,6 +25561,21 @@ ${fromName || ''}
         userId: userId,
         requestedPermission: ObjectPermission.READ,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       if (!canAccess) {
         return res.sendStatus(401);
       }
@@ -19677,6 +25615,21 @@ ${fromName || ''}
         publicURL: result.publicURL,
         objectPath: result.objectPath
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error("❌ Error generating public upload URL:", error);
       res.status(500).json({ error: "Failed to generate public upload URL" });
@@ -19722,6 +25675,21 @@ ${fromName || ''}
       const updatedPart = await storage.updatePartSupply(partId, {
         imageUrl: finalImageUrl,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       if (!updatedPart) {
         return res.status(404).json({ error: "Part not found" });
@@ -19731,6 +25699,21 @@ ${fromName || ''}
         success: true,
         part: updatedPart
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error("Error setting part image:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -19939,6 +25922,22 @@ ${fromName || ''}
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       // Return safe account info (no sensitive data)
       res.json({
         configured: true,
@@ -19946,6 +25945,21 @@ ${fromName || ''}
         friendlyName: settings.friendlyName || 'Organization Account',
         status: 'active' // Would query Twilio API in real implementation
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error("Error fetching Twilio account:", error);
       res.status(500).json({ message: "Failed to fetch Twilio account" });
@@ -20023,6 +26037,21 @@ ${fromName || ''}
         pageSize: parseInt(limit as string),
         total: twilioCallLogs.length
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error("Error fetching call logs:", error);
       res.status(500).json({ message: "Failed to fetch call logs" });
@@ -20078,6 +26107,22 @@ ${fromName || ''}
             { category: 'recordings', count: 0, duration: 0, cost: '0.00' }
           ]
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         // Return existing analytics
         const latest = analytics[0];
@@ -20095,6 +26140,22 @@ ${fromName || ''}
           totalCost: latest.totalCost || '0.00',
           usage: latest.usage || []
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
     } catch (error) {
       console.error("Error fetching usage stats:", error);
@@ -20273,6 +26334,21 @@ ${fromName || ''}
         totalPhoneNumbers: orgAnalytics.reduce((sum, org) => sum + org.phoneNumbers, 0),
         totalCalls: orgAnalytics.reduce((sum, org) => sum + org.totalCalls, 0)
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error("Error fetching call manager analytics:", error);
       res.status(500).json({ message: "Failed to fetch analytics" });
@@ -20321,6 +26397,21 @@ ${fromName || ''}
         statusCallbackUrl: statusCallbackUrl || 'NULL',
         isConfigured: !!(accountSid && authToken)
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Use raw SQL with connection from pool  
       const { Pool } = await import('@neondatabase/serverless');
@@ -20411,6 +26502,21 @@ ${fromName || ''}
         call: testCall,
         status: 'initiated'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error('Error initiating test call:', error);
       res.status(500).json({ message: 'Failed to initiate test call' });
@@ -20480,12 +26586,43 @@ ${fromName || ''}
         settingsKeys: twilioSettings ? Object.keys(twilioSettings) : []
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       if (!twilioSettings || !twilioSettings.accountSid || !twilioSettings.authToken) {
         console.log(`❌ No Twilio credentials configured for organization ${user.organizationId}`);
         return res.status(400).json({ 
           message: "Twilio credentials not configured for your organization. Please contact your administrator to set up calling functionality.",
           requiresSetup: true
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       // Get organization's phone numbers to find an appropriate "from" number
@@ -20498,6 +26635,22 @@ ${fromName || ''}
           message: "No active phone numbers configured for your organization. Please add a phone number first.",
           requiresPhoneSetup: true
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       // Create organization-specific Twilio client
@@ -20513,6 +26666,22 @@ ${fromName || ''}
           message: "Failed to initialize calling service. Please check your Twilio configuration.",
           configError: true
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       try {
@@ -20569,6 +26738,22 @@ ${fromName || ''}
           success: true,
           message: `Call initiated to ${phoneNumber}` 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       } catch (twilioError: any) {
         console.error(`❌ Twilio call failed:`, twilioError);
@@ -20576,6 +26761,22 @@ ${fromName || ''}
           message: `Failed to place call: ${twilioError.message || 'Unknown error'}`,
           twilioError: true
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
       
     } catch (error) {
@@ -20668,6 +26869,21 @@ ${fromName || ''}
         subscriptionStatus: "trial",
         trialEndsAt: trialEndDate,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Create folder structure for the new organization
       // createOrganizationFolders already imported
@@ -20685,6 +26901,21 @@ ${fromName || ''}
         role: "admin",
         isActive: true,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.status(201).json({
         message: "Organization created successfully",
@@ -20704,6 +26935,21 @@ ${fromName || ''}
           role: user.role
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Organization signup error:", error);
       res.status(500).json({ message: "Failed to create organization" });
@@ -20760,6 +27006,21 @@ ${fromName || ''}
         hasIntegrations: planDetails.hasIntegrations,
         hasPrioritySupport: planDetails.hasPrioritySupport,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json(updatedOrg);
     } catch (error: any) {
@@ -20801,6 +27062,21 @@ ${fromName || ''}
           hasPrioritySupport: organization.hasPrioritySupport
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching organization usage:", error);
       res.status(500).json({ message: "Failed to fetch organization usage" });
@@ -20861,6 +27137,21 @@ ${fromName || ''}
         hasIntegrations: planDetails.hasIntegrations,
         hasPrioritySupport: planDetails.hasPrioritySupport,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ message: "Plan upgraded successfully", organization });
     } catch (error: any) {
@@ -20902,6 +27193,21 @@ ${fromName || ''}
           hasPrioritySupport: organization.hasPrioritySupport,
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Get usage error:", error);
       res.status(500).json({ message: "Failed to fetch usage statistics" });
@@ -20920,6 +27226,21 @@ ${fromName || ''}
         current: weather.current,
         summary
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Weather API error:', error);
       res.status(500).json({ message: 'Failed to fetch weather data' });
@@ -20941,6 +27262,21 @@ ${fromName || ''}
           ...weatherService.getWeatherSummary(weather, day.date)
         }))
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Weather forecast error:', error);
       res.status(500).json({ message: 'Failed to fetch weather forecast' });
@@ -20972,10 +27308,42 @@ ${fromName || ''}
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       if (!weatherSettings.enabled) {
         return res.status(400).json({ 
           message: "Weather service is disabled. Please enable it in Settings." 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       if (!weatherSettings.defaultZipCode) {
@@ -20983,11 +27351,43 @@ ${fromName || ''}
           message: "Weather location not configured. Please set your default zip code in Settings." 
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       if (!weatherSettings.apiKey) {
         return res.status(400).json({ 
           message: "Weather API key not configured. Please set your API key in Settings." 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       const days = parseInt(req.query.days as string) || 5;
@@ -20999,6 +27399,21 @@ ${fromName || ''}
       res.status(500).json({ 
         message: 'Failed to fetch weather forecast. Please check your weather settings.' 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -21051,6 +27466,21 @@ ${fromName || ''}
         location: job.address,
         weather: weatherData
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Job weather error:', error);
       res.status(500).json({ message: 'Failed to fetch job weather data' });
@@ -21105,6 +27535,21 @@ ${fromName || ''}
         type: 'file_updated',
         data: file
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json(file);
     } catch (error: any) {
@@ -21128,6 +27573,21 @@ ${fromName || ''}
         type: 'file_deleted',
         data: { id: parseInt(id) }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ success: true });
     } catch (error: any) {
@@ -21150,6 +27610,21 @@ ${fromName || ''}
       await storage.updateFile(parseInt(id), {
         downloadCount: file.downloadCount + 1
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Check if file is stored in Cloudinary
       if (file.filePath.includes('cloudinary.com')) {
@@ -21248,6 +27723,22 @@ ${fromName || ''}
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
     } catch (error: any) {
       console.error("Error serving thumbnail:", error);
       res.status(500).json({ message: "Failed to serve thumbnail" });
@@ -21283,6 +27774,21 @@ ${fromName || ''}
         type: 'folder_created',
         data: folder
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json(folder);
     } catch (error: any) {
@@ -21328,6 +27834,21 @@ ${fromName || ''}
         file: share.file,
         permissions: share.permissions,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error accessing shared file:", error);
       res.status(500).json({ message: "Failed to access shared file" });
@@ -21371,12 +27892,43 @@ ${fromName || ''}
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       res.json({
         success: true,
         message: "Document signed successfully",
         file: signedFile
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error signing document:", error);
       res.status(500).json({ message: "Failed to sign document" });
@@ -21535,12 +28087,43 @@ ${fromName || ''}
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       res.json({
         success: true,
         message: "Document field signed successfully",
         field: field
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error signing document field:", error);
       res.status(500).json({ message: "Failed to sign document field" });
@@ -21776,6 +28359,22 @@ ${fromName || ''}
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
     } catch (error: any) {
       console.error("Error creating text file:", error);
       res.status(500).json({ message: "Failed to create text file" });
@@ -21841,6 +28440,22 @@ ${fromName || ''}
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
     } catch (error: any) {
       console.error("Error updating file content:", error);
       res.status(500).json({ message: "Failed to update file content" });
@@ -21871,6 +28486,21 @@ ${fromName || ''}
         downloadUrl: `/${pdfPath}`
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Broadcast to WebSocket clients
       if (wss) {
         wss.clients.forEach((client) => {
@@ -21881,6 +28511,22 @@ ${fromName || ''}
             }));
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
     } catch (error: any) {
       console.error("Error converting file to PDF:", error);
@@ -21933,6 +28579,22 @@ ${fromName || ''}
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
     } catch (error: any) {
       console.error("Error creating folder:", error);
       res.status(500).json({ message: "Failed to create folder" });
@@ -21962,6 +28624,22 @@ ${fromName || ''}
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
     } catch (error: any) {
       console.error("Error updating folder:", error);
       res.status(500).json({ message: "Failed to update folder" });
@@ -21985,6 +28663,22 @@ ${fromName || ''}
             }));
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
     } catch (error: any) {
       console.error("Error deleting folder:", error);
@@ -22013,11 +28707,42 @@ ${fromName || ''}
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       res.json({ 
         success: true, 
         file: result.file,
         previousFolderId: result.previousFolderId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error moving file:", error);
       res.status(500).json({ message: "Failed to move file" });
@@ -22042,6 +28767,22 @@ ${fromName || ''}
             }));
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
       
       res.json({ success: true, file: restoredFile });
@@ -22081,6 +28822,22 @@ ${fromName || ''}
             key: googleMapsApiKey,
           },
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
         if (geocodeResponse.data.results && geocodeResponse.data.results.length > 0) {
           address = geocodeResponse.data.results[0].formatted_address;
@@ -22136,6 +28893,22 @@ ${fromName || ''}
             ipAddress: req.ip || 'Unknown',
             address: address || null, // Store the resolved address
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       // Check for job site arrivals and send notifications to managers/admins
@@ -22239,6 +29012,22 @@ ${fromName || ''}
                   category: 'team_based',
                   createdBy: user.id
                 });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
               }
 
               console.log(`📍 Arrival notification sent for ${user.firstName} at job ${job.name} to ${adminUsers.length} admins/managers`);
@@ -22254,6 +29043,21 @@ ${fromName || ''}
         message: "Location updated successfully",
         address: address // Return the address in response
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error updating GPS location:", error);
       res.status(500).json({ message: "Error updating location: " + error.message });
@@ -22440,6 +29244,22 @@ ${fromName || ''}
               category: 'team_based',
               createdBy: user.id,
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
         }
       }
@@ -22449,6 +29269,21 @@ ${fromName || ''}
         event: jobSiteEvent,
         durationMinutes
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error recording job site event:", error);
       res.status(500).json({ message: "Failed to record event: " + error.message });
@@ -22531,6 +29366,22 @@ ${fromName || ''}
           message: "Missing required fields: deviceId, latitude, longitude, timestamp, organizationId" 
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       // Auto-link deviceId to vehicleId by looking up vehicle with matching GPS device ID
       let resolvedVehicleId = vehicleId ? parseInt(vehicleId) : null;
@@ -22594,6 +29445,22 @@ ${fromName || ''}
             startLongitude: longitude.toString(),
             status: 'active',
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else if (activeTrip && speed && parseFloat(speed) < 2) {
         // End trip if speed < 2 mph for potential stop
         const startTime = new Date(activeTrip.startTime);
@@ -22633,6 +29500,22 @@ ${fromName || ''}
           }
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       res.json({ success: true, data: locationRecord });
     } catch (error: any) {
@@ -22663,6 +29546,22 @@ ${fromName || ''}
         return res.status(400).json({ 
           message: "Missing required fields: deviceId, timestamp, organizationId" 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       // Auto-link deviceId to vehicleId by looking up vehicle with matching GPS device ID
@@ -22728,6 +29627,22 @@ ${fromName || ''}
             }));
           }
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       res.json({ success: true, data: diagnosticRecord });
@@ -22815,6 +29730,22 @@ ${fromName || ''}
                   vehicleId: null // Will be populated if mapped in database
                 };
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
             // Save each location to database for historical playback
             // This allows us to build up historical data over time
@@ -22832,6 +29763,22 @@ ${fromName || ''}
                   batteryVoltage: location.batteryVoltage,
                   timestamp: location.timestamp,
                 });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
                 console.log(`💾 Saved location for device: ${location.deviceId}`);
               } catch (dbError) {
                 console.error(`Failed to save location for device ${location.deviceId}:`, dbError);
@@ -23054,6 +30001,21 @@ ${fromName || ''}
         dateRange: { start, end },
         count: points.length
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching historical location data:", error);
       res.status(500).json({ message: "Error fetching historical data: " + error.message });
@@ -23438,6 +30400,21 @@ ${fromName || ''}
           period: 'Last 7 days'
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching weekly summary:", error);
       res.status(500).json({ message: "Error fetching summary: " + error.message });
@@ -23494,6 +30471,21 @@ ${fromName || ''}
       gpsSettings.forEach(setting => {
         settingsObj[setting.key] = setting.value;
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Return with defaults if no settings exist
       res.json({
@@ -23510,6 +30502,21 @@ ${fromName || ''}
         enableSpeedAlerts: settingsObj.enableSpeedAlerts !== 'false',
         speedAlertThreshold: parseInt(settingsObj.speedAlertThreshold || '80')
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching GPS settings:", error);
       res.status(500).json({ message: "Error fetching GPS settings: " + error.message });
@@ -23607,6 +30614,21 @@ ${fromName || ''}
         retentionDays,
         cutoffDate: cutoffDate.toISOString()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error cleaning up old GPS data:", error);
       res.status(500).json({ message: "Error cleaning up data: " + error.message });
@@ -23640,6 +30662,22 @@ ${fromName || ''}
         return res.status(400).json({ 
           message: "One Step GPS API key not configured. Please add it in GPS Settings." 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       const apiKey = apiKeySetting[0].value;
@@ -23681,6 +30719,22 @@ ${fromName || ''}
         return res.status(400).json({ 
           message: "One Step GPS API key not configured" 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       const apiKey = apiKeySetting[0].value;
@@ -23745,6 +30799,21 @@ ${fromName || ''}
         totalDevices: devicesData.length,
         errors: errors.length > 0 ? errors : undefined
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error: any) {
       console.error("Error syncing One Step GPS data:", error);
@@ -23837,6 +30906,21 @@ ${fromName || ''}
           ? "Device mapped to vehicle successfully and GPS tracking enabled" 
           : "Device unmapped from vehicle successfully and GPS tracking disabled"
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error mapping device to vehicle:", error);
       res.status(500).json({ message: "Error mapping device: " + error.message });
@@ -23861,6 +30945,22 @@ ${fromName || ''}
           message: "OneStep GPS API key not configured. Please add it in Settings." 
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       if (vehicleId) {
         const imported = await service.syncVehicleTrips(vehicleId, daysBack);
@@ -23870,6 +30970,22 @@ ${fromName || ''}
           vehicleId,
           tripsImported: imported 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       const enabledVehicles = await db
@@ -23901,6 +31017,21 @@ ${fromName || ''}
         totalTripsImported: totalImported,
         results 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error: any) {
       console.error("Error syncing OneStep GPS trips:", error);
@@ -23936,12 +31067,42 @@ ${fromName || ''}
           vehicleModel: vehicle?.model
         };
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.json({ 
         success: true,
         syncStates: statusWithVehicles,
         enabledVehicles: vehicleData.length
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error: any) {
       console.error("Error fetching sync status:", error);
@@ -23983,6 +31144,22 @@ ${fromName || ''}
             value: apiKey,
             isSecret: true
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       }
 
@@ -24006,6 +31183,21 @@ ${fromName || ''}
         success: true, 
         message: "OneStep GPS configuration saved successfully" 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error: any) {
       console.error("Error configuring OneStep GPS:", error);
@@ -24029,6 +31221,22 @@ ${fromName || ''}
             userType: data.userType || 'web',
             organizationId: data.organizationId
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           
           console.log('WebSocket client authenticated:', {
             userId: data.userId,
@@ -24036,6 +31244,22 @@ ${fromName || ''}
             userType: data.userType || 'web',
             organizationId: data.organizationId
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           
           ws.send(JSON.stringify({
             type: 'auth_success',
@@ -24172,6 +31396,22 @@ ${fromName || ''}
           isDefault: true,
           createdBy: user.id
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         templateId = template.id;
         
         // Create default inspection items for the template
@@ -24203,6 +31443,22 @@ ${fromName || ''}
             ...defaultItems[i],
             sortOrder: i
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       }
       
@@ -24235,6 +31491,22 @@ ${fromName || ''}
           isDefault: true,
           createdBy: user.id
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         templateId = template.id;
         
         // Create default inspection items for the template
@@ -24266,6 +31538,22 @@ ${fromName || ''}
             ...defaultItems[i],
             sortOrder: i
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       }
       
@@ -24299,6 +31587,22 @@ ${fromName || ''}
           message: "Invalid inspection items detected. Please refresh the page and try again.",
           invalidItemIds: invalidIds
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
       
       // Create inspection record
@@ -24339,6 +31643,22 @@ ${fromName || ''}
               purpose: 'Field work',
               notes: response.notes || 'Checked out via pre-trip inspection'
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
             gasCardAssignmentId = assignment.id;
           } else if (type === 'post-trip' && response.response === 'checked_in') {
             // Find and return the gas card assignment (check-in)
@@ -24365,6 +31685,22 @@ ${fromName || ''}
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       // Check for failed items and notify manager if needed
       const failedItems = responses.filter(r => r.response === 'fail' || r.response === 'needs_attention');
       if (failedItems.length > 0) {
@@ -24379,6 +31715,22 @@ ${fromName || ''}
             notificationType: 'failure',
             message: `${user.firstName || user.username} submitted a ${type} inspection with ${failedItems.length} failed items requiring attention.`
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
         
         // Update record status
@@ -24392,6 +31744,21 @@ ${fromName || ''}
         type,
         hasFailures: failedItems.length > 0
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       // Mark vehicle inspection alert as completed
       await VehicleInspectionAlertService.markInspectionCompleted(user.id, user.organizationId, record.id);
@@ -24421,6 +31788,22 @@ ${fromName || ''}
           isDefault: true,
           createdBy: user.id
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         templateId = template.id;
       }
       
@@ -24432,6 +31815,21 @@ ${fromName || ''}
         isRequired,
         sortOrder: 999
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(item);
     } catch (error: any) {
@@ -24459,6 +31857,22 @@ ${fromName || ''}
           isDefault: true,
           createdBy: user.id
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         templateId = template.id;
       }
       
@@ -24471,6 +31885,21 @@ ${fromName || ''}
         itemType: itemType || 'regular',
         sortOrder: sortOrder !== undefined ? sortOrder : 999
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(item);
     } catch (error: any) {
@@ -24493,6 +31922,21 @@ ${fromName || ''}
         itemType,
         ...(sortOrder !== undefined && { sortOrder })
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       if (!updatedItem) {
         return res.status(404).json({ message: "Inspection item not found" });
@@ -24546,12 +31990,43 @@ ${fromName || ''}
         });
       }
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       // Broadcast to managers
       broadcastToWebUsers('inspection_sent_to_manager', {
         recordId: parseInt(id),
         submittedBy: user.firstName || user.username,
         type: record.type
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json({ message: "Inspection sent to manager successfully" });
     } catch (error: any) {
@@ -24666,6 +32141,22 @@ ${fromName || ''}
             filePath: file.filePath,
             projectId: file.projectId
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       }
       
@@ -24694,6 +32185,22 @@ ${fromName || ''}
             fileName: file.fileName,
             filePath: file.filePath
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       }
       
@@ -24702,6 +32209,21 @@ ${fromName || ''}
         deletedRecords,
         cleanedAt: new Date()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error cleaning orphaned files:", error);
       res.status(500).json({ message: "Failed to cleanup orphaned files" });
@@ -24986,6 +32508,21 @@ ${fromName || ''}
           ? 'AWS S3 is configured and ready for file storage'
           : 'AWS S3 not configured. Files will use local storage.',
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error) {
       console.error('S3 status check error:', error);
@@ -25007,6 +32544,22 @@ ${fromName || ''}
           message: 'AWS S3 not configured. Please set AWS credentials in environment variables.' 
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       const result = await fileManager.migrateToS3();
       
@@ -25016,6 +32569,21 @@ ${fromName || ''}
         failed: result.failed,
         results: result.results,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
     } catch (error) {
       console.error('Migration error:', error);
@@ -25023,6 +32591,21 @@ ${fromName || ''}
         message: 'Migration failed',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -25161,6 +32744,21 @@ ${fromName || ''}
         createdById: userId,
         isActive: true
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       console.log("✅ Task Group Created:", taskGroup);
 
@@ -25182,6 +32780,22 @@ ${fromName || ''}
           priority: template.priority || 'medium',
           order: template.order || 0
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         console.log("✅ Template Created:", createdTemplate);
         createdTemplates.push(createdTemplate);
       }
@@ -25201,6 +32815,21 @@ ${fromName || ''}
         name: error.name,
         details: error
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       res.status(500).json({ message: "Failed to create task group: " + error.message });
     }
   });
@@ -25245,6 +32874,22 @@ ${fromName || ''}
           createdById: userId,
           assignedToId: null // Can be assigned later
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         createdTasks.push(newTask);
       }
 
@@ -25253,6 +32898,21 @@ ${fromName || ''}
         tasksAdded: createdTasks.length,
         tasks: createdTasks
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error adding task group to project:", error);
       res.status(500).json({ message: "Failed to add task group to project" });
@@ -25305,6 +32965,21 @@ ${fromName || ''}
         tasksAdded: createdTasks.length,
         tasks: createdTasks
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error assigning task group to project:", error);
       res.status(500).json({ message: "Failed to assign task group to project" });
@@ -25361,6 +33036,21 @@ ${fromName || ''}
           locationMap.set(loc.vehicleId, loc);
         }
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       // Enhance vehicles with tracking status
       const vehiclesWithStatus = allVehicles.map(vehicle => ({
@@ -25420,6 +33110,21 @@ ${fromName || ''}
         }
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json(vehicleToTechMap);
     } catch (error: any) {
       console.error("Error fetching vehicle inspection assignments:", error);
@@ -25456,6 +33161,22 @@ ${fromName || ''}
           message: "Vehicle number and license plate are required" 
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       // Check for duplicate vehicle number
       const existingByNumber = await storage.getVehicleByNumber(
@@ -25467,6 +33188,22 @@ ${fromName || ''}
           message: "Vehicle number already exists" 
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       // Check for duplicate license plate
       const existingByPlate = await storage.getVehicleByLicensePlate(
@@ -25477,6 +33214,22 @@ ${fromName || ''}
         return res.status(400).json({ 
           message: "License plate already exists" 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
       
       const vehicleData = {
@@ -25492,6 +33245,21 @@ ${fromName || ''}
         vehicle,
         createdBy: user.firstName || user.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.status(201).json(vehicle);
     } catch (error: any) {
@@ -25522,6 +33290,22 @@ ${fromName || ''}
           return res.status(400).json({ 
             message: "Vehicle number already exists" 
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       }
 
@@ -25535,6 +33319,22 @@ ${fromName || ''}
           return res.status(400).json({ 
             message: "License plate already exists" 
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       }
       
@@ -25545,6 +33345,21 @@ ${fromName || ''}
         vehicle,
         updatedBy: user.firstName || user.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(vehicle);
     } catch (error: any) {
@@ -25577,6 +33392,21 @@ ${fromName || ''}
         vehicleNumber: existingVehicle.vehicleNumber,
         deletedBy: user.firstName || user.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json({ message: "Vehicle deleted successfully" });
     } catch (error: any) {
@@ -25621,6 +33451,21 @@ ${fromName || ''}
         createdBy: user.firstName || user.username
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json(interval);
     } catch (error: any) {
       console.error("Error creating maintenance interval:", error);
@@ -25641,6 +33486,21 @@ ${fromName || ''}
         intervals,
         createdBy: user.firstName || user.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(intervals);
     } catch (error: any) {
@@ -25667,6 +33527,21 @@ ${fromName || ''}
         intervals: createdIntervals,
         createdBy: user.firstName || user.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(createdIntervals);
     } catch (error: any) {
@@ -25700,6 +33575,21 @@ ${fromName || ''}
         createdBy: user.firstName || user.username
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json(createdIntervals);
     } catch (error: any) {
       console.error("Error creating custom maintenance item:", error);
@@ -25723,6 +33613,21 @@ ${fromName || ''}
         status,
         updatedBy: user.firstName || user.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(updatedInterval);
     } catch (error: any) {
@@ -25751,6 +33656,21 @@ ${fromName || ''}
         record,
         createdBy: user.firstName || user.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(record);
     } catch (error: any) {
@@ -25909,6 +33829,21 @@ ${fromName || ''}
         message: `Created ${assignments.length} vehicle job assignments`,
         assignments 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error auto-connecting vehicle job assignments:", error);
       res.status(500).json({ message: "Failed to auto-connect vehicle job assignments" });
@@ -25965,6 +33900,21 @@ ${fromName || ''}
         entry
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Send clock-in notifications to admins/managers
       try {
         const { NotificationService } = await import("./notificationService");
@@ -25992,6 +33942,22 @@ ${fromName || ''}
             category: 'team_based',
             createdBy: user.id
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
         
         console.log(`📢 Clock-in notifications sent to ${adminUsers.length} admins/managers`);
@@ -26043,6 +34009,21 @@ ${fromName || ''}
         entry
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Send clock-out notifications to admins/managers
       try {
         const { NotificationService } = await import("./notificationService");
@@ -26070,6 +34051,22 @@ ${fromName || ''}
             category: 'team_based',
             createdBy: user.id
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
         
         console.log(`📢 Clock-out notifications sent to ${adminUsers.length} admins/managers`);
@@ -26099,6 +34096,21 @@ ${fromName || ''}
         entry
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json({ entry, message: "Break started" });
     } catch (error: any) {
       console.error("Error starting break:", error);
@@ -26120,6 +34132,21 @@ ${fromName || ''}
         userName: user.firstName || user.username,
         entry
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json({ entry, message: "Break ended" });
     } catch (error: any) {
@@ -26347,6 +34374,21 @@ ${fromName || ''}
         trigger: trigger,
         executedBy: userId 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error executing trigger:", error);
       res.status(500).json({ message: "Failed to execute trigger" });
@@ -26673,6 +34715,22 @@ ${fromName || ''}
           message: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed' 
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       // Validate file size (5MB max)
       const maxSize = 5 * 1024 * 1024; // 5MB
@@ -26681,12 +34739,43 @@ ${fromName || ''}
           message: 'File too large. Maximum size is 5MB' 
         });
       }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
 
       console.log('📤 Uploading slider image to Cloudinary...', {
         filename: req.file.originalname,
         size: req.file.size,
         organizationId: user.organizationId
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Read file buffer
       const fs = await import('fs/promises');
@@ -26701,6 +34790,21 @@ ${fromName || ''}
         maxWidth: 2000,
         maxHeight: 1200
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       // Clean up temp file
       await fs.unlink(req.file.path);
@@ -26710,6 +34814,22 @@ ${fromName || ''}
           message: 'Failed to upload image to Cloudinary',
           error: uploadResult.error
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
 
       console.log('✅ Slider image uploaded successfully:', uploadResult.secureUrl);
@@ -26721,6 +34841,21 @@ ${fromName || ''}
         width: uploadResult.width,
         height: uploadResult.height
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error uploading slider image:', error);
       res.status(500).json({ message: 'Failed to upload slider image' });
@@ -26843,6 +34978,21 @@ ${fromName || ''}
         name: organization.name,
         slug: organization.slug
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error('Error fetching organization by slug:', error);
       res.status(500).json({ message: 'Failed to fetch organization' });
@@ -26870,8 +35020,39 @@ ${fromName || ''}
   // Public: Create new chat session
   app.post('/api/live-chat/sessions', async (req, res) => {
     try {
-      const { organizationId, visitorName, visitorEmail } = req.body;
-      const session = await storage.createLiveChatSession(organizationId || 2, visitorName, visitorEmail);
+      const { organizationId: orgId, visitorName, visitorEmail } = req.body;
+      const session = await storage.createLiveChatSession(orgId || 2, visitorName, visitorEmail);
+      
+      // Broadcast new session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: session.departmentName,
+            departmentColor: session.departmentColor,
+          }
+        });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      }
+      
       res.status(201).json(session);
     } catch (error: any) {
       console.error('Error creating chat session:', error);
@@ -26895,6 +35076,21 @@ ${fromName || ''}
         status: "waiting",
         tags: [visitorPhone || "", source || "footer_widget", "sales"],
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       res.status(201).json(session);
     } catch (error: any) {
       console.error("Error creating sales chat session:", error);
@@ -26981,6 +35177,21 @@ ${fromName || ''}
         senderName: finalSenderName,
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       // Broadcast new message via WebSocket
       if (broadcastToOrganization) {
         broadcastToOrganization(session.organizationId, {
@@ -27015,6 +35226,21 @@ ${fromName || ''}
         ...req.body,
         organizationId: user.organizationId,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       res.status(201).json(department);
     } catch (error: any) {
       console.error('Error creating department:', error);
@@ -27512,6 +35738,21 @@ ${fromName || ''}
         createdById: user.id,
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       console.log("📅 Creating schedule - Parsed data:", scheduleData);
       
       const [schedule] = await db
@@ -27526,6 +35767,21 @@ ${fromName || ''}
         schedule,
         createdBy: user.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.status(201).json(schedule);
     } catch (error: any) {
@@ -27602,6 +35858,21 @@ ${fromName || ''}
         updatedBy: user.username
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json(updatedSchedule);
     } catch (error: any) {
       if (error instanceof ZodError) {
@@ -27637,6 +35908,21 @@ ${fromName || ''}
         scheduleId,
         deletedBy: user.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json({ message: "Schedule deleted successfully" });
     } catch (error: any) {
@@ -27685,6 +35971,21 @@ ${fromName || ''}
         schedule: updatedSchedule,
         user: user.username
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(updatedSchedule);
     } catch (error: any) {
@@ -27741,6 +36042,21 @@ ${fromName || ''}
         user: user.username,
         hoursWorked: actualHours.toFixed(2)
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(updatedSchedule);
     } catch (error: any) {
@@ -27853,6 +36169,22 @@ ${fromName || ''}
               workDate: new Date(today),
               location,
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           
           // Notify managers/admins via WebSocket
           broadcastToWebUsers(user.organizationId, 'late_arrival_detected', {
@@ -27862,6 +36194,22 @@ ${fromName || ''}
             actualTime: clockInTime.toTimeString().slice(0, 5),
             location,
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           
           // Send late arrival notifications to admins/managers
           try {
@@ -27890,6 +36238,22 @@ ${fromName || ''}
                 category: 'team_based',
                 createdBy: user.id
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
             }
             
             console.log(`📢 Late arrival notifications sent to ${adminUsers.length} admins/managers`);
@@ -27926,6 +36290,22 @@ ${fromName || ''}
             category: 'team_based',
             createdBy: user.id
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
         
         console.log(`📢 Clock-in notifications sent to ${adminUsers.length} admins/managers`);
@@ -27951,6 +36331,21 @@ ${fromName || ''}
         scheduledTime: todaySchedule[0]?.startTime,
         isLate: todaySchedule.length > 0 && (clockInTime.getTime() - new Date(`${today}T${todaySchedule[0].startTime}`).getTime()) > 5 * 60 * 1000
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error clocking in:", error);
       res.status(500).json({ message: "Failed to clock in" });
@@ -28051,6 +36446,21 @@ ${fromName || ''}
         summary: overallSummary,
         employeeStats,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching late arrivals summary:", error);
       res.status(500).json({ message: "Failed to fetch late arrivals summary" });
@@ -28303,6 +36713,21 @@ ${fromName || ''}
         message: `Successfully cleaned up ${deletedCount} expired meetings`,
         deletedCount 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error cleaning up expired meetings:", error);
       res.status(500).json({ message: "Failed to cleanup expired meetings" });
@@ -28340,12 +36765,44 @@ ${fromName || ''}
           message: "Please wait for the host to admit you to the meeting",
           isWaiting: true 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       } else {
         res.json({ 
           ...participant,
           message: "Joined meeting successfully",
           isWaiting: false 
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
     } catch (error: any) {
       console.error("Error joining meeting:", error);
@@ -28600,6 +37057,21 @@ ${fromName || ''}
         senderId: user.id,
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.status(201).json(newMessage);
     } catch (error: any) {
       console.error("Error sending meeting message:", error);
@@ -28639,6 +37111,21 @@ ${fromName || ''}
         meetingId,
         recordedBy: user.id,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.status(201).json(newRecording);
     } catch (error: any) {
@@ -28712,6 +37199,21 @@ ${fromName || ''}
         createdAt: new Date(),
         updatedAt: new Date()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       res.status(201).json(phoneNumber);
     } catch (error: any) {
@@ -28741,6 +37243,21 @@ ${fromName || ''}
         ...updates,
         updatedAt: new Date()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
 
       if (!phoneNumber) {
         console.log('❌ Failed to update phone number:', phoneId);
@@ -29044,6 +37561,21 @@ ${fromName || ''}
         return insertSmartCaptureItemSchema.parse(itemData);
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       const createdItems = await storage.createSmartCaptureItemsBulk(listId, user.organizationId, items, user.id);
       res.status(201).json(createdItems);
     } catch (error: any) {
@@ -29123,6 +37655,21 @@ ${fromName || ''}
         imageUrl: `/uploads/smart-capture/ocr/${imageId}.jpg`
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
     } catch (error: any) {
       console.error("Error processing OCR:", error);
       res.status(500).json({ 
@@ -29130,6 +37677,21 @@ ${fromName || ''}
         message: "Failed to process image OCR",
         error: error.message 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -29169,6 +37731,22 @@ ${fromName || ''}
               updatedBy: user.username,
               timestamp: new Date().toISOString()
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
         } catch (lineItemError) {
           console.error("❌ Error updating Smart Capture item in draft invoice:", lineItemError);
@@ -29221,6 +37799,22 @@ ${fromName || ''}
               deletedBy: user.username,
               timestamp: new Date().toISOString()
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
         } catch (lineItemError) {
           console.error("❌ Error removing Smart Capture item from draft invoice:", lineItemError);
@@ -29312,6 +37906,22 @@ ${fromName || ''}
             createdBy: user.username,
             timestamp: new Date().toISOString()
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
       } catch (lineItemError) {
         console.error("❌ Error adding Smart Capture item to draft invoice:", lineItemError);
@@ -29358,6 +37968,21 @@ ${fromName || ''}
         inventoryNumber: req.query.inventoryNumber,
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       const items = await storage.searchSmartCaptureItems(user.organizationId, filters);
       res.json(items);
@@ -29476,6 +38101,21 @@ ${fromName || ''}
         message: "Smart Capture invoice submitted for approval",
         invoice: submittedInvoice
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error submitting Smart Capture invoice for approval:", error);
       res.status(400).json({ message: error.message || "Failed to submit invoice for approval" });
@@ -29564,6 +38204,21 @@ ${fromName || ''}
         approvedAt: new Date()
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       console.log(`✅ Smart Capture invoice ${invoiceId} approved by ${user.firstName} ${user.lastName}`);
       
       // Broadcast approval to organization users
@@ -29573,6 +38228,21 @@ ${fromName || ''}
         approvedBy: `${user.firstName} ${user.lastName}`,
         timestamp: new Date().toISOString()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(approvedInvoice);
     } catch (error: any) {
@@ -29599,6 +38269,21 @@ ${fromName || ''}
         organizationId: user.organizationId 
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       if (!invoice || invoice.length === 0) {
         return res.status(404).json({ message: "Invoice not found" });
       }
@@ -29616,6 +38301,21 @@ ${fromName || ''}
         rejectionReason: rejectionReason || 'No reason provided'
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       console.log(`❌ Smart Capture invoice ${invoiceId} rejected by ${user.firstName} ${user.lastName}: ${rejectionReason}`);
       
       // Broadcast rejection to organization users
@@ -29626,6 +38326,21 @@ ${fromName || ''}
         rejectionReason: rejectionReason || 'No reason provided',
         timestamp: new Date().toISOString()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(rejectedInvoice);
     } catch (error: any) {
@@ -29668,6 +38383,21 @@ ${fromName || ''}
         approvedAt: new Date()
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       console.log(`✅ Smart Capture invoice ${invoiceId} edited and approved by ${user.firstName} ${user.lastName}`);
       
       // Broadcast approval to organization users
@@ -29678,6 +38408,21 @@ ${fromName || ''}
         wasEdited: true,
         timestamp: new Date().toISOString()
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       res.json(updatedInvoice);
     } catch (error: any) {
@@ -29770,6 +38515,21 @@ ${fromName || ''}
         invoiceNumber: currentInvoice.invoiceNumber || currentInvoice.id,
         // In real implementation: pdfUrl: "/path/to/generated/invoice.pdf"
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
     } catch (error: any) {
       console.error("Error generating PDF for Smart Capture invoice:", error);
@@ -29874,6 +38634,22 @@ ${fromName || ''}
               quoteNumber: quote.quoteNumber,
             }
           });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
         }
 
         // Mark quote as notified
@@ -30019,17 +38795,62 @@ ${fromName || ''}
         timeout: 10000,
       });
       
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
+      
       res.json({ 
         success: true, 
         message: "Connection successful",
         serverVersion: response.data.version,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Connection test failed:", error);
       res.status(500).json({ 
         success: false, 
         error: error.message || "Connection failed" 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     }
   });
 
@@ -30271,6 +39092,22 @@ ${fromName || ''}
               checksum,
               updatedAt: file.updatedAt,
             });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
           }
         } catch (err) {
           console.error(`Error processing file ${file.fileName}:`, err);
@@ -30282,6 +39119,21 @@ ${fromName || ''}
         totalSize: fileList.reduce((sum, f) => sum + f.size, 0),
         files: fileList,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error) {
       console.error("Error scanning files:", error);
       res.status(500).json({ error: "Failed to scan files" });
@@ -30329,6 +39181,21 @@ ${fromName || ''}
         syncHistoryId: historyRecord.id,
         message: "Sync started" 
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       
       // Process sync in background
       (async () => {
@@ -30407,6 +39274,22 @@ ${fromName || ''}
                 localChecksum: conflict.localChecksum,
                 remoteChecksum: conflict.remoteChecksum,
               });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
             }
           }
           
@@ -30815,6 +39698,21 @@ ${fromName || ''}
           mpg: vehicle.mpg,
         } : null,
       });
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
     } catch (error: any) {
       console.error("Error fetching route performance:", error);
       res.status(500).json({ message: "Error fetching performance: " + error.message });
@@ -31005,6 +39903,22 @@ ${fromName || ''}
           jobsWithPhotos: new Set(),
           jobsWithSignatures: new Set(),
         });
+      }
+      
+      // Broadcast new sales session via WebSocket
+      if (broadcastToOrganization) {
+        broadcastToOrganization(session.organizationId, {
+          eventType: 'live_chat_session_created',
+          data: {
+            sessionId: session.id,
+            visitorName: session.visitorName,
+            visitorEmail: session.visitorEmail,
+            departmentName: 'Sales',
+            departmentColor: '#22c55e',
+          }
+        });
+      }
+      }
       }
       
       // Get all completed projects in the date range
