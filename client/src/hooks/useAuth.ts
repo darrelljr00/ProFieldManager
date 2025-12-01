@@ -33,7 +33,7 @@ const isOnLoginRoute = () => {
 export function useAuth() {
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery<AuthData>({
+  const { data, isLoading, isFetching, error } = useQuery<AuthData>({
     queryKey: ["/api/auth/me", isCustomDomain() ? "custom" : "replit"],
     staleTime: isCustomDomain() ? 0 : 5 * 60 * 1000,
     gcTime: isCustomDomain() ? 0 : 5 * 60 * 1000,
@@ -170,11 +170,13 @@ export function useAuth() {
     window.location.replace("/login?logged_out=1");
   };
 
+  const effectiveLoading = isLoading || (isFetching && !data?.user);
+
   return {
     user: data?.user ?? null,
     isAuthenticated: !!data?.user,
     isAdmin: data?.user?.role === "admin" || data?.user?.role === "superadmin",
-    isLoading,
+    isLoading: effectiveLoading,
     error,
     logout,
   };
