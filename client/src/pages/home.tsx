@@ -175,6 +175,19 @@ const featureTabs = [
     ],
   },
   {
+    id: "quotes",
+    label: "Quotes",
+    icon: FileText,
+    title: "Quotes & Estimates",
+    description: "Create professional quotes quickly and convert them to jobs with a single click.",
+    features: [
+      { icon: FileText, title: "Quick Quotes", description: "Professional estimates in minutes" },
+      { icon: CheckCircle, title: "Digital Signatures", description: "E-sign approvals from customers" },
+      { icon: CreditCard, title: "Deposit Collection", description: "Collect upfront payments easily" },
+      { icon: ArrowRight, title: "Quote to Invoice", description: "One-click conversion to jobs" },
+    ],
+  },
+  {
     id: "mobile",
     label: "Mobile Apps",
     icon: Smartphone,
@@ -201,6 +214,19 @@ const featureTabs = [
     ],
   },
   {
+    id: "inventory",
+    label: "Inventory",
+    icon: Wrench,
+    title: "Inventory & Parts Management",
+    description: "Track parts, materials, and equipment across your warehouse and service vehicles.",
+    features: [
+      { icon: Wrench, title: "Parts Tracking", description: "Real-time inventory levels" },
+      { icon: Truck, title: "Vehicle Stock", description: "Track parts in each truck" },
+      { icon: Bell, title: "Low Stock Alerts", description: "Automatic reorder notifications" },
+      { icon: BarChart, title: "Usage Reports", description: "Parts consumption analytics" },
+    ],
+  },
+  {
     id: "reports",
     label: "Reports",
     icon: BarChart,
@@ -211,6 +237,32 @@ const featureTabs = [
       { icon: Users, title: "Employee Performance", description: "Productivity and efficiency tracking" },
       { icon: CreditCard, title: "Revenue Reports", description: "Income, expenses, and profit analysis" },
       { icon: MapPin, title: "Job Analytics", description: "Completion rates and time tracking" },
+    ],
+  },
+  {
+    id: "integrations",
+    label: "Integrations",
+    icon: Settings,
+    title: "Seamless Integrations",
+    description: "Connect with your favorite tools and services for a unified workflow.",
+    features: [
+      { icon: CreditCard, title: "Stripe & QuickBooks", description: "Payment and accounting sync" },
+      { icon: MessageSquare, title: "Twilio SMS", description: "Automated text messaging" },
+      { icon: MapPin, title: "Google Maps", description: "Routing and geocoding" },
+      { icon: FileText, title: "DocuSign", description: "Electronic contract signing" },
+    ],
+  },
+  {
+    id: "security",
+    label: "Security",
+    icon: Shield,
+    title: "Enterprise Security",
+    description: "Keep your business data safe with enterprise-grade security and compliance.",
+    features: [
+      { icon: Shield, title: "Role-Based Access", description: "Control who sees what data" },
+      { icon: CheckCircle, title: "Data Encryption", description: "256-bit SSL encryption" },
+      { icon: Clock, title: "Auto Backups", description: "Daily automated backups" },
+      { icon: Users, title: "Audit Logs", description: "Track all system activity" },
     ],
   },
 ];
