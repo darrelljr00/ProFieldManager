@@ -18,19 +18,31 @@ interface PuzzleCaptchaProps {
   onError?: (message: string) => void;
 }
 
+const INITIAL_PIECE_X = 10;
+
 export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
   const [challenge, setChallenge] = useState<CaptchaChallenge | null>(null);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pieceX, setPieceX] = useState(10);
+  const [pieceX, setPieceX] = useState(INITIAL_PIECE_X);
   const [isDragging, setIsDragging] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const startPieceXRef = useRef(0);
-  const currentPieceXRef = useRef(10);
+  const currentPieceXRef = useRef(INITIAL_PIECE_X);
   const challengeRef = useRef<CaptchaChallenge | null>(null);
+  const onErrorRef = useRef(onError);
+  const onVerifiedRef = useRef(onVerified);
+  const hasFetchedRef = useRef(false);
+
+  // Keep refs updated without causing re-renders
+  useEffect(() => {
+    onErrorRef.current = onError;
+    onVerifiedRef.current = onVerified;
+  }, [onError, onVerified]);
 
   useEffect(() => {
     challengeRef.current = challenge;
@@ -40,8 +52,9 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
     setLoading(true);
     setVerified(false);
     setError(null);
-    setPieceX(10);
-    currentPieceXRef.current = 10;
+    setPieceX(INITIAL_PIECE_X);
+    currentPieceXRef.current = INITIAL_PIECE_X;
+    setIsAnimating(false);
     
     try {
       const response = await fetch("/api/captcha/generate");
@@ -51,15 +64,30 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
       challengeRef.current = data;
     } catch (err) {
       setError("Failed to load captcha. Please try again.");
-      onError?.("Failed to load captcha");
+      onErrorRef.current?.("Failed to load captcha");
     } finally {
       setLoading(false);
     }
-  }, [onError]);
+  }, []);
 
+  // Only fetch on initial mount
   useEffect(() => {
-    fetchChallenge();
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchChallenge();
+    }
   }, [fetchChallenge]);
+
+  const bounceBack = useCallback(() => {
+    setIsAnimating(true);
+    setPieceX(INITIAL_PIECE_X);
+    currentPieceXRef.current = INITIAL_PIECE_X;
+    
+    // Remove animation flag after animation completes
+    setTimeout(() => {
+      setIsAnimating(false);
+    }, 400);
+  }, []);
 
   const validateSolution = useCallback(async (finalX: number) => {
     const currentChallenge = challengeRef.current;
@@ -67,8 +95,6 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
     
     setVerifying(true);
     setError(null);
-    
-    console.log("Validating captcha with X:", finalX);
     
     try {
       const response = await fetch("/api/captcha/validate", {
@@ -81,30 +107,34 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
       
       if (result.valid) {
         setVerified(true);
-        onVerified(currentChallenge.token);
+        onVerifiedRef.current(currentChallenge.token);
       } else {
-        setError(result.message || "Verification failed");
-        setTimeout(() => fetchChallenge(), 1500);
+        setError(result.message || "Incorrect position. Try again!");
+        // Bounce the piece back to the starting position
+        bounceBack();
       }
     } catch (err) {
-      setError("Verification failed. Please try again.");
-      setTimeout(() => fetchChallenge(), 1500);
+      setError("Verification failed. Try again!");
+      // Bounce back on error too
+      bounceBack();
     } finally {
       setVerifying(false);
     }
-  }, [fetchChallenge, onVerified]);
+  }, [bounceBack]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (verified || verifying) return;
+    if (verified || verifying || isAnimating) return;
     e.preventDefault();
     setIsDragging(true);
+    setError(null);
     startXRef.current = e.clientX;
     startPieceXRef.current = currentPieceXRef.current;
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (verified || verifying) return;
+    if (verified || verifying || isAnimating) return;
     setIsDragging(true);
+    setError(null);
     startXRef.current = e.touches[0].clientX;
     startPieceXRef.current = currentPieceXRef.current;
   };
@@ -122,13 +152,12 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
   }, []);
 
   const handleEnd = useCallback(() => {
-    if (!verified) {
+    if (!verified && !isAnimating) {
       setIsDragging(false);
       const finalX = currentPieceXRef.current;
-      console.log("Drag ended at X:", finalX);
       validateSolution(finalX);
     }
-  }, [verified, validateSolution]);
+  }, [verified, isAnimating, validateSolution]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -202,14 +231,14 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
         <div
           className={`absolute cursor-grab active:cursor-grabbing ${
             isDragging ? 'scale-105 z-10' : ''
-          } ${verified ? 'opacity-0' : ''}`}
+          } ${verified ? 'opacity-0' : ''} ${isAnimating ? 'transition-all duration-300 ease-out' : ''}`}
           style={{
             left: pieceX,
             top: challenge.pieceY,
             width: challenge.pieceWidth + 20,
             height: challenge.pieceHeight + 20,
             transform: 'translate(-10px, -10px)',
-            transition: isDragging ? 'none' : 'transform 0.1s',
+            transition: isDragging ? 'none' : isAnimating ? 'left 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)' : 'transform 0.1s',
           }}
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
@@ -254,7 +283,7 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
             variant="ghost" 
             size="sm" 
             onClick={fetchChallenge}
-            disabled={verifying}
+            disabled={verifying || isAnimating}
             data-testid="captcha-refresh"
           >
             <RefreshCw className="h-4 w-4" />
