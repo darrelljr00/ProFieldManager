@@ -21,6 +21,7 @@ import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { SEOHead } from "@/components/seo-head";
 import { getSEOForPage } from "@/lib/seo-config";
+import { PuzzleCaptcha } from "@/components/PuzzleCaptcha";
 
 const demoSignupSchema = registerSchema.extend({
   organizationName: z.string().min(1, "Business name is required"),
@@ -45,6 +46,8 @@ export default function DemoSignupPage() {
   const [pendingRedirect, setPendingRedirect] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string>("professional");
   const [billingCycle, setBillingCycle] = useState<string>("monthly");
+  const [captchaVerified, setCaptchaVerified] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
@@ -642,14 +645,34 @@ export default function DemoSignupPage() {
                       </ul>
                     </div>
 
+                    <div className="space-y-4">
+                      <div className="border rounded-lg p-4 bg-slate-50 dark:bg-slate-800">
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                          Complete the puzzle to verify you're human
+                        </p>
+                        <PuzzleCaptcha 
+                          onVerified={(token) => {
+                            setCaptchaVerified(true);
+                            setCaptchaToken(token);
+                          }}
+                          onError={() => {
+                            setCaptchaVerified(false);
+                            setCaptchaToken(null);
+                          }}
+                        />
+                      </div>
+                    </div>
+
                     <Button
                       type="submit"
                       className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6"
-                      disabled={registerMutation.isPending}
+                      disabled={registerMutation.isPending || !captchaVerified}
                       data-testid="button-submit-demo"
                     >
                       {registerMutation.isPending
                         ? "Creating Your Demo Account..."
+                        : !captchaVerified 
+                        ? "Complete Puzzle to Continue"
                         : "Start Free 30-Day Demo"}
                     </Button>
 

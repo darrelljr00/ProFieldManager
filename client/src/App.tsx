@@ -362,6 +362,7 @@ const PUBLIC_MARKETING_PATHS = [
   '/privacy',
   '/cookies',
   '/get-started',
+  '/demo-signup',
 ];
 
 function isPublicMarketingPath(path: string): boolean {
