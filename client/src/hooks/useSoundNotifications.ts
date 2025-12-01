@@ -32,7 +32,7 @@ export function useSoundNotifications() {
   const [soundSettings, setSoundSettings] = useState<SoundSettings>(defaultSoundSettings);
 
   // Fetch sound settings from backend
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<SoundSettings>({
     queryKey: ['/api/settings/sounds'],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
