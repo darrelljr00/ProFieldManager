@@ -6,148 +6,148 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Menu, Loader2 } from "lucide-react";
+import { lazy, Suspense, useEffect, useState, memo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGPSTracking } from "@/hooks/use-gps-tracking";
 import { useAnalytics } from "@/hooks/use-analytics";
+
+const PageLoader = memo(() => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <p className="text-sm text-muted-foreground">Loading...</p>
+    </div>
+  </div>
+));
+PageLoader.displayName = 'PageLoader';
+
 import Dashboard from "@/pages/dashboard";
-import Projects from "@/pages/projects";
-import ProjectDetail from "@/pages/project-detail";
-import CalendarPage from "@/pages/calendar";
-import Leads from "@/pages/leads";
-import Money from "@/pages/money";
-import Expenses from "@/pages/expenses";
-import TechnicianExpenses from "@/pages/technician-expenses";
-import ExpenseReports from "@/pages/expense-reports";
-import ExpenseCategories from "@/pages/expense-categories";
-import ExpenseCategoryManagement from "@/pages/expense-category-management";
-import FrontendPageRenderer from "@/pages/frontend-page-renderer";
-import DynamicExpenseCategory from "@/pages/dynamic-expense-category";
-import Reports from "@/pages/reports";
-import GasCardProviders from "@/pages/gas-card-providers";
-import GasCards from "@/pages/gas-cards";
-import Quotes from "@/pages/quotes";
-import Services from "@/pages/services";
-import Invoices from "@/pages/invoices";
-import InvoiceTemplates from "@/pages/invoice-templates";
-import Messages from "@/pages/messages";
-import Customers from "@/pages/customers";
-import Payments from "@/pages/payments";
-import InternalMessages from "@/pages/internal-messages";
-import ImageGallery from "@/pages/image-gallery";
-import Users from "@/pages/users";
-import AdminSettings from "@/pages/admin-settings";
-import SaasAdmin from "@/pages/saas-admin";
-import SaasCallManagerPage from "@/pages/saas-admin/call-manager";
-import CallManager from "@/pages/call-manager";
-import SmsPage from "@/pages/sms";
-import Reviews from "@/pages/reviews";
-import Settings from "@/pages/settings";
-import HumanResources from "@/pages/human-resources";
-import FileManager from "@/pages/file-manager";
-import MyTasks from "@/pages/my-tasks";
-import JobTasks from "@/pages/job-tasks";
-import GpsTracking from "@/pages/gps-tracking";
-import GPSTrackingOBD from "@/pages/gps-tracking-obd";
-import GPSAnalytics from "@/pages/gps-analytics";
-import GPSSettings from "@/pages/gps-settings";
-import FuelUsageToday from "@/pages/fuel-usage-today";
-import FormBuilder from "@/pages/form-builder";
-import MobileTest from "@/pages/mobile-test";
-import TimeClock from "@/pages/time-clock";
-import Inspections from "@/pages/inspections";
-import Weather from "@/pages/weather";
-import FileSecurity from "@/pages/file-security";
-import PartsSupplies from "@/pages/parts-supplies";
-import MarketResearch from "@/pages/market-research";
-import TaskGroups from "@/pages/task-groups";
-import SmartCapture from "@/pages/smart-capture";
-import LiveStream from "@/pages/live-stream";
-import LiveStreamEnhanced from "@/pages/live-stream-enhanced";
-import Login from "@/pages/login";
-import SimpleLogin from "@/pages/simple-login";
-import DirectLogin from "@/pages/direct-login";
-import CustomDomainLogin from "@/pages/custom-domain-login";
-import UniversalLogin from "@/pages/universal-login";
-import DemoSignupPage from "@/pages/demo-signup";
-import PasswordResetRequest from "@/pages/password-reset-request";
-import PasswordResetComplete from "@/pages/password-reset-complete";
 import HomePage from "@/pages/home";
-import FeaturesPage from "@/pages/features";
-import AuthDebug from "@/pages/auth-debug";
+import UniversalLogin from "@/pages/universal-login";
+import DirectLogin from "@/pages/direct-login";
 import NotFound from "@/pages/not-found";
-import SharedPhotosViewer from "@/pages/shared-photos";
-import QuoteResponsePage from "@/pages/quote-response";
-import QuoteAvailabilityPage from "@/pages/quote-availability";
-import { DeletedJobs } from "@/pages/deleted-jobs";
-import { CancelledJobs } from "@/pages/cancelled-jobs";
-import FrontendManagement from "@/pages/frontend-management";
-import SliderManagement from "@/pages/slider-management";
-import PopupManagement from "@/pages/popup-management";
-import LiveChatManagement from "@/pages/live-chat-management";
-import Tutorials from "@/pages/tutorials";
-import MySchedule from "@/pages/my-schedule";
-import Notifications from "@/pages/notifications";
-import ScreenSharing from "@/pages/screen-sharing";
-import Logout from "@/pages/logout";
-import DeployCWP from "@/pages/deploy-cwp";
-import WebsiteAnalytics from "@/pages/website-analytics";
-import { HelpButton } from "@/components/help-button";
-import { MobileSensorTracker } from "@/components/MobileSensorTracker";
-import { LiveChatWidget } from "@/components/LiveChatWidget";
-import GeneralContractorsPage from "@/pages/services/general-contractors";
-import ElectriciansPage from "@/pages/services/electricians";
-import PlumbersPage from "@/pages/services/plumbers";
-import ConstructionPage from "@/pages/services/construction";
-import HandymanPage from "@/pages/services/handyman";
-import HVACPage from "@/pages/services/hvac";
-import PressureWashersPage from "@/pages/services/pressure-washers";
-import WindowWashersPage from "@/pages/services/window-washers";
-import ServiceTechsPage from "@/pages/services/service-techs";
-import PublicInvoicePayment from "@/pages/public-invoice-payment";
-import PublicQuotePayment from "@/pages/public-quote-payment";
-import PaymentSuccess from "@/pages/payment-success";
-import PaymentError from "@/pages/payment-error";
-import TermsOfService from "@/pages/legal/terms";
-import PrivacyPolicy from "@/pages/legal/privacy";
-import CookiePolicy from "@/pages/legal/cookies";
-import GetStartedPage from "@/pages/get-started";
+
+const Projects = lazy(() => import("@/pages/projects"));
+const ProjectDetail = lazy(() => import("@/pages/project-detail"));
+const CalendarPage = lazy(() => import("@/pages/calendar"));
+const Leads = lazy(() => import("@/pages/leads"));
+const Money = lazy(() => import("@/pages/money"));
+const Expenses = lazy(() => import("@/pages/expenses"));
+const TechnicianExpenses = lazy(() => import("@/pages/technician-expenses"));
+const ExpenseReports = lazy(() => import("@/pages/expense-reports"));
+const ExpenseCategories = lazy(() => import("@/pages/expense-categories"));
+const ExpenseCategoryManagement = lazy(() => import("@/pages/expense-category-management"));
+const FrontendPageRenderer = lazy(() => import("@/pages/frontend-page-renderer"));
+const DynamicExpenseCategory = lazy(() => import("@/pages/dynamic-expense-category"));
+const Reports = lazy(() => import("@/pages/reports"));
+const GasCardProviders = lazy(() => import("@/pages/gas-card-providers"));
+const GasCards = lazy(() => import("@/pages/gas-cards"));
+const Quotes = lazy(() => import("@/pages/quotes"));
+const Services = lazy(() => import("@/pages/services"));
+const Invoices = lazy(() => import("@/pages/invoices"));
+const InvoiceTemplates = lazy(() => import("@/pages/invoice-templates"));
+const Messages = lazy(() => import("@/pages/messages"));
+const Customers = lazy(() => import("@/pages/customers"));
+const Payments = lazy(() => import("@/pages/payments"));
+const InternalMessages = lazy(() => import("@/pages/internal-messages"));
+const ImageGallery = lazy(() => import("@/pages/image-gallery"));
+const Users = lazy(() => import("@/pages/users"));
+const AdminSettings = lazy(() => import("@/pages/admin-settings"));
+const SaasAdmin = lazy(() => import("@/pages/saas-admin"));
+const SaasCallManagerPage = lazy(() => import("@/pages/saas-admin/call-manager"));
+const CallManager = lazy(() => import("@/pages/call-manager"));
+const SmsPage = lazy(() => import("@/pages/sms"));
+const Reviews = lazy(() => import("@/pages/reviews"));
+const Settings = lazy(() => import("@/pages/settings"));
+const HumanResources = lazy(() => import("@/pages/human-resources"));
+const FileManager = lazy(() => import("@/pages/file-manager"));
+const MyTasks = lazy(() => import("@/pages/my-tasks"));
+const JobTasks = lazy(() => import("@/pages/job-tasks"));
+const GpsTracking = lazy(() => import("@/pages/gps-tracking"));
+const GPSTrackingOBD = lazy(() => import("@/pages/gps-tracking-obd"));
+const GPSAnalytics = lazy(() => import("@/pages/gps-analytics"));
+const GPSSettings = lazy(() => import("@/pages/gps-settings"));
+const FuelUsageToday = lazy(() => import("@/pages/fuel-usage-today"));
+const FormBuilder = lazy(() => import("@/pages/form-builder"));
+const MobileTest = lazy(() => import("@/pages/mobile-test"));
+const TimeClock = lazy(() => import("@/pages/time-clock"));
+const Inspections = lazy(() => import("@/pages/inspections"));
+const Weather = lazy(() => import("@/pages/weather"));
+const FileSecurity = lazy(() => import("@/pages/file-security"));
+const PartsSupplies = lazy(() => import("@/pages/parts-supplies"));
+const MarketResearch = lazy(() => import("@/pages/market-research"));
+const TaskGroups = lazy(() => import("@/pages/task-groups"));
+const SmartCapture = lazy(() => import("@/pages/smart-capture"));
+const LiveStream = lazy(() => import("@/pages/live-stream"));
+const LiveStreamEnhanced = lazy(() => import("@/pages/live-stream-enhanced"));
+const Login = lazy(() => import("@/pages/login"));
+const SimpleLogin = lazy(() => import("@/pages/simple-login"));
+const CustomDomainLogin = lazy(() => import("@/pages/custom-domain-login"));
+const DemoSignupPage = lazy(() => import("@/pages/demo-signup"));
+const PasswordResetRequest = lazy(() => import("@/pages/password-reset-request"));
+const PasswordResetComplete = lazy(() => import("@/pages/password-reset-complete"));
+const FeaturesPage = lazy(() => import("@/pages/features"));
+const AuthDebug = lazy(() => import("@/pages/auth-debug"));
+const Logout = lazy(() => import("@/pages/logout"));
+const Tutorials = lazy(() => import("@/pages/tutorials"));
+const MySchedule = lazy(() => import("@/pages/my-schedule"));
+const Notifications = lazy(() => import("@/pages/notifications"));
+const ScreenSharing = lazy(() => import("@/pages/screen-sharing"));
+const SharedPhotosViewer = lazy(() => import("@/pages/shared-photos"));
+const QuoteResponsePage = lazy(() => import("@/pages/quote-response"));
+const QuoteAvailabilityPage = lazy(() => import("@/pages/quote-availability"));
+const PublicInvoicePayment = lazy(() => import("@/pages/public-invoice-payment"));
+const PublicQuotePayment = lazy(() => import("@/pages/public-quote-payment"));
+const PaymentSuccess = lazy(() => import("@/pages/payment-success"));
+const PaymentError = lazy(() => import("@/pages/payment-error"));
+const DeletedJobs = lazy(() => import("@/pages/deleted-jobs").then(m => ({ default: m.DeletedJobs })));
+const CancelledJobs = lazy(() => import("@/pages/cancelled-jobs").then(m => ({ default: m.CancelledJobs })));
+const GetStartedPage = lazy(() => import("@/pages/get-started"));
+const GeneralContractorsPage = lazy(() => import("@/pages/services/general-contractors"));
+const ElectriciansPage = lazy(() => import("@/pages/services/electricians"));
+const PlumbersPage = lazy(() => import("@/pages/services/plumbers"));
+const ConstructionPage = lazy(() => import("@/pages/services/construction"));
+const HandymanPage = lazy(() => import("@/pages/services/handyman"));
+const HVACPage = lazy(() => import("@/pages/services/hvac"));
+const PressureWashersPage = lazy(() => import("@/pages/services/pressure-washers"));
+const WindowWashersPage = lazy(() => import("@/pages/services/window-washers"));
+const ServiceTechsPage = lazy(() => import("@/pages/services/service-techs"));
+const DeployCWP = lazy(() => import("@/pages/deploy-cwp"));
 
 function AuthenticatedApp() {
-  const { isAdmin, user } = useAuth();
-  const { isConnected, lastMessage } = useWebSocket();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'owner';
   
-  console.log('AuthenticatedApp - isAdmin:', isAdmin, 'user role:', user?.role);
-  
-  // Start GPS tracking for mobile users
+  useWebSocket();
   useGPSTracking();
-  
-  // Listen for WebSocket updates and invalidate queries
+
   useEffect(() => {
     const handleWebSocketUpdate = (event: CustomEvent) => {
-      const { eventType } = event.detail;
+      const eventType = event.detail?.type;
       
-      // Invalidate relevant queries based on event type
       const queryInvalidationMap: Record<string, string[]> = {
+        'project_created': ['/api/projects', '/api/dashboard', '/api/calendar/events'],
+        'project_updated': ['/api/projects', '/api/dashboard', '/api/calendar/events'],
+        'customer_created': ['/api/customers', '/api/dashboard'],
+        'customer_updated': ['/api/customers', '/api/dashboard'],
         'invoice_created': ['/api/invoices', '/api/dashboard'],
-        'expense_created': ['/api/expenses', '/api/dashboard'],
-        'expense_with_line_items_created': ['/api/expenses', '/api/dashboard'],
+        'invoice_updated': ['/api/invoices', '/api/dashboard'],
         'quote_created': ['/api/quotes', '/api/dashboard'],
-        'quote_response': ['/api/quotes', '/api/dashboard'],
-        'customer_created': ['/api/customers'],
-        'project_created': ['/api/projects', '/api/dashboard'],
-        'job_status_changed': ['/api/projects', '/api/dispatch/scheduled-jobs', '/api/dashboard'],
-        'sms_sent': ['/api/sms'],
-        'lead_created': ['/api/leads'],
+        'quote_updated': ['/api/quotes', '/api/dashboard'],
+        'expense_created': ['/api/expenses', '/api/dashboard'],
+        'expense_updated': ['/api/expenses', '/api/dashboard'],
         'message_created': ['/api/messages'],
-        'new_message': ['/api/internal-messages'],
-        'message_sent': ['/api/internal-messages'],
-        'calendar_job_created': ['/api/calendar'],
-        'gas_card_created': ['/api/gas-cards'],
-        'review_request_sent': ['/api/reviews'],
+        'message_updated': ['/api/messages'],
+        'lead_created': ['/api/leads', '/api/dashboard'],
+        'lead_updated': ['/api/leads', '/api/dashboard'],
+        'notification_created': ['/api/notifications', '/api/notifications/unread-count'],
+        'notification_updated': ['/api/notifications', '/api/notifications/unread-count'],
+        'internal_message_created': ['/api/internal-messages', '/api/internal-messages/unread-count'],
+        'internal_message_updated': ['/api/internal-messages', '/api/internal-messages/unread-count'],
+        'gps_ping_received': ['/api/gps/pings', '/api/gps/devices'],
         'user_created': ['/api/users', '/api/reports/employee-data', '/api/reports/data'],
         'payment_processed': ['/api/payments', '/api/invoices', '/api/dashboard'],
         'disciplinary_action_created': ['/api/disciplinary-actions'],
@@ -187,7 +187,6 @@ function AuthenticatedApp() {
       <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile Header */}
         <div className="lg:hidden bg-white border-b border-gray-200 p-3 sm:p-4 flex items-center justify-between sticky top-0 z-40">
           <Button
             variant="ghost"
@@ -198,118 +197,99 @@ function AuthenticatedApp() {
             <Menu className="h-5 w-5" />
           </Button>
           <h1 className="text-base sm:text-lg font-semibold text-gray-900 truncate">Pro Field Manager</h1>
-          <div className="w-9" /> {/* Spacer for centering */}
+          <div className="w-10" />
         </div>
         
-        <div className="flex-1 overflow-auto p-2 sm:p-4 md:p-6">
-        <Switch>
-          <Route path="/smart-capture" component={SmartCapture} />
-          <Route path="/" component={Dashboard} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/calendar" component={CalendarPage} />
-          <Route path="/jobs" component={Projects} />
-          <Route path="/jobs/deleted" component={DeletedJobs} />
-          <Route path="/jobs/cancelled" component={CancelledJobs} />
-          <Route path="/jobs/:id" component={ProjectDetail} />
-          <Route path="/jobs/:id/tasks" component={JobTasks} />
-          <Route path="/task-groups" component={TaskGroups} />
-          <Route path="/leads" component={Leads} />
-          <Route path="/money" component={Money} />
-          <Route path="/expenses" component={Expenses} />
-          <Route path="/technician-expenses" component={TechnicianExpenses} />
-          <Route path="/expense-reports" component={ExpenseReports} />
-          <Route path="/expense-category-management" component={ExpenseCategoryManagement} />
-          <Route path="/expense-category/:slug" component={DynamicExpenseCategory} />
-          <Route path="/expense-categories" component={ExpenseCategories} />
-          <Route path="/gas-card-providers" component={GasCardProviders} />
-          <Route path="/gas-cards" component={GasCards} />
-          <Route path="/quotes" component={Quotes} />
-          <Route path="/services" component={Services} />
-          <Route path="/invoices" component={Invoices} />
-          <Route path="/invoice-templates" component={InvoiceTemplates} />
-          <Route path="/messages" component={Messages} />
-          <Route path="/customers" component={Customers} />
-          <Route path="/payments" component={Payments} />
-          <Route path="/internal-messages" component={InternalMessages} />
-          <Route path="/live-stream" component={LiveStream} />
-          <Route path="/live-stream-enhanced" component={LiveStreamEnhanced} />
-          <Route path="/image-gallery" component={ImageGallery} />
-          <Route path="/sms" component={SmsPage} />
-          <Route path="/reviews" component={Reviews} />
-          <Route path="/market-research" component={MarketResearch} />
-          <Route path="/human-resources" component={HumanResources} />
-          <Route path="/file-manager" component={FileManager} />
-          <Route path="/my-tasks" component={MyTasks} />
-          <Route path="/task-groups" component={TaskGroups} />
-          <Route path="/gps-tracking" component={GpsTracking} />
-          <Route path="/gps-tracking-obd" component={GPSTrackingOBD} />
-          <Route path="/gps-analytics" component={GPSAnalytics} />
-          <Route path="/gps-settings" component={GPSSettings} />
-          <Route path="/weather" component={Weather} />
-          <Route path="/time-clock" component={TimeClock} />
-          <Route path="/form-builder" component={FormBuilder} />
-          <Route path="/inspections" component={Inspections} />
-          <Route path="/tutorials" component={Tutorials} />
-          <Route path="/my-schedule" component={MySchedule} />
-          <Route path="/notifications" component={Notifications} />
-          <Route path="/screen-sharing" component={ScreenSharing} />
-          <Route path="/mobile-test" component={MobileTest} />
-          <Route path="/users" component={Users} />
-          <Route path="/parts-supplies" component={PartsSupplies} />
-          {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
-          {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
-          {isAdmin && <Route path="/saas-admin/call-manager" component={SaasCallManagerPage} />}
-          {isAdmin && <Route path="/call-manager" component={CallManager} />}
-          {isAdmin && <Route path="/file-security" component={FileSecurity} />}
-          {isAdmin && <Route path="/frontend-management" component={FrontendManagement} />}
-          {isAdmin && <Route path="/slider-management" component={SliderManagement} />}
-          {isAdmin && <Route path="/popup-management" component={PopupManagement} />}
-          <Route path="/live-chat-management" component={LiveChatManagement} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/deploy-cwp" component={DeployCWP} />
-          <Route path="/website-analytics" component={WebsiteAnalytics} />
-          <Route path="/website-preview" component={HomePage} />
-          {/* Public page previews for admin viewing while logged in */}
-          <Route path="/features" component={FeaturesPage} />
-          <Route path="/reports" component={Reports} />
-          <Route path="/logout" component={Logout} />
-          <Route component={NotFound} />
-        </Switch>
-        </div>
+        <main className="flex-1 overflow-y-auto">
+          <Suspense fallback={<PageLoader />}>
+            <Switch>
+              <Route path="/smart-capture" component={SmartCapture} />
+              <Route path="/" component={Dashboard} />
+              <Route path="/dashboard" component={Dashboard} />
+              <Route path="/calendar" component={CalendarPage} />
+              <Route path="/jobs" component={Projects} />
+              <Route path="/jobs/deleted" component={DeletedJobs} />
+              <Route path="/jobs/cancelled" component={CancelledJobs} />
+              <Route path="/jobs/:id" component={ProjectDetail} />
+              <Route path="/jobs/:id/tasks" component={JobTasks} />
+              <Route path="/task-groups" component={TaskGroups} />
+              <Route path="/leads" component={Leads} />
+              <Route path="/money" component={Money} />
+              <Route path="/expenses" component={Expenses} />
+              <Route path="/technician-expenses" component={TechnicianExpenses} />
+              <Route path="/expense-reports" component={ExpenseReports} />
+              <Route path="/expense-category-management" component={ExpenseCategoryManagement} />
+              <Route path="/expense-category/:slug" component={DynamicExpenseCategory} />
+              <Route path="/expense-categories" component={ExpenseCategories} />
+              <Route path="/gas-card-providers" component={GasCardProviders} />
+              <Route path="/gas-cards" component={GasCards} />
+              <Route path="/quotes" component={Quotes} />
+              <Route path="/services" component={Services} />
+              <Route path="/invoices" component={Invoices} />
+              <Route path="/invoice-templates" component={InvoiceTemplates} />
+              <Route path="/messages" component={Messages} />
+              <Route path="/customers" component={Customers} />
+              <Route path="/payments" component={Payments} />
+              <Route path="/internal-messages" component={InternalMessages} />
+              <Route path="/live-stream" component={LiveStream} />
+              <Route path="/live-stream-enhanced" component={LiveStreamEnhanced} />
+              <Route path="/image-gallery" component={ImageGallery} />
+              <Route path="/sms" component={SmsPage} />
+              <Route path="/reviews" component={Reviews} />
+              <Route path="/market-research" component={MarketResearch} />
+              <Route path="/human-resources" component={HumanResources} />
+              <Route path="/file-manager" component={FileManager} />
+              <Route path="/my-tasks" component={MyTasks} />
+              <Route path="/task-groups" component={TaskGroups} />
+              <Route path="/gps-tracking" component={GpsTracking} />
+              <Route path="/gps-tracking-obd" component={GPSTrackingOBD} />
+              <Route path="/gps-analytics" component={GPSAnalytics} />
+              <Route path="/gps-settings" component={GPSSettings} />
+              <Route path="/weather" component={Weather} />
+              <Route path="/time-clock" component={TimeClock} />
+              <Route path="/form-builder" component={FormBuilder} />
+              <Route path="/inspections" component={Inspections} />
+              <Route path="/tutorials" component={Tutorials} />
+              <Route path="/my-schedule" component={MySchedule} />
+              <Route path="/notifications" component={Notifications} />
+              <Route path="/screen-sharing" component={ScreenSharing} />
+              <Route path="/mobile-test" component={MobileTest} />
+              <Route path="/users" component={Users} />
+              <Route path="/parts-supplies" component={PartsSupplies} />
+              {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
+              {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
+              {isAdmin && <Route path="/saas-admin/call-manager" component={SaasCallManagerPage} />}
+              <Route path="/call-manager" component={CallManager} />
+              <Route path="/settings" component={Settings} />
+              <Route path="/fuel-usage-today" component={FuelUsageToday} />
+              <Route path="/file-security" component={FileSecurity} />
+              {isAdmin && <Route path="/deploy-cwp" component={DeployCWP} />}
+              <Route path="/website-preview" component={HomePage} />
+              <Route path="/features" component={FeaturesPage} />
+              <Route path="/reports" component={Reports} />
+              <Route path="/logout" component={Logout} />
+              <Route component={NotFound} />
+            </Switch>
+          </Suspense>
+        </main>
       </div>
-      
-      {/* Global Help Button */}
-      <HelpButton />
-      
-      {/* Mobile Sensor Tracker for Pro Field Sense */}
-      <MobileSensorTracker />
-      
-      {/* Live Chat Widget for all pages */}
-      <LiveChatWidget />
     </div>
   );
 }
 
-
-// Public Routes with automatic analytics tracking for all unauthenticated pages
-// Any new public page added here will automatically be tracked
 function PublicRoutes() {
-  // Centralized analytics tracking for ALL public pages
-  // This ensures new pages are automatically tracked without developer intervention
-  useAnalytics({ 
-    enableInternal: true, 
-    organizationId: 4, // Pro Field Manager platform organization
-    enableGA: true, 
-    enableFB: true 
-  });
+  const analytics = useAnalytics();
+  const [location] = useLocation();
+  
+  useEffect(() => {
+    if (analytics && typeof analytics.trackPageView === 'function') {
+      analytics.trackPageView(location);
+    }
+  }, [location, analytics]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-        </div>
-      }>
+    <div className="min-h-screen bg-background">
+      <Suspense fallback={<PageLoader />}>
         <Switch>
           <Route path="/" component={HomePage} />
           <Route path="/website-preview" component={HomePage} />
@@ -325,11 +305,6 @@ function PublicRoutes() {
           <Route path="/services/pressure-washers" component={PressureWashersPage} />
           <Route path="/services/window-washers" component={WindowWashersPage} />
           <Route path="/services/service-techs" component={ServiceTechsPage} />
-          {/* Legal pages */}
-          <Route path="/terms" component={TermsOfService} />
-          <Route path="/privacy" component={PrivacyPolicy} />
-          <Route path="/cookies" component={CookiePolicy} />
-          {/* Get Started / Pricing page */}
           <Route path="/get-started" component={GetStartedPage} />
           <Route path="/login" component={UniversalLogin} />
           <Route path="/password-reset-request" component={PasswordResetRequest} />
@@ -341,91 +316,25 @@ function PublicRoutes() {
           <Route path="/quote/:action/:token" component={QuoteResponsePage} />
           <Route path="/site/:orgSlug/:pageSlug" component={FrontendPageRenderer} />
           <Route path="/quote-availability/:token" component={QuoteAvailabilityPage} />
-          {/* Public payment pages - no authentication required */}
           <Route path="/:orgSlug/invoice/:invoiceId/pay" component={PublicInvoicePayment} />
           <Route path="/:orgSlug/quote/:quoteId/pay" component={PublicQuotePayment} />
           <Route path="/payment/success" component={PaymentSuccess} />
           <Route path="/payment/error" component={PaymentError} />
-          
           <Route component={DirectLogin} />
         </Switch>
       </Suspense>
     </div>
   );
 }
-// Marketing/public paths that should always render PublicRoutes regardless of auth state
-const PUBLIC_MARKETING_PATHS = [
-  '/services/',
-  '/website-preview',
-  '/features',
-  '/terms',
-  '/privacy',
-  '/cookies',
-  '/get-started',
-  '/demo-signup',
-];
-
-function isPublicMarketingPath(path: string): boolean {
-  return PUBLIC_MARKETING_PATHS.some(prefix => path.startsWith(prefix));
-}
 
 function Router() {
-  const authHook = useAuth();
-  const isAuthenticated = authHook?.isAuthenticated ?? false;
-  const isLoading = authHook?.isLoading ?? false;
-  const [location, setLocation] = useLocation();
-
+  const { isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
+  
   console.log('Router state:', { isAuthenticated, isLoading, currentPath: location });
 
-  // Store intended destination for protected routes when user is not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/' && currentPath !== '/signup' && currentPath !== '/login-full') {
-        localStorage.setItem('intended_destination', currentPath);
-      }
-    }
-  }, [isAuthenticated, isLoading]);
-
-  // Handle redirect after successful authentication
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      const currentPath = window.location.pathname;
-      console.log('🔄 Authentication detected, current path:', currentPath);
-      
-      // Don't redirect if on logout page (let logout complete)
-      if (currentPath === '/logout') {
-        console.log('⏳ On logout page, skipping redirect to allow logout to complete');
-        return;
-      }
-      
-      if (currentPath === '/login' || currentPath === '/login-full' || currentPath === '/signup' || currentPath === '/') {
-        const intendedDestination = localStorage.getItem('intended_destination');
-        localStorage.removeItem('intended_destination');
-        
-        const redirectPath = intendedDestination || '/dashboard';
-        console.log('🎯 Redirecting authenticated user to:', redirectPath);
-        
-        // Use both setLocation and window.location for reliability
-        setLocation(redirectPath);
-        if (window.location.pathname !== redirectPath) {
-          window.history.replaceState({}, '', redirectPath);
-        }
-      }
-    }
-  }, [isAuthenticated, isLoading, setLocation]);
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
-  // Always render PublicRoutes for marketing/public paths regardless of auth state
-  if (isPublicMarketingPath(location)) {
-    return <PublicRoutes />;
+    return <PageLoader />;
   }
 
   if (isAuthenticated) {
@@ -436,10 +345,8 @@ function Router() {
 }
 
 function App() {
-  // Initialize custom domain detection on app startup
   useEffect(() => {
     const initCustomDomain = async () => {
-      // Check if we're being loaded from a custom domain context
       try {
         const response = await fetch('/api/init/custom-domain', {
           method: 'GET',
@@ -454,8 +361,7 @@ function App() {
             localStorage.setItem('accessed_from_custom_domain', 'true');
           }
         }
-      } catch (error) {
-        // Silently fail - this is just an initialization check
+      } catch (error: any) {
         console.log('🔍 Custom domain init check failed (expected for Replit domain):', error.message);
       }
     };
