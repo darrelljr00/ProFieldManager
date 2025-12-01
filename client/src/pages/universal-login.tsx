@@ -4,25 +4,25 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { authenticateUser, isCustomDomain } from "@/lib/api-config";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { PuzzleCaptcha } from "@/components/PuzzleCaptcha";
 
 export default function UniversalLogin() {
   const [username, setUsername] = useState("sales@texaspowerwash.net");
   const [password, setPassword] = useState("test123");
   const [loading, setLoading] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
-  // Cross-domain authentication detection for custom domain
   useEffect(() => {
     const checkCrossDomainAuth = async () => {
       if (isCustomDomain()) {
         console.log('🌐 CUSTOM DOMAIN DETECTED - Checking for existing authentication');
         
         try {
-          // Try to check authentication status via the Replit backend
           const authCheckUrl = `${import.meta.env.VITE_API_BASE_URL || 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev'}/api/auth/me`;
           const response = await fetch(authCheckUrl, {
             method: 'GET',
@@ -38,11 +38,9 @@ export default function UniversalLogin() {
             if (authData.user && authData.token) {
               console.log('✅ CROSS-DOMAIN AUTH SUCCESS - User already authenticated');
               
-              // Store authentication data for custom domain
               localStorage.setItem('auth_token', authData.token);
               localStorage.setItem('user_data', JSON.stringify(authData.user));
               
-              // Clear queries and redirect to dashboard
               queryClient.clear();
               
               toast({
@@ -50,7 +48,6 @@ export default function UniversalLogin() {
                 description: "You're already logged in. Redirecting to dashboard...",
               });
               
-              // Redirect to dashboard while preserving custom domain
               setTimeout(() => {
                 if (isCustomDomain()) {
                   console.log('🌐 CUSTOM DOMAIN: Keeping user on custom domain for dashboard');
@@ -71,15 +68,29 @@ export default function UniversalLogin() {
 
     checkCrossDomainAuth();
 
-    // Auto-login for demo purposes
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('auto') === 'true') {
-      handleLogin();
+      setCaptchaVerified(true);
+      setTimeout(() => handleLogin(), 100);
     }
   }, []);
 
+  const handleCaptchaVerified = (token: string) => {
+    setCaptchaVerified(true);
+  };
+
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    
+    if (!captchaVerified) {
+      toast({
+        title: "Captcha Required",
+        description: "Please complete the puzzle captcha before signing in.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -90,7 +101,6 @@ export default function UniversalLogin() {
         protocol: window.location.protocol
       });
 
-      // Use the smart authentication function from api-config
       const result = await authenticateUser({
         username,
         password
@@ -98,7 +108,6 @@ export default function UniversalLogin() {
 
       console.log('✅ AUTHENTICATION SUCCESS:', result);
 
-      // ALWAYS verify token storage regardless of domain
       const storedToken = localStorage.getItem('auth_token');
       const storedUser = localStorage.getItem('user_data');
       console.log('🔐 POST-LOGIN VERIFICATION:', {
@@ -109,14 +118,12 @@ export default function UniversalLogin() {
         resultHasUser: !!result?.user
       });
 
-      // Ensure token is stored from result if not already
       if (result?.token && result?.user && !storedToken) {
         console.log('🔧 BACKUP TOKEN STORAGE');
         localStorage.setItem('auth_token', result.token);
         localStorage.setItem('user_data', JSON.stringify(result.user));
       }
 
-      // Force immediate auth state refresh
       console.log('🔄 FORCING AUTH STATE REFRESH AFTER LOGIN');
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       await queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
@@ -126,7 +133,6 @@ export default function UniversalLogin() {
         description: "Welcome to Pro Field Manager!",
       });
 
-      // Give the auth state a moment to update before redirecting
       console.log('🚀 LOGIN COMPLETE - REDIRECTING TO DASHBOARD');
       setTimeout(() => {
         if (isCustomDomain()) {
@@ -145,6 +151,7 @@ export default function UniversalLogin() {
         description: error instanceof Error ? error.message : "Authentication failed",
         variant: "destructive",
       });
+      setCaptchaVerified(false);
     } finally {
       setLoading(false);
     }
@@ -182,6 +189,7 @@ export default function UniversalLogin() {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 placeholder="Enter your username or email"
                 required
+                data-testid="input-username"
               />
             </div>
 
@@ -197,13 +205,22 @@ export default function UniversalLogin() {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                 placeholder="Enter your password"
                 required
+                data-testid="input-password"
+              />
+            </div>
+
+            <div className="flex justify-center">
+              <PuzzleCaptcha 
+                onVerified={handleCaptchaVerified}
+                onError={(msg) => toast({ title: "Captcha Error", description: msg, variant: "destructive" })}
               />
             </div>
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !captchaVerified}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="button-submit-login"
             >
               {loading ? 'Signing In...' : 'Sign In'}
             </button>
