@@ -11,6 +11,7 @@ interface CaptchaChallenge {
   imageHeight: number;
   pieceWidth: number;
   pieceHeight: number;
+  fetchedAt: number;
 }
 
 interface PuzzleCaptchaProps {
@@ -19,6 +20,7 @@ interface PuzzleCaptchaProps {
 }
 
 const INITIAL_PIECE_X = 10;
+const CAPTCHA_EXPIRY_MS = 55000;
 
 export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
   const [challenge, setChallenge] = useState<CaptchaChallenge | null>(null);
@@ -29,6 +31,7 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
   const [pieceX, setPieceX] = useState(INITIAL_PIECE_X);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const startPieceXRef = useRef(0);
@@ -37,8 +40,8 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
   const onErrorRef = useRef(onError);
   const onVerifiedRef = useRef(onVerified);
   const hasFetchedRef = useRef(false);
+  const expiryTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Keep refs updated without causing re-renders
   useEffect(() => {
     onErrorRef.current = onError;
     onVerifiedRef.current = onVerified;
@@ -48,10 +51,19 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
     challengeRef.current = challenge;
   }, [challenge]);
 
+  const clearExpiryTimer = useCallback(() => {
+    if (expiryTimerRef.current) {
+      clearTimeout(expiryTimerRef.current);
+      expiryTimerRef.current = null;
+    }
+  }, []);
+
   const fetchChallenge = useCallback(async () => {
+    clearExpiryTimer();
     setLoading(true);
     setVerified(false);
     setError(null);
+    setIsExpired(false);
     setPieceX(INITIAL_PIECE_X);
     currentPieceXRef.current = INITIAL_PIECE_X;
     setIsAnimating(false);
@@ -60,38 +72,62 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
       const response = await fetch("/api/captcha/generate");
       if (!response.ok) throw new Error("Failed to load captcha");
       const data = await response.json();
-      setChallenge(data);
-      challengeRef.current = data;
+      const challengeWithTimestamp = {
+        ...data,
+        fetchedAt: Date.now(),
+      };
+      setChallenge(challengeWithTimestamp);
+      challengeRef.current = challengeWithTimestamp;
+      
+      expiryTimerRef.current = setTimeout(() => {
+        setIsExpired(true);
+        setError("Captcha expired. Click refresh to get a new one.");
+      }, CAPTCHA_EXPIRY_MS);
     } catch (err) {
       setError("Failed to load captcha. Please try again.");
       onErrorRef.current?.("Failed to load captcha");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearExpiryTimer]);
 
-  // Only fetch on initial mount
   useEffect(() => {
     if (!hasFetchedRef.current) {
       hasFetchedRef.current = true;
       fetchChallenge();
     }
-  }, [fetchChallenge]);
+    
+    return () => {
+      clearExpiryTimer();
+    };
+  }, [fetchChallenge, clearExpiryTimer]);
 
   const bounceBack = useCallback(() => {
     setIsAnimating(true);
     setPieceX(INITIAL_PIECE_X);
     currentPieceXRef.current = INITIAL_PIECE_X;
     
-    // Remove animation flag after animation completes
     setTimeout(() => {
       setIsAnimating(false);
     }, 400);
   }, []);
 
+  const isChallengeExpired = useCallback(() => {
+    const currentChallenge = challengeRef.current;
+    if (!currentChallenge || !currentChallenge.fetchedAt) return true;
+    return Date.now() - currentChallenge.fetchedAt > CAPTCHA_EXPIRY_MS;
+  }, []);
+
   const validateSolution = useCallback(async (finalX: number) => {
     const currentChallenge = challengeRef.current;
     if (!currentChallenge) return;
+    
+    if (isChallengeExpired()) {
+      setIsExpired(true);
+      setError("Captcha expired. Click refresh to get a new one.");
+      bounceBack();
+      return;
+    }
     
     setVerifying(true);
     setError(null);
@@ -106,24 +142,28 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
       const result = await response.json();
       
       if (result.valid) {
+        clearExpiryTimer();
         setVerified(true);
         onVerifiedRef.current(currentChallenge.token);
       } else {
-        setError(result.message || "Incorrect position. Try again!");
-        // Bounce the piece back to the starting position
+        if (result.message?.includes("expired") || result.message?.includes("Invalid")) {
+          setIsExpired(true);
+          setError("Captcha expired. Click refresh to get a new one.");
+        } else {
+          setError(result.message || "Incorrect position. Try again!");
+        }
         bounceBack();
       }
     } catch (err) {
       setError("Verification failed. Try again!");
-      // Bounce back on error too
       bounceBack();
     } finally {
       setVerifying(false);
     }
-  }, [bounceBack]);
+  }, [bounceBack, clearExpiryTimer, isChallengeExpired]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (verified || verifying || isAnimating) return;
+    if (verified || verifying || isAnimating || isExpired) return;
     e.preventDefault();
     setIsDragging(true);
     setError(null);
@@ -132,7 +172,7 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (verified || verifying || isAnimating) return;
+    if (verified || verifying || isAnimating || isExpired) return;
     setIsDragging(true);
     setError(null);
     startXRef.current = e.touches[0].clientX;
@@ -152,12 +192,12 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
   }, []);
 
   const handleEnd = useCallback(() => {
-    if (!verified && !isAnimating) {
+    if (!verified && !isAnimating && !isExpired) {
       setIsDragging(false);
       const finalX = currentPieceXRef.current;
       validateSolution(finalX);
     }
-  }, [verified, isAnimating, validateSolution]);
+  }, [verified, isAnimating, isExpired, validateSolution]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -186,6 +226,11 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
     };
   }, [isDragging, handleMove, handleEnd]);
 
+  const handleRefresh = useCallback(() => {
+    hasFetchedRef.current = false;
+    fetchChallenge();
+  }, [fetchChallenge]);
+
   if (loading) {
     return (
       <div 
@@ -207,7 +252,7 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
       >
         <XCircle className="h-8 w-8 text-red-500 mb-2" />
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Failed to load captcha</p>
-        <Button variant="outline" size="sm" onClick={fetchChallenge}>
+        <Button variant="outline" size="sm" onClick={handleRefresh}>
           <RefreshCw className="h-4 w-4 mr-1" /> Retry
         </Button>
       </div>
@@ -218,18 +263,22 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
     <div className="space-y-2" data-testid="puzzle-captcha">
       <div 
         ref={containerRef}
-        className="relative rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 select-none"
+        className={`relative rounded-lg overflow-hidden border-2 select-none ${
+          isExpired 
+            ? 'border-amber-400 dark:border-amber-500' 
+            : 'border-gray-200 dark:border-gray-700'
+        }`}
         style={{ width: challenge.imageWidth, height: challenge.imageHeight }}
       >
         <img 
           src={challenge.backgroundImage} 
           alt="Captcha background"
-          className="absolute top-0 left-0 w-full h-full"
+          className={`absolute top-0 left-0 w-full h-full ${isExpired ? 'opacity-50' : ''}`}
           draggable={false}
         />
         
         <div
-          className={`absolute cursor-grab active:cursor-grabbing ${
+          className={`absolute ${isExpired ? 'cursor-not-allowed opacity-50' : 'cursor-grab active:cursor-grabbing'} ${
             isDragging ? 'scale-105 z-10' : ''
           } ${verified ? 'opacity-0' : ''} ${isAnimating ? 'transition-all duration-300 ease-out' : ''}`}
           style={{
@@ -263,6 +312,14 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
           </div>
         )}
+
+        {isExpired && !verified && (
+          <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
+            <div className="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 shadow-lg">
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Expired - Click refresh</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between">
@@ -272,7 +329,7 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
               <CheckCircle className="h-3 w-3" /> Verified
             </span>
           ) : error ? (
-            <span className="text-red-500">{error}</span>
+            <span className={isExpired ? "text-amber-500" : "text-red-500"}>{error}</span>
           ) : (
             "Drag the puzzle piece to complete"
           )}
@@ -282,11 +339,12 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={fetchChallenge}
+            onClick={handleRefresh}
             disabled={verifying || isAnimating}
+            className={isExpired ? "text-amber-600 hover:text-amber-700" : ""}
             data-testid="captcha-refresh"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={`h-4 w-4 ${isExpired ? 'animate-pulse' : ''}`} />
           </Button>
         )}
       </div>
