@@ -1,4 +1,3 @@
-import React, { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { buildApiUrl, isCustomDomain } from "@/lib/api-config";
@@ -33,11 +32,6 @@ const isOnLoginRoute = () => {
 
 export function useAuth() {
   const queryClient = useQueryClient();
-
-  // Optional: clear cached /api/auth/me on mount to avoid stale states
-  useEffect(() => {
-    queryClient.removeQueries({ queryKey: ["/api/auth/me"] });
-  }, [queryClient]);
 
   const { data, isLoading, error } = useQuery<AuthData>({
     queryKey: ["/api/auth/me", isCustomDomain() ? "custom" : "replit"],
@@ -170,10 +164,6 @@ export function useAuth() {
     }
 
     // Nuke cache and go to login (hard redirect to avoid race with stale state)
-    const { clear } = await import("@tanstack/react-query");
-    // ^ safe: but if you don't want dynamic import, just:
-    // queryClient.clear();
-    // I’ll call the instance directly:
     queryClient.clear();
 
     console.log("✅ LOGOUT: complete → /login");
