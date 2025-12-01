@@ -29,18 +29,26 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const startPieceXRef = useRef(0);
+  const currentPieceXRef = useRef(10);
+  const challengeRef = useRef<CaptchaChallenge | null>(null);
+
+  useEffect(() => {
+    challengeRef.current = challenge;
+  }, [challenge]);
 
   const fetchChallenge = useCallback(async () => {
     setLoading(true);
     setVerified(false);
     setError(null);
     setPieceX(10);
+    currentPieceXRef.current = 10;
     
     try {
       const response = await fetch("/api/captcha/generate");
       if (!response.ok) throw new Error("Failed to load captcha");
       const data = await response.json();
       setChallenge(data);
+      challengeRef.current = data;
     } catch (err) {
       setError("Failed to load captcha. Please try again.");
       onError?.("Failed to load captcha");
@@ -53,24 +61,27 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
     fetchChallenge();
   }, [fetchChallenge]);
 
-  const validateSolution = async () => {
-    if (!challenge) return;
+  const validateSolution = useCallback(async (finalX: number) => {
+    const currentChallenge = challengeRef.current;
+    if (!currentChallenge) return;
     
     setVerifying(true);
     setError(null);
+    
+    console.log("Validating captcha with X:", finalX);
     
     try {
       const response = await fetch("/api/captcha/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: challenge.token, x: pieceX }),
+        body: JSON.stringify({ token: currentChallenge.token, x: finalX }),
       });
       
       const result = await response.json();
       
       if (result.valid) {
         setVerified(true);
-        onVerified(challenge.token);
+        onVerified(currentChallenge.token);
       } else {
         setError(result.message || "Verification failed");
         setTimeout(() => fetchChallenge(), 1500);
@@ -81,53 +92,62 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
     } finally {
       setVerifying(false);
     }
-  };
+  }, [fetchChallenge, onVerified]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (verified || verifying) return;
     e.preventDefault();
     setIsDragging(true);
     startXRef.current = e.clientX;
-    startPieceXRef.current = pieceX;
+    startPieceXRef.current = currentPieceXRef.current;
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (verified || verifying) return;
     setIsDragging(true);
     startXRef.current = e.touches[0].clientX;
-    startPieceXRef.current = pieceX;
+    startPieceXRef.current = currentPieceXRef.current;
   };
 
   const handleMove = useCallback((clientX: number) => {
-    if (!isDragging || !challenge || !containerRef.current) return;
+    if (!challengeRef.current || !containerRef.current) return;
     
     const delta = clientX - startXRef.current;
     const newX = Math.max(0, Math.min(
-      challenge.imageWidth - challenge.pieceWidth,
+      challengeRef.current.imageWidth - challengeRef.current.pieceWidth,
       startPieceXRef.current + delta
     ));
     setPieceX(newX);
-  }, [isDragging, challenge]);
+    currentPieceXRef.current = newX;
+  }, []);
 
   const handleEnd = useCallback(() => {
-    if (isDragging && challenge && !verified) {
+    if (!verified) {
       setIsDragging(false);
-      validateSolution();
+      const finalX = currentPieceXRef.current;
+      console.log("Drag ended at X:", finalX);
+      validateSolution(finalX);
     }
-  }, [isDragging, challenge, verified]);
+  }, [verified, validateSolution]);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => handleMove(e.clientX);
-    const handleTouchMove = (e: TouchEvent) => handleMove(e.touches[0].clientX);
-    const handleMouseUp = () => handleEnd();
-    const handleTouchEnd = () => handleEnd();
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) handleMove(e.clientX);
+    };
+    const handleTouchMove = (e: TouchEvent) => {
+      if (isDragging) handleMove(e.touches[0].clientX);
+    };
+    const handleMouseUp = () => {
+      if (isDragging) handleEnd();
+    };
+    const handleTouchEnd = () => {
+      if (isDragging) handleEnd();
+    };
 
-    if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.addEventListener("touchmove", handleTouchMove);
-      document.addEventListener("touchend", handleTouchEnd);
-    }
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("touchmove", handleTouchMove);
+    document.addEventListener("touchend", handleTouchEnd);
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
@@ -180,8 +200,8 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
         />
         
         <div
-          className={`absolute cursor-grab active:cursor-grabbing transition-transform ${
-            isDragging ? 'scale-105' : ''
+          className={`absolute cursor-grab active:cursor-grabbing ${
+            isDragging ? 'scale-105 z-10' : ''
           } ${verified ? 'opacity-0' : ''}`}
           style={{
             left: pieceX,
@@ -189,6 +209,7 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
             width: challenge.pieceWidth + 20,
             height: challenge.pieceHeight + 20,
             transform: 'translate(-10px, -10px)',
+            transition: isDragging ? 'none' : 'transform 0.1s',
           }}
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
@@ -197,7 +218,7 @@ export function PuzzleCaptcha({ onVerified, onError }: PuzzleCaptchaProps) {
           <img 
             src={challenge.puzzlePiece}
             alt="Puzzle piece"
-            className="w-full h-full"
+            className="w-full h-full pointer-events-none"
             draggable={false}
           />
         </div>
