@@ -103,3 +103,33 @@ Preferred communication style: Simple, everyday language.
 - **AWS S3**: For backup storage.
 - **Expo & EAS**: For mobile app development, building, and Over-The-Air (OTA) updates.
 - **Android Studio Native Development**: For native Android app development with Kotlin, camera/GPS/file access, and WebView integration.
+
+## Migration Notes (December 2025)
+
+### Replit Agent to Standard Replit Migration
+The application was migrated from Replit Agent to the standard Replit environment. Key changes and fixes:
+
+1. **Weather Service Lazy Initialization**: Weather API service now uses lazy initialization to prevent startup failures when `WEATHER_API_KEY` is not configured. The service gracefully degrades rather than blocking app startup.
+
+2. **Public Routes Authentication Bypass**: Added `/public/` and `/analytics/` path prefixes to authentication bypass middleware, allowing anonymous access to public-facing pages and analytics tracking.
+
+3. **Login Page Cleanup**: 
+   - Removed all hardcoded test credentials from login pages
+   - Removed debug text and "Custom Domain Authentication Workaround" messages
+   - Replaced hardcoded old Replit URLs with dynamic API configuration using `authenticateUser()` from `api-config.ts`
+   - Updated `direct-login.tsx` and `custom-domain-login.tsx` to use proper authentication flow
+
+4. **Hero Slider Loading State**: Added fallback content and background image for the homepage slider when data is loading or no slides are configured. This ensures users see content immediately while slide data loads from the database.
+
+5. **API Configuration**: All frontend API calls now use `buildApiUrl()` and `getAuthHeaders()` from `client/src/lib/api-config.ts` to support both standard and custom domain deployments.
+
+### Known Development Issues
+- **WebSocket HMR**: During development, the Vite WebSocket connection for Hot Module Replacement may show connection errors. This is a development-only issue and does not affect production.
+- **Unauthorized Origin Warnings**: The server logs "Unauthorized origin detected" for local development requests (127.0.0.1). This is expected behavior for the CORS/origin checking system and can be safely ignored during development.
+
+### Environment Variables Required
+- `DATABASE_URL`: PostgreSQL connection string (Neon serverless)
+- `WEATHER_API_KEY`: Optional - Weather service API key
+- `TWILIO_*`: Optional - Twilio SMS configuration
+- `STRIPE_*`: Required for payments - Stripe API keys
+- `SENDGRID_API_KEY`: Required for email - SendGrid API key
