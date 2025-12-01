@@ -1,4 +1,5 @@
 import express, { type Express, Request } from "express";
+import { registerCaptchaRoutes } from './captchaRoutes';
 import * as crypto from "crypto";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
@@ -701,6 +702,9 @@ const invoiceUpload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🚀🚀🚀 REGISTER ROUTES CALLED - SERVER STARTING UP 🚀🚀🚀");
+  
+  // Register captcha routes (public)
+  registerCaptchaRoutes(app);
   console.log("🚀 Timestamp:", new Date().toISOString());
   
   // Health check endpoint - no auth required
@@ -3938,7 +3942,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders'];
+    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders', '/captcha/'];
     // Add special handling for debug routes
     const debugRoutes = ['/debug/custom-domain-test'];
     const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token}
@@ -25817,20 +25821,6 @@ ${fromName || ''}
     try {
       const { organizationId, visitorName, visitorEmail } = req.body;
       const session = await storage.createLiveChatSession(organizationId || 2, visitorName, visitorEmail);
-      
-      // Broadcast new chat session via WebSocket for notifications
-      if (broadcastToOrganization) {
-        broadcastToOrganization(session.organizationId, {
-          eventType: 'live_chat_session_created',
-          data: {
-            sessionId: session.id,
-            visitorName: session.visitorName,
-            visitorEmail: session.visitorEmail,
-            departmentName: 'Sales',
-            departmentColor: '#22c55e',
-          }
-        });
-      }
       res.status(201).json(session);
     } catch (error: any) {
       console.error('Error creating chat session:', error);
