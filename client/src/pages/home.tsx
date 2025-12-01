@@ -538,6 +538,18 @@ export default function HomePage() {
       <section className="relative h-screen overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 to-slate-900/40 z-10" />
 
+        {/* Loading state or Default Background */}
+        {(isLoading || heroSlides.length === 0) && (
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `url(https://images.unsplash.com/photo-1664575602554-2087b04935a5?w=1920&q=80)`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+        )}
+
         {/* Background Images */}
         {heroSlides.map((slide, index) => (
           <div
@@ -557,6 +569,44 @@ export default function HomePage() {
         <div className="relative z-20 h-full flex items-center">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl">
+              {/* Default content when loading or no slides */}
+              {(isLoading || heroSlides.length === 0) && (
+                <div className="opacity-100">
+                  <Badge
+                    variant="secondary"
+                    className="mb-4 bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Complete Business Management
+                  </Badge>
+                  <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+                    Transform Your Field Service Operations
+                  </h1>
+                  <h2 className="text-2xl md:text-3xl text-blue-200 mb-6 font-medium">
+                    Complete Business Management
+                  </h2>
+                  <p className="text-xl text-slate-200 mb-8 max-w-2xl leading-relaxed">
+                    Streamline your field operations with real-time GPS tracking, automated invoicing, and comprehensive project management all in one powerful platform.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button
+                      size="lg"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
+                    >
+                      <Link href="/features#signup" className="flex items-center">
+                        Start Free Trial
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                      </Link>
+                    </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="border-white text-black hover:bg-white hover:text-slate-900 px-8 py-4 text-lg"
+                    >
+                      <Link href="/features">View All Features</Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
               {heroSlides.map((slide, index) => (
                 <div
                   key={slide.id}

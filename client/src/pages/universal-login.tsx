@@ -7,8 +7,8 @@ import { useAnalytics } from "@/hooks/use-analytics";
 import { PuzzleCaptcha } from "@/components/PuzzleCaptcha";
 
 export default function UniversalLogin() {
-  const [username, setUsername] = useState("sales@texaspowerwash.net");
-  const [password, setPassword] = useState("test123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const { toast } = useToast();
@@ -23,7 +23,7 @@ export default function UniversalLogin() {
         console.log('🌐 CUSTOM DOMAIN DETECTED - Checking for existing authentication');
         
         try {
-          const authCheckUrl = `${import.meta.env.VITE_API_BASE_URL || 'https://d08781a3-d8ec-4b72-a274-8e025593045b-00-1v1hzi896az5i.riker.replit.dev'}/api/auth/me`;
+          const authCheckUrl = `/api/auth/me`;
           const response = await fetch(authCheckUrl, {
             method: 'GET',
             credentials: 'include',
@@ -157,9 +157,6 @@ export default function UniversalLogin() {
     }
   };
 
-  const currentDomain = typeof window !== 'undefined' ? window.location.hostname : '';
-  const domainLabel = isCustomDomain() ? 'Custom Domain' : 'Replit Domain';
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800">
       <div className="w-full max-w-md">
@@ -169,10 +166,7 @@ export default function UniversalLogin() {
               Pro Field Manager
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
-              {domainLabel} Login
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {currentDomain}
+              Sign in to your account
             </p>
           </div>
 
@@ -226,25 +220,14 @@ export default function UniversalLogin() {
             </button>
           </form>
 
-          <div className="mt-6 space-y-2">
+          <div className="mt-6 text-center">
             <button
               onClick={() => setLocation("/password-reset-request")}
-              className="w-full text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 hover:dark:text-blue-300"
+              className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 hover:dark:text-blue-300"
               data-testid="link-forgot-password"
             >
               Forgot Password?
             </button>
-            <button
-              onClick={() => window.location.href = '?auto=true'}
-              className="w-full text-sm text-gray-600 hover:text-gray-500 dark:text-gray-400 hover:dark:text-gray-300"
-            >
-              Quick Login (Demo)
-            </button>
-          </div>
-
-          <div className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
-            <p>Universal Authentication System</p>
-            <p className="mt-1">Smart domain detection & routing</p>
           </div>
         </div>
       </div>
