@@ -82,7 +82,7 @@ export function serveStatic(app: Express) {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('.html')) {
         res.setHeader('Cache-Control', 'max-age=0, must-revalidate');
-      } else if (filePath.match(/-[a-f0-9]{8,}\.(js|css)$/)) {
+      } else if (filePath.match(/-[A-Za-z0-9]{8,}\.(js|css)$/)) {
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       } else if (filePath.match(/\.(js|css)$/)) {
         res.setHeader('Cache-Control', 'public, max-age=86400');
