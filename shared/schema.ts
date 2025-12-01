@@ -6448,3 +6448,34 @@ export const insertAnalyticsSettingsSchema = createInsertSchema(analyticsSetting
 
 export type AnalyticsSettings = typeof analyticsSettings.$inferSelect;
 export type InsertAnalyticsSettings = z.infer<typeof insertAnalyticsSettingsSchema>;
+
+// Blur Settings - Control which settings sections are blurred/restricted per organization
+export const blurSettings = pgTable("blur_settings", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id).unique(),
+  
+  // Settings sections that can be blurred/restricted
+  blurEmailSettings: boolean("blur_email_settings").default(true),
+  blurTwilioSettings: boolean("blur_twilio_settings").default(true),
+  blurOcrSettings: boolean("blur_ocr_settings").default(true),
+  blurStripeSettings: boolean("blur_stripe_settings").default(true),
+  blurApiSettings: boolean("blur_api_settings").default(true),
+  blurBackupSettings: boolean("blur_backup_settings").default(true),
+  blurDeploySettings: boolean("blur_deploy_settings").default(true),
+  blurAnalyticsSettings: boolean("blur_analytics_settings").default(true),
+  
+  // Custom message shown when section is blurred
+  blurMessage: text("blur_message").default("This feature is restricted for your organization. Contact your administrator for access."),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertBlurSettingsSchema = createInsertSchema(blurSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type BlurSettings = typeof blurSettings.$inferSelect;
+export type InsertBlurSettings = z.infer<typeof insertBlurSettingsSchema>;

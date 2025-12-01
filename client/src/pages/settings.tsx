@@ -341,6 +341,21 @@ export default function Settings() {
     queryKey: ["/api/organization"],
   });
 
+  // Get blur settings to determine which sections are restricted
+  const { data: blurSettings } = useQuery<{
+    blurEmailSettings: boolean;
+    blurTwilioSettings: boolean;
+    blurOcrSettings: boolean;
+    blurStripeSettings: boolean;
+    blurApiSettings: boolean;
+    blurBackupSettings: boolean;
+    blurDeploySettings: boolean;
+    blurAnalyticsSettings: boolean;
+    blurMessage: string;
+  }>({
+    queryKey: ["/api/settings/blur"],
+  });
+
   // Get organization users for admin dashboard management
   const { data: organizationUsers } = useQuery({
     queryKey: ["/api/users"],
@@ -1499,7 +1514,7 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="relative">
-              {organization?.slug !== "profieldmanager" && (
+              {blurSettings?.blurEmailSettings && (
                 <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
                   <div className="bg-blue-50 dark:bg-blue-900/50 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6 max-w-md text-center shadow-lg">
                     <div className="mb-4">
@@ -1511,12 +1526,12 @@ export default function Settings() {
                       Email Settings Restricted
                     </h3>
                     <p className="text-sm text-gray-700 dark:text-gray-300">
-                      Email configuration is only available for the profieldmanager organization.
+                      {blurSettings?.blurMessage || "This feature is restricted for your organization."}
                     </p>
                   </div>
                 </div>
               )}
-              <form onSubmit={handleEmailSubmit} className={`space-y-6 ${organization?.slug !== "profieldmanager" ? "blur-sm pointer-events-none" : ""}`}>
+              <form onSubmit={handleEmailSubmit} className={`space-y-6 ${blurSettings?.blurEmailSettings ? "blur-sm pointer-events-none" : ""}`}>
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-medium">Email Notifications</h3>
@@ -1682,7 +1697,7 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="relative">
-              {organization?.slug !== "profieldmanager" && (
+              {blurSettings?.blurTwilioSettings && (
                 <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
                   <div className="bg-blue-50 dark:bg-blue-900/50 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6 max-w-md text-center shadow-lg">
                     <div className="mb-4">
@@ -1694,12 +1709,12 @@ export default function Settings() {
                       SMS Settings Restricted
                     </h3>
                     <p className="text-sm text-gray-700 dark:text-gray-300">
-                      SMS configuration is only available for the profieldmanager organization.
+                      {blurSettings?.blurMessage || "This feature is restricted for your organization."}
                     </p>
                   </div>
                 </div>
               )}
-              <form onSubmit={handleTwilioSubmit} className={`space-y-6 ${organization?.slug !== "profieldmanager" ? "blur-sm pointer-events-none" : ""}`}>
+              <form onSubmit={handleTwilioSubmit} className={`space-y-6 ${blurSettings?.blurTwilioSettings ? "blur-sm pointer-events-none" : ""}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Switch
@@ -2303,7 +2318,7 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="relative">
-              {organization?.slug !== "profieldmanager" && (
+              {blurSettings?.blurOcrSettings && (
                 <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
                   <div className="bg-blue-50 dark:bg-blue-900/50 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6 max-w-md text-center shadow-lg">
                     <div className="mb-4">
@@ -2315,12 +2330,12 @@ export default function Settings() {
                       OCR Settings Restricted
                     </h3>
                     <p className="text-sm text-gray-700 dark:text-gray-300">
-                      OCR configuration is only available for the profieldmanager organization.
+                      {blurSettings?.blurMessage || "This feature is restricted for your organization."}
                     </p>
                   </div>
                 </div>
               )}
-              <form onSubmit={handleOcrSubmit} className={`space-y-6 ${organization?.slug !== "profieldmanager" ? "blur-sm pointer-events-none" : ""}`}>
+              <form onSubmit={handleOcrSubmit} className={`space-y-6 ${blurSettings?.blurOcrSettings ? "blur-sm pointer-events-none" : ""}`}>
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-medium">Enable OCR Recognition</h3>
@@ -3933,7 +3948,7 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="relative">
-              {organization?.slug !== "profieldmanager" && (
+              {blurSettings?.blurApiSettings && (
                 <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
                   <div className="bg-blue-50 dark:bg-blue-900/50 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6 max-w-md text-center shadow-lg">
                     <div className="mb-4">
@@ -3945,7 +3960,7 @@ export default function Settings() {
                       Integration Settings Restricted
                     </h3>
                     <p className="text-sm text-gray-700 dark:text-gray-300">
-                      Integration configuration is only available for the profieldmanager organization.
+                      {blurSettings?.blurMessage || "This feature is restricted for your organization."}
                     </p>
                   </div>
                 </div>
@@ -3962,7 +3977,7 @@ export default function Settings() {
                     const data = Object.fromEntries(formData.entries());
                     integrationMutation.mutate(data);
                   }}
-                  className={`space-y-6 ${organization?.slug !== "profieldmanager" ? "blur-sm pointer-events-none" : ""}`}
+                  className={`space-y-6 ${blurSettings?.blurApiSettings ? "blur-sm pointer-events-none" : ""}`}
                 >
                   {/* Google Maps Settings */}
                   <div className="space-y-4">

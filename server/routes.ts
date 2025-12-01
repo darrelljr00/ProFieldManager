@@ -84,7 +84,7 @@ import {
   insertPlannedRouteSchema, insertRouteWaypointSchema, insertRouteDeviationSchema, insertRouteStopSchema,
   InsertRouteWaypoint,
   cacheSettings, insertCacheSettingsSchema, customerEtaSettings, customerEtaNotifications,
-  vehicleInspectionAlertSettings, vehicleInspectionAlerts
+  vehicleInspectionAlertSettings, vehicleInspectionAlerts, blurSettings
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -2019,6 +2019,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // Authentication routes (public)
+
+  // Blur Settings API routes - Control which settings sections are blurred per organization
+  // Get blur settings for current organization
+  app.get('/api/settings/blur', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const [settings] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, user.organizationId))
+        .limit(1);
+      
+      // Return defaults if no settings exist (all sections blurred by default)
+      res.json(settings || {
+        organizationId: user.organizationId,
+        blurEmailSettings: true,
+        blurTwilioSettings: true,
+        blurOcrSettings: true,
+        blurStripeSettings: true,
+        blurApiSettings: true,
+        blurBackupSettings: true,
+        blurDeploySettings: true,
+        blurAnalyticsSettings: true,
+        blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.'
+      });
+    } catch (error: any) {
+      console.error('Error fetching blur settings:', error);
+      res.status(500).json({ message: 'Failed to fetch blur settings' });
+    }
+  });
+
+  // Update blur settings (SaaS admin only - can update any organization)
+  app.put('/api/settings/blur/:organizationId', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const targetOrgId = parseInt(req.params.organizationId);
+      
+      // Only allow if user is from profieldmanager organization (SaaS admin)
+      const [userOrg] = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, user.organizationId))
+        .limit(1);
+      
+      if (!userOrg || userOrg.slug !== 'profieldmanager') {
+        return res.status(403).json({ message: 'Only SaaS administrators can modify blur settings' });
+      }
+      
+      const {
+        blurEmailSettings,
+        blurTwilioSettings,
+        blurOcrSettings,
+        blurStripeSettings,
+        blurApiSettings,
+        blurBackupSettings,
+        blurDeploySettings,
+        blurAnalyticsSettings,
+        blurMessage
+      } = req.body;
+
+      const [existing] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, targetOrgId))
+        .limit(1);
+
+      if (existing) {
+        await db
+          .update(blurSettings)
+          .set({
+            blurEmailSettings,
+            blurTwilioSettings,
+            blurOcrSettings,
+            blurStripeSettings,
+            blurApiSettings,
+            blurBackupSettings,
+            blurDeploySettings,
+            blurAnalyticsSettings,
+            blurMessage,
+            updatedAt: new Date(),
+          })
+          .where(eq(blurSettings.organizationId, targetOrgId));
+      } else {
+        await db.insert(blurSettings).values({
+          organizationId: targetOrgId,
+          blurEmailSettings,
+          blurTwilioSettings,
+          blurOcrSettings,
+          blurStripeSettings,
+          blurApiSettings,
+          blurBackupSettings,
+          blurDeploySettings,
+          blurAnalyticsSettings,
+          blurMessage,
+        });
+      }
+
+      res.json({ message: 'Blur settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating blur settings:', error);
+      res.status(500).json({ message: 'Failed to update blur settings' });
+    }
+  });
+
+  // Get blur settings for a specific organization (SaaS admin only)
+  app.get('/api/settings/blur/:organizationId', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const targetOrgId = parseInt(req.params.organizationId);
+      
+      // Only allow if user is from profieldmanager organization (SaaS admin)
+      const [userOrg] = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, user.organizationId))
+        .limit(1);
+      
+      if (!userOrg || userOrg.slug !== 'profieldmanager') {
+        return res.status(403).json({ message: 'Only SaaS administrators can view blur settings for other organizations' });
+      }
+      
+      const [settings] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, targetOrgId))
+        .limit(1);
+      
+      // Return defaults if no settings exist
+      res.json(settings || {
+        organizationId: targetOrgId,
+        blurEmailSettings: true,
+        blurTwilioSettings: true,
+        blurOcrSettings: true,
+        blurStripeSettings: true,
+        blurApiSettings: true,
+        blurBackupSettings: true,
+        blurDeploySettings: true,
+        blurAnalyticsSettings: true,
+        blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.'
+      });
+    } catch (error: any) {
+      console.error('Error fetching blur settings for organization:', error);
+      res.status(500).json({ message: 'Failed to fetch blur settings' });
+    }
+  });
+
   
   // COMPLETELY STEALTH AUTH ENDPOINT - Looks like regular data validation
   app.post("/api/data/validate-credentials", async (req, res) => {
@@ -18065,6 +18211,116 @@ ${fromName || ''}
     }
   });
 
+
+  // Get blur settings for a specific organization (admin only)
+  app.get("/api/admin/blur-settings/:organizationId", requireAdmin, async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      if (isNaN(organizationId)) {
+        return res.status(400).json({ message: "Invalid organization ID" });
+      }
+
+      const [settings] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, organizationId))
+        .limit(1);
+
+      if (!settings) {
+        // Return default settings if none exist
+        return res.json({
+          organizationId,
+          blurEmailSettings: true,
+          blurTwilioSettings: true,
+          blurOcrSettings: true,
+          blurStripeSettings: true,
+          blurApiSettings: true,
+          blurBackupSettings: true,
+          blurDeploySettings: true,
+          blurAnalyticsSettings: true,
+          blurMessage: "This feature is restricted for your organization. Contact your administrator for access."
+        });
+      }
+
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error fetching blur settings for organization:", error);
+      res.status(500).json({ message: "Failed to fetch blur settings" });
+    }
+  });
+
+  // Update blur settings for a specific organization (admin only)
+  app.put("/api/admin/blur-settings/:organizationId", requireAdmin, async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      if (isNaN(organizationId)) {
+        return res.status(400).json({ message: "Invalid organization ID" });
+      }
+
+      const {
+        blurEmailSettings,
+        blurTwilioSettings,
+        blurOcrSettings,
+        blurStripeSettings,
+        blurApiSettings,
+        blurBackupSettings,
+        blurDeploySettings,
+        blurAnalyticsSettings,
+        blurMessage
+      } = req.body;
+
+      // Check if settings exist
+      const [existing] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, organizationId))
+        .limit(1);
+
+      if (existing) {
+        // Update existing settings
+        await db
+          .update(blurSettings)
+          .set({
+            blurEmailSettings: blurEmailSettings ?? existing.blurEmailSettings,
+            blurTwilioSettings: blurTwilioSettings ?? existing.blurTwilioSettings,
+            blurOcrSettings: blurOcrSettings ?? existing.blurOcrSettings,
+            blurStripeSettings: blurStripeSettings ?? existing.blurStripeSettings,
+            blurApiSettings: blurApiSettings ?? existing.blurApiSettings,
+            blurBackupSettings: blurBackupSettings ?? existing.blurBackupSettings,
+            blurDeploySettings: blurDeploySettings ?? existing.blurDeploySettings,
+            blurAnalyticsSettings: blurAnalyticsSettings ?? existing.blurAnalyticsSettings,
+            blurMessage: blurMessage ?? existing.blurMessage
+          })
+          .where(eq(blurSettings.organizationId, organizationId));
+      } else {
+        // Insert new settings
+        await db.insert(blurSettings).values({
+          organizationId,
+          blurEmailSettings: blurEmailSettings ?? true,
+          blurTwilioSettings: blurTwilioSettings ?? true,
+          blurOcrSettings: blurOcrSettings ?? true,
+          blurStripeSettings: blurStripeSettings ?? true,
+          blurApiSettings: blurApiSettings ?? true,
+          blurBackupSettings: blurBackupSettings ?? true,
+          blurDeploySettings: blurDeploySettings ?? true,
+          blurAnalyticsSettings: blurAnalyticsSettings ?? true,
+          blurMessage: blurMessage ?? "This feature is restricted for your organization. Contact your administrator for access."
+        });
+      }
+
+      // Fetch updated settings
+      const [updated] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, organizationId))
+        .limit(1);
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating blur settings for organization:", error);
+      res.status(500).json({ message: "Failed to update blur settings" });
+    }
+  });
   // Get billing and revenue data
   app.get("/api/admin/saas/billing", requireAdmin, async (req, res) => {
     try {

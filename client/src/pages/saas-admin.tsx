@@ -107,6 +107,30 @@ export default function SaasAdminPage() {
     adminPassword: ""
   });
   const [planFeatures, setPlanFeatures] = useState<Record<string, string>>({});
+  
+  // Blur settings management state
+  const [selectedBlurOrgId, setSelectedBlurOrgId] = useState<number | null>(null);
+  const [blurSettingsData, setBlurSettingsData] = useState<{
+    blurEmailSettings: boolean;
+    blurTwilioSettings: boolean;
+    blurOcrSettings: boolean;
+    blurStripeSettings: boolean;
+    blurApiSettings: boolean;
+    blurBackupSettings: boolean;
+    blurDeploySettings: boolean;
+    blurAnalyticsSettings: boolean;
+    blurMessage: string;
+  }>({
+    blurEmailSettings: true,
+    blurTwilioSettings: true,
+    blurOcrSettings: true,
+    blurStripeSettings: true,
+    blurApiSettings: true,
+    blurBackupSettings: true,
+    blurDeploySettings: true,
+    blurAnalyticsSettings: true,
+    blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.'
+  });
 
   // Clear cached query errors on component mount to force fresh data fetch
   useEffect(() => {
@@ -172,6 +196,74 @@ export default function SaasAdminPage() {
     acc[setting.key] = setting.value === 'true' ? true : setting.value === 'false' ? false : setting.value;
     return acc;
   }, {}) || {};
+
+  // Fetch blur settings when organization is selected
+  const { data: orgBlurSettings, refetch: refetchBlurSettings } = useQuery({
+    queryKey: ["/api/admin/blur-settings", selectedBlurOrgId],
+    queryFn: async () => {
+      if (!selectedBlurOrgId) return null;
+      const response = await fetch(`/api/admin/blur-settings/${selectedBlurOrgId}`, {
+        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!selectedBlurOrgId,
+  });
+
+  // Update blur settings state when data is fetched
+  useEffect(() => {
+    if (orgBlurSettings) {
+      setBlurSettingsData({
+        blurEmailSettings: orgBlurSettings.blurEmailSettings ?? true,
+        blurTwilioSettings: orgBlurSettings.blurTwilioSettings ?? true,
+        blurOcrSettings: orgBlurSettings.blurOcrSettings ?? true,
+        blurStripeSettings: orgBlurSettings.blurStripeSettings ?? true,
+        blurApiSettings: orgBlurSettings.blurApiSettings ?? true,
+        blurBackupSettings: orgBlurSettings.blurBackupSettings ?? true,
+        blurDeploySettings: orgBlurSettings.blurDeploySettings ?? true,
+        blurAnalyticsSettings: orgBlurSettings.blurAnalyticsSettings ?? true,
+        blurMessage: orgBlurSettings.blurMessage || 'This feature is restricted for your organization. Contact your administrator for access.'
+      });
+    } else if (selectedBlurOrgId) {
+      // Reset to defaults for new organizations
+      setBlurSettingsData({
+        blurEmailSettings: true,
+        blurTwilioSettings: true,
+        blurOcrSettings: true,
+        blurStripeSettings: true,
+        blurApiSettings: true,
+        blurBackupSettings: true,
+        blurDeploySettings: true,
+        blurAnalyticsSettings: true,
+        blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.'
+      });
+    }
+  }, [orgBlurSettings, selectedBlurOrgId]);
+
+  // Save blur settings mutation
+  const saveBlurSettingsMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedBlurOrgId) throw new Error('No organization selected');
+      const response = await apiRequest("PUT", `/api/admin/blur-settings/${selectedBlurOrgId}`, blurSettingsData);
+      return response;
+    },
+    onSuccess: () => {
+      refetchBlurSettings();
+      toast({
+        title: "Success",
+        description: "Blur settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save blur settings",
+        variant: "destructive",
+      });
+    },
+  });
 
   // SaaS admin mutations
   const updateOrganizationMutation = useMutation({
@@ -744,6 +836,130 @@ export default function SaasAdminPage() {
                   ))}
                 </TableBody>
               </Table>
+            </CardContent>
+          </Card>
+
+          {/* Blur Settings Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Blur Settings Management
+              </CardTitle>
+              <CardDescription>
+                Control which settings sections are blurred/restricted for each organization. Toggle ON to allow access, OFF to blur.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Label htmlFor="blur-org-select">Select Organization:</Label>
+                  <Select
+                    value={selectedBlurOrgId?.toString() || ""}
+                    onValueChange={(value) => setSelectedBlurOrgId(parseInt(value))}
+                  >
+                    <SelectTrigger className="w-64" id="blur-org-select" data-testid="select-blur-organization">
+                      <SelectValue placeholder="Select an organization" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(allOrganizations as any[])?.map((org: any) => (
+                        <SelectItem key={org.id} value={org.id.toString()}>
+                          {org.name} ({org.slug})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedBlurOrgId && (
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <h4 className="font-medium">Settings Visibility for {(allOrganizations as any[])?.find((o: any) => o.id === selectedBlurOrgId)?.name}</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex items-center justify-between p-3 border rounded">
+                        <Label htmlFor="blur-email">Email Settings</Label>
+                        <Switch
+                          id="blur-email"
+                          data-testid="switch-blur-email"
+                          checked={!blurSettingsData?.blurEmailSettings}
+                          onCheckedChange={(checked) => setBlurSettingsData(prev => ({ ...prev, blurEmailSettings: !checked }))}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 border rounded">
+                        <Label htmlFor="blur-twilio">SMS/Twilio Settings</Label>
+                        <Switch
+                          id="blur-twilio"
+                          data-testid="switch-blur-twilio"
+                          checked={!blurSettingsData?.blurTwilioSettings}
+                          onCheckedChange={(checked) => setBlurSettingsData(prev => ({ ...prev, blurTwilioSettings: !checked }))}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 border rounded">
+                        <Label htmlFor="blur-ocr">OCR Settings</Label>
+                        <Switch
+                          id="blur-ocr"
+                          data-testid="switch-blur-ocr"
+                          checked={!blurSettingsData?.blurOcrSettings}
+                          onCheckedChange={(checked) => setBlurSettingsData(prev => ({ ...prev, blurOcrSettings: !checked }))}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 border rounded">
+                        <Label htmlFor="blur-stripe">Stripe Settings</Label>
+                        <Switch
+                          id="blur-stripe"
+                          data-testid="switch-blur-stripe"
+                          checked={!blurSettingsData?.blurStripeSettings}
+                          onCheckedChange={(checked) => setBlurSettingsData(prev => ({ ...prev, blurStripeSettings: !checked }))}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 border rounded">
+                        <Label htmlFor="blur-api">API/Integration Settings</Label>
+                        <Switch
+                          id="blur-api"
+                          data-testid="switch-blur-api"
+                          checked={!blurSettingsData?.blurApiSettings}
+                          onCheckedChange={(checked) => setBlurSettingsData(prev => ({ ...prev, blurApiSettings: !checked }))}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 border rounded">
+                        <Label htmlFor="blur-backup">Backup Settings</Label>
+                        <Switch
+                          id="blur-backup"
+                          data-testid="switch-blur-backup"
+                          checked={!blurSettingsData?.blurBackupSettings}
+                          onCheckedChange={(checked) => setBlurSettingsData(prev => ({ ...prev, blurBackupSettings: !checked }))}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 border rounded">
+                        <Label htmlFor="blur-deploy">Deploy Settings</Label>
+                        <Switch
+                          id="blur-deploy"
+                          data-testid="switch-blur-deploy"
+                          checked={!blurSettingsData?.blurDeploySettings}
+                          onCheckedChange={(checked) => setBlurSettingsData(prev => ({ ...prev, blurDeploySettings: !checked }))}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 border rounded">
+                        <Label htmlFor="blur-analytics">Analytics Settings</Label>
+                        <Switch
+                          id="blur-analytics"
+                          data-testid="switch-blur-analytics"
+                          checked={!blurSettingsData?.blurAnalyticsSettings}
+                          onCheckedChange={(checked) => setBlurSettingsData(prev => ({ ...prev, blurAnalyticsSettings: !checked }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end mt-4">
+                      <Button 
+                        onClick={() => saveBlurSettingsMutation.mutate()}
+                        disabled={saveBlurSettingsMutation.isPending}
+                        data-testid="button-save-blur-settings"
+                      >
+                        {saveBlurSettingsMutation.isPending ? "Saving..." : "Save Blur Settings"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 
