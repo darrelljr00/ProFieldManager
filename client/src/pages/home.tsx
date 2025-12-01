@@ -27,7 +27,16 @@ import {
   Sparkles,
   Glasses,
   Settings,
+  FileText,
+  CreditCard,
+  Smartphone,
+  BarChart,
+  Camera,
+  MessageSquare,
+  Navigation,
+  Bell,
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
 import {
   DropdownMenu,
@@ -122,6 +131,87 @@ const features = [
     icon: CheckCircle,
     title: "Quality Control",
     description: "Digital forms, photo documentation, and customer sign-offs",
+  },
+];
+
+const featureTabs = [
+  {
+    id: "scheduling",
+    label: "Scheduling",
+    icon: Calendar,
+    title: "Smart Scheduling & Dispatch",
+    description: "Efficiently assign jobs to the right technicians at the right time with our intelligent scheduling system.",
+    features: [
+      { icon: Calendar, title: "Drag & Drop Scheduler", description: "Visual calendar with easy job assignment" },
+      { icon: Users, title: "Crew Management", description: "Assign teams and track availability" },
+      { icon: Clock, title: "Time Tracking", description: "Automatic time clock with GPS verification" },
+      { icon: Bell, title: "Smart Notifications", description: "Real-time alerts for schedule changes" },
+    ],
+  },
+  {
+    id: "gps",
+    label: "GPS Tracking",
+    icon: Navigation,
+    title: "Real-Time GPS & Fleet Tracking",
+    description: "Know where your team is at all times with live GPS tracking and route optimization.",
+    features: [
+      { icon: MapPin, title: "Live Location", description: "Real-time technician and vehicle tracking" },
+      { icon: Navigation, title: "Route History", description: "Complete trip logs and mileage reports" },
+      { icon: Truck, title: "Fleet Management", description: "Vehicle maintenance and fuel tracking" },
+      { icon: Clock, title: "ETA Notifications", description: "Automatic customer arrival alerts" },
+    ],
+  },
+  {
+    id: "invoicing",
+    label: "Invoicing",
+    icon: FileText,
+    title: "Professional Invoicing & Payments",
+    description: "Create and send professional invoices instantly, and get paid faster with online payments.",
+    features: [
+      { icon: FileText, title: "Quick Invoicing", description: "Generate invoices from completed jobs" },
+      { icon: CreditCard, title: "Online Payments", description: "Accept credit cards and digital payments" },
+      { icon: Camera, title: "Smart Capture", description: "OCR receipt scanning and expense tracking" },
+      { icon: BarChart, title: "Financial Reports", description: "Revenue, profit/loss, and tax reports" },
+    ],
+  },
+  {
+    id: "mobile",
+    label: "Mobile Apps",
+    icon: Smartphone,
+    title: "Powerful Mobile Applications",
+    description: "Equip your field technicians with everything they need on their mobile devices.",
+    features: [
+      { icon: Smartphone, title: "iOS & Android Apps", description: "Native apps for all devices" },
+      { icon: Camera, title: "Photo Documentation", description: "Before/after photos and signatures" },
+      { icon: MessageSquare, title: "Team Chat", description: "Built-in messaging and file sharing" },
+      { icon: CheckCircle, title: "Digital Forms", description: "Custom inspection and work orders" },
+    ],
+  },
+  {
+    id: "customers",
+    label: "Customers",
+    icon: Users,
+    title: "Customer Management & CRM",
+    description: "Build lasting relationships with complete customer profiles and communication history.",
+    features: [
+      { icon: Users, title: "Customer Portal", description: "Self-service booking and payments" },
+      { icon: MessageSquare, title: "SMS & Email", description: "Automated appointment reminders" },
+      { icon: Star, title: "Review Requests", description: "Google review collection automation" },
+      { icon: FileText, title: "Service History", description: "Complete job and communication logs" },
+    ],
+  },
+  {
+    id: "reports",
+    label: "Reports",
+    icon: BarChart,
+    title: "Analytics & Reporting",
+    description: "Make data-driven decisions with comprehensive business analytics and reporting.",
+    features: [
+      { icon: BarChart, title: "Dashboard Analytics", description: "Real-time business metrics" },
+      { icon: Users, title: "Employee Performance", description: "Productivity and efficiency tracking" },
+      { icon: CreditCard, title: "Revenue Reports", description: "Income, expenses, and profit analysis" },
+      { icon: MapPin, title: "Job Analytics", description: "Completion rates and time tracking" },
+    ],
   },
 ];
 
@@ -533,6 +623,100 @@ export default function HomePage() {
                 </Link>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Tabs Section */}
+      <section className="py-20 bg-white dark:bg-slate-900" id="features">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+              Powerful Features
+            </Badge>
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-4">
+              All the Tools You Need in One Platform
+            </h2>
+            <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto">
+              From scheduling to invoicing, GPS tracking to customer management - 
+              Pro Field Manager has everything to run your field service business.
+            </p>
+          </div>
+
+          <Tabs defaultValue="scheduling" className="w-full">
+            <TabsList className="flex flex-wrap justify-center gap-2 mb-8 bg-transparent h-auto p-0">
+              {featureTabs.map((tab) => {
+                const TabIcon = tab.icon;
+                return (
+                  <TabsTrigger
+                    key={tab.id}
+                    value={tab.id}
+                    className="flex items-center gap-2 px-4 py-3 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                    data-testid={`tab-feature-${tab.id}`}
+                  >
+                    <TabIcon className="h-4 w-4" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+
+            {featureTabs.map((tab) => (
+              <TabsContent key={tab.id} value={tab.id} className="mt-0">
+                <div className="bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-900 rounded-2xl p-8 md:p-12">
+                  <div className="grid lg:grid-cols-2 gap-8 items-center">
+                    <div>
+                      <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+                        {tab.title}
+                      </h3>
+                      <p className="text-lg text-slate-600 dark:text-slate-300 mb-8">
+                        {tab.description}
+                      </p>
+                      <div className="flex gap-4">
+                        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                          <Link href="/features#signup" className="flex items-center">
+                            Start Free Trial
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button variant="outline" className="border-slate-300 dark:border-slate-600">
+                          <Link href="/features">Learn More</Link>
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      {tab.features.map((feature, idx) => {
+                        const FeatureIcon = feature.icon;
+                        return (
+                          <Card key={idx} className="border-0 shadow-md hover:shadow-lg transition-shadow bg-white dark:bg-slate-800">
+                            <CardContent className="p-5">
+                              <div className="bg-blue-100 dark:bg-blue-900 rounded-lg w-10 h-10 flex items-center justify-center mb-3">
+                                <FeatureIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                              </div>
+                              <h4 className="font-semibold text-slate-900 dark:text-white mb-1 text-sm">
+                                {feature.title}
+                              </h4>
+                              <p className="text-slate-500 dark:text-slate-400 text-xs">
+                                {feature.description}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+
+          <div className="text-center mt-10">
+            <Link href="/features">
+              <Button variant="outline" size="lg" className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-slate-800">
+                View All Features
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
