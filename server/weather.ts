@@ -60,11 +60,18 @@ export class WeatherService {
   constructor() {
     this.apiKey = process.env.WEATHER_API_KEY || '';
     if (!this.apiKey) {
-      throw new Error('WEATHER_API_KEY environment variable is required');
+      console.warn('⚠️ WEATHER_API_KEY environment variable not set - weather features will be disabled');
+    }
+  }
+  
+  private ensureApiKey() {
+    if (!this.apiKey) {
+      throw new Error('WEATHER_API_KEY environment variable is required for weather features');
     }
   }
 
   async getCurrentWeather(location: string): Promise<WeatherData> {
+    this.ensureApiKey();
     const url = `${this.baseUrl}/current.json?key=${this.apiKey}&q=${encodeURIComponent(location)}&aqi=no`;
     
     const response = await fetch(url);
@@ -76,6 +83,7 @@ export class WeatherService {
   }
 
   async getForecast(location: string, days: number = 3): Promise<WeatherData> {
+    this.ensureApiKey();
     // Clean and validate location string
     const cleanLocation = location.trim().replace(/[^\w\s,.-]/g, '');
     if (!cleanLocation || cleanLocation.length < 2) {
@@ -94,6 +102,7 @@ export class WeatherService {
   }
 
   async getWeatherForDate(location: string, date: string): Promise<WeatherData> {
+    this.ensureApiKey();
     // For future dates (up to 14 days), use forecast API
     const targetDate = new Date(date);
     const today = new Date();

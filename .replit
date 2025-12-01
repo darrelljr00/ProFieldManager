@@ -1,9 +1,9 @@
-modules = ["web", "nodejs-20", "postgresql-16"]
+modules = ["nodejs-20", "web", "postgresql-16"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-25_05"
 packages = ["glib", "nss", "nspr", "atk", "at-spi2-atk", "cups", "libdrm", "gtk3", "pango", "cairo", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "mesa", "expat", "alsa-lib", "at-spi2-core", "chromium", "xorg.libxcb", "libxkbcommon", "dbus"]
 
 [deployment]
@@ -73,6 +73,10 @@ localPort = 38649
 externalPort = 8000
 
 [[ports]]
+localPort = 39311
+externalPort = 8080
+
+[[ports]]
 localPort = 39417
 externalPort = 3000
 
@@ -82,3 +86,4 @@ externalPort = 5173
 
 [agent]
 integrations = ["javascript_websocket:1.0.0", "javascript_sendgrid:1.0.0", "javascript_openai:1.0.0"]
+expertMode = true
