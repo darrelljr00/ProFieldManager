@@ -3,68 +3,106 @@ import { useEffect } from "react";
 interface SEOHeadProps {
   title: string;
   description: string;
+  keywords?: string;
+  canonicalUrl?: string;
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+  ogType?: "website" | "article" | "product";
+  twitterCard?: "summary" | "summary_large_image";
+  structuredData?: Record<string, unknown>;
+  noIndex?: boolean;
 }
 
-export function SEOHead({ title, description, ogTitle, ogDescription, ogImage }: SEOHeadProps) {
+export function SEOHead({ 
+  title, 
+  description, 
+  keywords,
+  canonicalUrl,
+  ogTitle, 
+  ogDescription, 
+  ogImage,
+  ogType = "website",
+  twitterCard = "summary_large_image",
+  structuredData,
+  noIndex = false
+}: SEOHeadProps) {
   useEffect(() => {
-    // Set page title
     document.title = title;
 
-    // Set or update meta description
-    let metaDescription = document.querySelector('meta[name="description"]');
-    if (!metaDescription) {
-      metaDescription = document.createElement('meta');
-      metaDescription.setAttribute('name', 'description');
-      document.head.appendChild(metaDescription);
-    }
-    metaDescription.setAttribute('content', description);
-
-    // Set or update Open Graph title
-    let ogTitleMeta = document.querySelector('meta[property="og:title"]');
-    if (!ogTitleMeta) {
-      ogTitleMeta = document.createElement('meta');
-      ogTitleMeta.setAttribute('property', 'og:title');
-      document.head.appendChild(ogTitleMeta);
-    }
-    ogTitleMeta.setAttribute('content', ogTitle || title);
-
-    // Set or update Open Graph description
-    let ogDescriptionMeta = document.querySelector('meta[property="og:description"]');
-    if (!ogDescriptionMeta) {
-      ogDescriptionMeta = document.createElement('meta');
-      ogDescriptionMeta.setAttribute('property', 'og:description');
-      document.head.appendChild(ogDescriptionMeta);
-    }
-    ogDescriptionMeta.setAttribute('content', ogDescription || description);
-
-    // Set or update Open Graph image
-    if (ogImage) {
-      let ogImageMeta = document.querySelector('meta[property="og:image"]');
-      if (!ogImageMeta) {
-        ogImageMeta = document.createElement('meta');
-        ogImageMeta.setAttribute('property', 'og:image');
-        document.head.appendChild(ogImageMeta);
+    const setMetaTag = (name: string, content: string, isProperty = false) => {
+      const attr = isProperty ? 'property' : 'name';
+      let meta = document.querySelector(`meta[${attr}="${name}"]`);
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute(attr, name);
+        document.head.appendChild(meta);
       }
-      ogImageMeta.setAttribute('content', ogImage);
+      meta.setAttribute('content', content);
+    };
+
+    const removeMetaTag = (name: string, isProperty = false) => {
+      const attr = isProperty ? 'property' : 'name';
+      const meta = document.querySelector(`meta[${attr}="${name}"]`);
+      if (meta) meta.remove();
+    };
+
+    setMetaTag('description', description);
+
+    if (keywords) {
+      setMetaTag('keywords', keywords);
     }
 
-    // Set og:type
-    let ogTypeMeta = document.querySelector('meta[property="og:type"]');
-    if (!ogTypeMeta) {
-      ogTypeMeta = document.createElement('meta');
-      ogTypeMeta.setAttribute('property', 'og:type');
-      ogTypeMeta.setAttribute('content', 'website');
-      document.head.appendChild(ogTypeMeta);
+    if (noIndex) {
+      setMetaTag('robots', 'noindex, nofollow');
+    } else {
+      setMetaTag('robots', 'index, follow');
     }
 
-    // Cleanup function
+    setMetaTag('og:title', ogTitle || title, true);
+    setMetaTag('og:description', ogDescription || description, true);
+    setMetaTag('og:type', ogType, true);
+    
+    if (ogImage) {
+      setMetaTag('og:image', ogImage, true);
+    }
+
+    if (canonicalUrl) {
+      setMetaTag('og:url', canonicalUrl, true);
+      
+      let canonical = document.querySelector('link[rel="canonical"]');
+      if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.setAttribute('rel', 'canonical');
+        document.head.appendChild(canonical);
+      }
+      canonical.setAttribute('href', canonicalUrl);
+    }
+
+    setMetaTag('twitter:card', twitterCard);
+    setMetaTag('twitter:title', ogTitle || title);
+    setMetaTag('twitter:description', ogDescription || description);
+    if (ogImage) {
+      setMetaTag('twitter:image', ogImage);
+    }
+
+    if (structuredData) {
+      let scriptTag = document.querySelector('script[data-seo-structured-data]');
+      if (!scriptTag) {
+        scriptTag = document.createElement('script');
+        scriptTag.setAttribute('type', 'application/ld+json');
+        scriptTag.setAttribute('data-seo-structured-data', 'true');
+        document.head.appendChild(scriptTag);
+      }
+      scriptTag.textContent = JSON.stringify(structuredData);
+    }
+
     return () => {
       document.title = 'Pro Field Manager';
+      const structuredDataScript = document.querySelector('script[data-seo-structured-data]');
+      if (structuredDataScript) structuredDataScript.remove();
     };
-  }, [title, description, ogTitle, ogDescription, ogImage]);
+  }, [title, description, keywords, canonicalUrl, ogTitle, ogDescription, ogImage, ogType, twitterCard, structuredData, noIndex]);
 
   return null;
 }
