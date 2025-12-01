@@ -76,10 +76,26 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'max-age=0, must-revalidate');
+      } else if (filePath.match(/\.[a-f0-9]{8,}\.(js|css)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (filePath.match(/\.(js|css)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+      } else if (filePath.match(/\.(woff2?|ttf|eot)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+      } else if (filePath.match(/\.(png|jpg|jpeg|gif|svg|ico|webp)$/)) {
+        res.setHeader('Cache-Control', 'public, max-age=604800');
+      }
+    }
+  }));
 
-  // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    res.setHeader('Cache-Control', 'max-age=0, must-revalidate');
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

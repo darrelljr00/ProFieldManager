@@ -278,14 +278,7 @@ function AuthenticatedApp() {
 }
 
 function PublicRoutes() {
-  const analytics = useAnalytics();
-  const [location] = useLocation();
-  
-  useEffect(() => {
-    if (analytics && typeof analytics.trackPageView === 'function') {
-      analytics.trackPageView(location);
-    }
-  }, [location, analytics]);
+  useAnalytics();
 
   return (
     <div className="min-h-screen bg-background">
