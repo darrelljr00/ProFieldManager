@@ -60,3 +60,4 @@ Preferred communication style: Simple, everyday language.
 - **ClamAV**: File security and virus scanning.
 - **AWS S3**: Backup storage.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
+6. **Security Fix - Auto-Login Bypass Removed**: Removed the development mode "ENHANCED FALLBACK" code that was automatically authenticating users without credentials by looking up existing database sessions. Now users must enter valid username/email and password to log in.

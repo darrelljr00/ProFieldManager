@@ -3431,65 +3431,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       tokenSource: authHeader ? 'header' : cookieToken ? 'cookie' : 'none'
     });
     
-    console.log('🔍 BEFORE FALLBACK CHECK - Token value:', token, 'Is falsy:', !token);
-    console.log('🌐 REQUEST SOURCE:', {
-      origin: req.headers.origin,
-      isCustomDomain: req.headers.origin?.includes('profieldmanager.com'),
-      host: req.headers.host
-    });
-    
-    // ENHANCED FALLBACK: Try to get user from latest session (DEVELOPMENT ONLY for security)
-    if (!token && process.env.NODE_ENV === 'development') {
-      console.log('🔄 ENHANCED FALLBACK: No token found, trying session fallback (DEVELOPMENT MODE ONLY)');
-      try {
-        // Get the most recent session for the test user as fallback
-        const recentSessions = await db
-          .select({
-            session: userSessions,
-            user: users,
-          })
-          .from(userSessions)
-          .innerJoin(users, eq(userSessions.userId, users.id))
-          .where(
-            and(
-              eq(users.email, 'sales@texaspowerwash.net'),
-              gt(userSessions.expiresAt, sql`now()`),
-              eq(users.isActive, true)
-            )
-          )
-          .orderBy(desc(userSessions.createdAt))
-          .limit(1);
-
-        console.log('🔍 DATABASE QUERY RESULT: Found', recentSessions.length, 'sessions');
-        
-        if (recentSessions.length > 0) {
-          console.log('✅ ENHANCED FALLBACK: Found valid session fallback');
-          const sessionData = recentSessions[0];
-          const user = sessionData.user;
-
-          const transformedUser = {
-            ...user,
-            hasInvoiceAccess: user?.canAccessInvoices,
-            hasExpenseAccess: user?.canAccessExpenses,
-            hasPartsAccess: user?.canAccessPartsSupplies,
-            hasScheduleAccess: user?.canAccessMySchedule
-          };
-
-          console.log('🎯 ENHANCED FALLBACK SUCCESS: Returning user', user.username);
-          
-          // CRITICAL FIX: Always include the session token for ALL domains to enable proper authentication
-          console.log('🔐 AUTHENTICATION FIX: Including token for localStorage storage on ALL domains');
-          return res.json({ 
-            user: transformedUser, 
-            token: sessionData.session.token 
-          });
-        } else {
-          console.log('❌ ENHANCED FALLBACK: No valid sessions found for user');
-        }
-      } catch (fallbackError) {
-        console.error('❌ ENHANCED FALLBACK ERROR:', fallbackError);
-      }
-    }
     
     if (!token) {
       console.log('❌ AUTH/ME: No token found');
