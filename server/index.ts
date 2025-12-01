@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { registerTwilioAdminRoutes } from "./twilio-admin";
+import { registerSEORoutes } from "./seo-routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { cacheConfigService } from "./cache/CacheConfigService";
@@ -114,6 +115,9 @@ app.use((req, res, next) => {
   
   // Register clean Twilio admin routes FIRST to override broken ones
   registerTwilioAdminRoutes(app);
+  
+  // Register SEO routes (sitemap.xml, robots.txt)
+  registerSEORoutes(app);
   
   const server = await registerRoutes(app);
 

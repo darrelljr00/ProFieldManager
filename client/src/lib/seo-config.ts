@@ -54,8 +54,8 @@ const softwareSchema = {
 
 export const seoConfig: Record<string, PageSEO> = {
   home: {
-    title: "Pro Field Manager | #1 Field Service Management Software",
-    description: "Streamline your field service business with Pro Field Manager. GPS tracking, smart scheduling, invoicing, and team management in one powerful platform. Start free trial.",
+    title: "Pro Field Manager | Field Service Management Software",
+    description: "Streamline field service operations with Pro Field Manager. GPS tracking, scheduling, invoicing, and team management in one platform. Start free trial.",
     keywords: "field service management software, field service CRM, contractor management software, technician scheduling, GPS fleet tracking, service business software, job scheduling software",
     canonicalUrl: BASE_URL,
     ogImage: DEFAULT_OG_IMAGE,
@@ -66,8 +66,8 @@ export const seoConfig: Record<string, PageSEO> = {
   },
   
   features: {
-    title: "Features | GPS Tracking, Scheduling & Invoicing | Pro Field Manager",
-    description: "Discover Pro Field Manager's powerful features: real-time GPS tracking, drag-and-drop scheduling, automated invoicing, mobile apps, and team management tools.",
+    title: "Features | GPS, Scheduling & Invoicing | Pro Field Manager",
+    description: "Pro Field Manager features: GPS tracking, scheduling, automated invoicing, mobile apps, and team management tools for field service businesses.",
     keywords: "GPS fleet tracking software, technician scheduling software, automated invoicing, field service mobile app, team management, route optimization, time tracking software",
     canonicalUrl: `${BASE_URL}/features`,
     ogImage: DEFAULT_OG_IMAGE,
@@ -90,8 +90,8 @@ export const seoConfig: Record<string, PageSEO> = {
   },
   
   getStarted: {
-    title: "Start Free Trial | Pro Field Manager Pricing & Plans",
-    description: "Choose the perfect Pro Field Manager plan for your business. Starter at $49/mo, Professional at $99/mo, Enterprise at $199/mo. 14-day free trial, no credit card required.",
+    title: "Pricing & Plans | Pro Field Manager Free Trial",
+    description: "Pro Field Manager plans: Starter $49/mo, Professional $99/mo, Enterprise $199/mo. 14-day free trial, no credit card required.",
     keywords: "field service software pricing, contractor software free trial, field service management plans, service business software cost, Pro Field Manager pricing",
     canonicalUrl: `${BASE_URL}/get-started`,
     ogImage: DEFAULT_OG_IMAGE,
@@ -140,7 +140,7 @@ export const seoConfig: Record<string, PageSEO> = {
 
   hvac: {
     title: "HVAC Field Service Software | Pro Field Manager",
-    description: "HVAC field service management software designed for heating and cooling contractors. Dispatch technicians, track equipment, manage maintenance schedules, and invoice customers.",
+    description: "HVAC software for heating and cooling contractors. Dispatch technicians, track equipment, manage schedules, and invoice customers.",
     keywords: "HVAC field service software, HVAC dispatch software, heating and cooling contractor software, HVAC technician scheduling, HVAC service management, HVAC CRM software",
     canonicalUrl: `${BASE_URL}/services/hvac`,
     ogImage: DEFAULT_OG_IMAGE,
