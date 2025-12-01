@@ -7,18 +7,22 @@ import { PublicPageHeader } from "@/components/PublicPageHeader";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { getIndustryPageSEO } from "@/lib/seo-config";
 
 export default function ElectriciansPage() {
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
+  const seo = getIndustryPageSEO('electricians');
   
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <PublicPageHeader />
       <SEOHead 
-        title="Electrical Contractor Software - Pro Field Manager"
-        description="Manage your electrical business with Pro Field Manager. Smart dispatch, GPS tracking, digital forms, parts inventory, and mobile invoicing for electricians."
-        ogTitle="Field Service Management for Electricians"
-        ogDescription="Professional software designed for electrical contractors. Handle service calls, installations, and maintenance work efficiently."
+        title={seo.title}
+        description={seo.description}
+        keywords={seo.keywords}
+        canonicalUrl={seo.canonicalUrl}
+        ogImage={seo.ogImage}
+        structuredData={seo.structuredData}
       />
       
       {/* Hero Section */}

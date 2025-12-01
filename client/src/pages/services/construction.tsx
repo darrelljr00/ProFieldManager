@@ -7,18 +7,22 @@ import { PublicPageHeader } from "@/components/PublicPageHeader";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { getIndustryPageSEO } from "@/lib/seo-config";
 
 export default function ConstructionPage() {
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
+  const seo = getIndustryPageSEO('construction');
   
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <PublicPageHeader />
       <SEOHead 
-        title="Construction Management Software - Pro Field Manager"
-        description="Comprehensive construction project management with Pro Field Manager. Track projects, manage subcontractors, control costs, ensure safety compliance, and complete projects on time."
-        ogTitle="Construction Project Management Software"
-        ogDescription="Build better with tools for managing construction projects, coordinating crews, tracking costs, and keeping projects on schedule and within budget."
+        title={seo.title}
+        description={seo.description}
+        keywords={seo.keywords}
+        canonicalUrl={seo.canonicalUrl}
+        ogImage={seo.ogImage}
+        structuredData={seo.structuredData}
       />
       
       {/* Hero Section */}

@@ -7,18 +7,22 @@ import { PublicPageHeader } from "@/components/PublicPageHeader";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { getIndustryPageSEO } from "@/lib/seo-config";
 
 export default function GeneralContractorsPage() {
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
+  const seo = getIndustryPageSEO('general-contractors');
   
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <PublicPageHeader />
       <SEOHead 
-        title="General Contractors Software - Pro Field Manager"
-        description="Streamline construction projects with Pro Field Manager. Manage crews, track costs, schedule jobs, and deliver exceptional results with our comprehensive platform for general contractors."
-        ogTitle="Field Service Management for General Contractors"
-        ogDescription="Professional software for general contractors to manage projects, crews, invoicing, and customer communication all in one powerful platform."
+        title={seo.title}
+        description={seo.description}
+        keywords={seo.keywords}
+        canonicalUrl={seo.canonicalUrl}
+        ogImage={seo.ogImage}
+        structuredData={seo.structuredData}
       />
       
       {/* Hero Section */}

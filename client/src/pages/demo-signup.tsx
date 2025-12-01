@@ -19,6 +19,8 @@ import { Eye, EyeOff, Rocket, CheckCircle, Building2, Users, TrendingUp, Clock, 
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { SEOHead } from "@/components/seo-head";
+import { getSEOForPage } from "@/lib/seo-config";
 
 const demoSignupSchema = registerSchema.extend({
   organizationName: z.string().min(1, "Business name is required"),
@@ -133,8 +135,17 @@ export default function DemoSignupPage() {
 
   const currentSlideData = slides[currentSlide];
 
+  const seo = getSEOForPage('demoSignup');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <SEOHead
+        title={seo.title}
+        description={seo.description}
+        keywords={seo.keywords}
+        canonicalUrl={seo.canonicalUrl}
+        ogImage={seo.ogImage}
+      />
       {/* Hero Slider Section */}
       {slides.length > 0 && (
         <div className="relative w-full h-96 overflow-hidden bg-slate-900">

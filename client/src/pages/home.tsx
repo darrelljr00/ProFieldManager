@@ -39,6 +39,8 @@ import { useHeroSlides } from "@/hooks/useHeroSlides";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { SEOHead } from "@/components/seo-head";
+import { getSEOForPage } from "@/lib/seo-config";
 
 const serviceTypes = [
   {
@@ -231,8 +233,18 @@ export default function HomePage() {
     setIsAutoPlaying(false);
   };
 
+  const seo = getSEOForPage('home');
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900">
+      <SEOHead
+        title={seo.title}
+        description={seo.description}
+        keywords={seo.keywords}
+        canonicalUrl={seo.canonicalUrl}
+        ogImage={seo.ogImage}
+        structuredData={seo.structuredData}
+      />
       {/* Navigation Header */}
       <header className="absolute top-0 left-0 right-0 z-50 bg-white/10 backdrop-blur-md border-b border-white/20">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">

@@ -19,6 +19,8 @@ import { PublicPageHeader } from "@/components/PublicPageHeader";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { SEOHead } from "@/components/seo-head";
+import { getSEOForPage } from "@/lib/seo-config";
 import type { SubscriptionPlan } from "@shared/schema";
 
 interface PlanWithFeatures extends SubscriptionPlan {
@@ -282,8 +284,18 @@ export default function GetStartedPage() {
     setLocation("/demo-signup");
   };
 
+  const seo = getSEOForPage('getStarted');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+      <SEOHead
+        title={seo.title}
+        description={seo.description}
+        keywords={seo.keywords}
+        canonicalUrl={seo.canonicalUrl}
+        ogImage={seo.ogImage}
+        structuredData={seo.structuredData}
+      />
       <PublicPageHeader />
 
       {/* Hero Section */}

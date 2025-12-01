@@ -7,18 +7,22 @@ import { PublicPageHeader } from "@/components/PublicPageHeader";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { getIndustryPageSEO } from "@/lib/seo-config";
 
 export default function WindowWashersPage() {
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
+  const seo = getIndustryPageSEO('window-washers');
   
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <PublicPageHeader />
       <SEOHead 
-        title="Window Cleaning Business Software - Pro Field Manager"
-        description="Streamline your window washing business with Pro Field Manager. Route optimization, recurring service scheduling, crew tracking, and mobile payments for window cleaning professionals."
-        ogTitle="Window Washing Business Management Software"
-        ogDescription="Professional software for window cleaning businesses. Manage residential and commercial accounts, schedule recurring cleanings, and grow your business."
+        title={seo.title}
+        description={seo.description}
+        keywords={seo.keywords}
+        canonicalUrl={seo.canonicalUrl}
+        ogImage={seo.ogImage}
+        structuredData={seo.structuredData}
       />
       
       {/* Hero Section */}

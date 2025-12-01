@@ -7,18 +7,22 @@ import { PublicPageHeader } from "@/components/PublicPageHeader";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { getIndustryPageSEO } from "@/lib/seo-config";
 
 export default function PlumbersPage() {
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
+  const seo = getIndustryPageSEO('plumbers');
   
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <PublicPageHeader />
       <SEOHead 
-        title="Plumbing Business Software - Pro Field Manager"
-        description="Manage your plumbing business efficiently with Pro Field Manager. Emergency dispatch, customer history, mobile invoicing, maintenance scheduling, and route optimization."
-        ogTitle="Field Service Management for Plumbers"
-        ogDescription="Professional software for plumbing businesses. Handle emergency calls, scheduled maintenance, and installations with powerful field service tools."
+        title={seo.title}
+        description={seo.description}
+        keywords={seo.keywords}
+        canonicalUrl={seo.canonicalUrl}
+        ogImage={seo.ogImage}
+        structuredData={seo.structuredData}
       />
       
       {/* Hero Section */}

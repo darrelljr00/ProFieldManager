@@ -7,18 +7,22 @@ import { PublicPageHeader } from "@/components/PublicPageHeader";
 import { ContactUsBar } from "@/components/ContactUsBar";
 import { PublicPageFooter } from "@/components/PublicPageFooter";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { getIndustryPageSEO } from "@/lib/seo-config";
 
 export default function PressureWashersPage() {
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
+  const seo = getIndustryPageSEO('pressure-washers');
   
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <PublicPageHeader />
       <SEOHead 
-        title="Pressure Washing Business Software - Pro Field Manager"
-        description="Manage your pressure washing business with Pro Field Manager. Job scheduling, route optimization, before/after photos, customer management, and mobile invoicing for pressure washing crews."
-        ogTitle="Pressure Washing Business Management Software"
-        ogDescription="Professional software for pressure washing businesses. Manage crews, schedule jobs, track equipment, and grow your cleaning service efficiently."
+        title={seo.title}
+        description={seo.description}
+        keywords={seo.keywords}
+        canonicalUrl={seo.canonicalUrl}
+        ogImage={seo.ogImage}
+        structuredData={seo.structuredData}
       />
       
       {/* Hero Section */}
