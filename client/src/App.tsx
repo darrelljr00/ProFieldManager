@@ -115,6 +115,11 @@ const PressureWashersPage = lazy(() => import("@/pages/services/pressure-washers
 const WindowWashersPage = lazy(() => import("@/pages/services/window-washers"));
 const ServiceTechsPage = lazy(() => import("@/pages/services/service-techs"));
 const DeployCWP = lazy(() => import("@/pages/deploy-cwp"));
+const FrontendManagement = lazy(() => import("@/pages/frontend-management"));
+const SliderManagement = lazy(() => import("@/pages/slider-management"));
+const PopupManagement = lazy(() => import("@/pages/popup-management"));
+const LiveChatManagement = lazy(() => import("@/pages/live-chat-management"));
+const WebsiteAnalytics = lazy(() => import("@/pages/website-analytics"));
 
 function AuthenticatedApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -267,6 +272,11 @@ function AuthenticatedApp() {
               <Route path="/website-preview" component={HomePage} />
               <Route path="/features" component={FeaturesPage} />
               <Route path="/reports" component={Reports} />
+              <Route path="/frontend-management" component={FrontendManagement} />
+              <Route path="/slider-management" component={SliderManagement} />
+              <Route path="/popup-management" component={PopupManagement} />
+              <Route path="/live-chat-management" component={LiveChatManagement} />
+              <Route path="/website-analytics" component={WebsiteAnalytics} />
               <Route path="/logout" component={Logout} />
               <Route component={NotFound} />
             </Switch>
