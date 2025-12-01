@@ -10,6 +10,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { ImageAnnotation } from "@/components/image-annotation";
 import { SharePhotosDialog } from "@/components/share-photos-dialog";
 import { DocuSignSignatureDialog } from "@/components/docusign-signature-dialog";
+import { LazyImage } from "@/components/lazy-image";
 import { 
   Download, 
   X, 
@@ -447,31 +448,39 @@ export function MediaGallery({ files, projectId }: MediaGalleryProps) {
         console.log('📁 FALLBACK: Using local file URL (Replit domain only):', imageUrl);
       }
       console.log('🖼️ Rendering image:', file.originalName, 'URL:', imageUrl, 'Original filePath:', file.filePath, 'File:', file);
+      
+      if (isLightbox) {
+        return (
+          <img 
+            src={imageUrl} 
+            alt={file.originalName}
+            className={className}
+            style={{ transform: `rotate(${rotation}deg)` }}
+            loading="eager"
+            onLoad={() => {
+              console.log('✅ Image loaded successfully:', imageUrl);
+            }}
+            onError={(e) => {
+              console.error('🚨 IMAGE LOAD FAILED');
+              console.error('🖼️ Attempted URL:', e.currentTarget.src);
+              e.currentTarget.style.border = '2px solid red';
+              e.currentTarget.alt = `Failed to load: ${file.originalName}`;
+            }}
+          />
+        );
+      }
+      
       return (
-        <img 
+        <LazyImage 
           src={imageUrl} 
           alt={file.originalName}
           className={className}
-          style={isLightbox ? { transform: `rotate(${rotation}deg)` } : undefined}
-          loading="lazy"
+          placeholderClassName="w-full h-full"
           onLoad={() => {
             console.log('✅ Image loaded successfully:', imageUrl);
           }}
-          onError={(e) => {
-            console.error('🚨 IMAGE LOAD FAILED');
-            console.error('🖼️ Attempted URL:', e.currentTarget.src);
-            console.error('🖼️ Original filePath:', file.filePath);
-            console.error('🖼️ Generated imageUrl:', imageUrl);
-            console.error('🖼️ File data:', file);
-            console.error('🖼️ Error details:', {
-              naturalWidth: e.currentTarget.naturalWidth,
-              naturalHeight: e.currentTarget.naturalHeight,
-              complete: e.currentTarget.complete,
-              error: e.type
-            });
-            // Show error state
-            e.currentTarget.style.border = '2px solid red';
-            e.currentTarget.alt = `Failed to load: ${file.originalName}`;
+          onError={() => {
+            console.error('🚨 IMAGE LOAD FAILED for:', file.originalName);
           }}
         />
       );

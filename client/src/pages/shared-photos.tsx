@@ -4,9 +4,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Download, Eye, Clock, User, MessageSquare, ArrowLeft, ExternalLink } from "lucide-react";
+import { Download, Eye, Clock, User, MessageSquare, ExternalLink, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { LazyImage } from "@/components/lazy-image";
 
 interface SharedPhoto {
   id: number;
@@ -38,9 +39,9 @@ interface SharedPhotoLinkData {
 }
 
 export default function SharedPhotosViewer() {
-  const [, params] = useRoute("/shared/:token");
+  const [, params] = useRoute<{ token: string }>("/shared/:token");
   const [selectedImage, setSelectedImage] = useState<SharedPhoto | null>(null);
-  const token = params?.token;
+  const token = params?.token ?? null;
   
   useAnalytics({ enableInternal: true, organizationId: 4, enableGA: true, enableFB: true });
 
@@ -245,12 +246,15 @@ export default function SharedPhotosViewer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {linkData.images.map((image) => (
             <Card key={image.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="aspect-square relative group cursor-pointer">
-                <img
+              <div 
+                className="aspect-square relative group cursor-pointer"
+                onClick={() => setSelectedImage(image)}
+              >
+                <LazyImage
                   src={image.cloudinaryUrl}
                   alt={image.originalName}
                   className="w-full h-full object-cover"
-                  onClick={() => setSelectedImage(image)}
+                  placeholderClassName="w-full h-full"
                 />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-2">

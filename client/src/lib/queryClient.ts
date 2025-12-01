@@ -95,16 +95,18 @@ export const getQueryFn: <T>(options: {
       url = queryKey[0] as string;
     }
     
-    // Build the full URL using API configuration
-    const fullUrl = buildApiUrl(url);
+    // Public endpoints should always use relative URLs to avoid CORS issues
+    const isPublicEndpoint = url.includes('/api/public/') || url.includes('/api/frontend/');
+    const fullUrl = isPublicEndpoint ? url : buildApiUrl(url);
     
-    // Get appropriate headers for current domain
-    const headers = getAuthHeaders();
+    // Get appropriate headers for current domain (skip auth headers for public endpoints)
+    const headers = isPublicEndpoint ? { 'Content-Type': 'application/json', 'Accept': 'application/json' } : getAuthHeaders();
     
     console.log('🌐 Query Request:', {
       originalUrl: url,
       fullUrl,
       isCustomDomain: isCustomDomain(),
+      isPublicEndpoint,
       hasAuthHeader: !!headers.Authorization
     });
     
