@@ -120,6 +120,29 @@ export default function SaasAdminPage() {
     blurDeploySettings: boolean;
     blurAnalyticsSettings: boolean;
     blurMessage: string;
+    tabVisibility: {
+      payment: boolean;
+      company: boolean;
+      email: boolean;
+      sms: boolean;
+      leads: boolean;
+      jobs: boolean;
+      calendar: boolean;
+      ocr: boolean;
+      reviews: boolean;
+      invoices: boolean;
+      dashboard: boolean;
+      weather: boolean;
+      backup: boolean;
+      sounds: boolean;
+      storage: boolean;
+      vehicles: boolean;
+      dispatch: boolean;
+      integrations: boolean;
+      navigation: boolean;
+      rollouts: boolean;
+      reminders: boolean;
+    };
   }>({
     blurEmailSettings: true,
     blurTwilioSettings: true,
@@ -129,7 +152,30 @@ export default function SaasAdminPage() {
     blurBackupSettings: true,
     blurDeploySettings: true,
     blurAnalyticsSettings: true,
-    blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.'
+    blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.',
+    tabVisibility: {
+      payment: false,
+      company: false,
+      email: false,
+      sms: false,
+      leads: false,
+      jobs: false,
+      calendar: false,
+      ocr: false,
+      reviews: false,
+      invoices: false,
+      dashboard: false,
+      weather: false,
+      backup: false,
+      sounds: false,
+      storage: false,
+      vehicles: false,
+      dispatch: false,
+      integrations: false,
+      navigation: false,
+      rollouts: false,
+      reminders: false
+    }
   });
 
   // Clear cached query errors on component mount to force fresh data fetch
@@ -212,6 +258,31 @@ export default function SaasAdminPage() {
     enabled: !!selectedBlurOrgId,
   });
 
+  // Default tab visibility - all tabs visible by default
+  const defaultTabVisibility = {
+    payment: false,
+    company: false,
+    email: false,
+    sms: false,
+    leads: false,
+    jobs: false,
+    calendar: false,
+    ocr: false,
+    reviews: false,
+    invoices: false,
+    dashboard: false,
+    weather: false,
+    backup: false,
+    sounds: false,
+    storage: false,
+    vehicles: false,
+    dispatch: false,
+    integrations: false,
+    navigation: false,
+    rollouts: false,
+    reminders: false
+  };
+
   // Update blur settings state when data is fetched
   useEffect(() => {
     if (orgBlurSettings) {
@@ -224,7 +295,8 @@ export default function SaasAdminPage() {
         blurBackupSettings: orgBlurSettings.blurBackupSettings ?? true,
         blurDeploySettings: orgBlurSettings.blurDeploySettings ?? true,
         blurAnalyticsSettings: orgBlurSettings.blurAnalyticsSettings ?? true,
-        blurMessage: orgBlurSettings.blurMessage || 'This feature is restricted for your organization. Contact your administrator for access.'
+        blurMessage: orgBlurSettings.blurMessage || 'This feature is restricted for your organization. Contact your administrator for access.',
+        tabVisibility: { ...defaultTabVisibility, ...(orgBlurSettings.tabVisibility || {}) }
       });
     } else if (selectedBlurOrgId) {
       // Reset to defaults for new organizations
@@ -237,7 +309,8 @@ export default function SaasAdminPage() {
         blurBackupSettings: true,
         blurDeploySettings: true,
         blurAnalyticsSettings: true,
-        blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.'
+        blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.',
+        tabVisibility: defaultTabVisibility
       });
     }
   }, [orgBlurSettings, selectedBlurOrgId]);
@@ -948,6 +1021,246 @@ export default function SaasAdminPage() {
                         />
                       </div>
                     </div>
+
+                    {/* Tab Visibility Section */}
+                    <div className="mt-6 pt-6 border-t">
+                      <h4 className="font-medium mb-4">Settings Tab Visibility</h4>
+                      <p className="text-sm text-muted-foreground mb-4">Toggle ON to show tab, OFF to hide tab from Settings page</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-payment" className="text-sm">Payment</Label>
+                          <Switch
+                            id="tab-payment"
+                            checked={!blurSettingsData?.tabVisibility?.payment}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, payment: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-company" className="text-sm">Company</Label>
+                          <Switch
+                            id="tab-company"
+                            checked={!blurSettingsData?.tabVisibility?.company}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, company: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-email" className="text-sm">Email</Label>
+                          <Switch
+                            id="tab-email"
+                            checked={!blurSettingsData?.tabVisibility?.email}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, email: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-sms" className="text-sm">SMS</Label>
+                          <Switch
+                            id="tab-sms"
+                            checked={!blurSettingsData?.tabVisibility?.sms}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, sms: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-leads" className="text-sm">Leads</Label>
+                          <Switch
+                            id="tab-leads"
+                            checked={!blurSettingsData?.tabVisibility?.leads}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, leads: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-jobs" className="text-sm">Job Settings</Label>
+                          <Switch
+                            id="tab-jobs"
+                            checked={!blurSettingsData?.tabVisibility?.jobs}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, jobs: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-calendar" className="text-sm">Calendar</Label>
+                          <Switch
+                            id="tab-calendar"
+                            checked={!blurSettingsData?.tabVisibility?.calendar}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, calendar: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-ocr" className="text-sm">OCR</Label>
+                          <Switch
+                            id="tab-ocr"
+                            checked={!blurSettingsData?.tabVisibility?.ocr}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, ocr: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-reviews" className="text-sm">Reviews</Label>
+                          <Switch
+                            id="tab-reviews"
+                            checked={!blurSettingsData?.tabVisibility?.reviews}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, reviews: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-invoices" className="text-sm">Templates</Label>
+                          <Switch
+                            id="tab-invoices"
+                            checked={!blurSettingsData?.tabVisibility?.invoices}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, invoices: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-dashboard" className="text-sm">Dashboard</Label>
+                          <Switch
+                            id="tab-dashboard"
+                            checked={!blurSettingsData?.tabVisibility?.dashboard}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, dashboard: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-weather" className="text-sm">Weather</Label>
+                          <Switch
+                            id="tab-weather"
+                            checked={!blurSettingsData?.tabVisibility?.weather}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, weather: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-backup" className="text-sm">Backup</Label>
+                          <Switch
+                            id="tab-backup"
+                            checked={!blurSettingsData?.tabVisibility?.backup}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, backup: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-sounds" className="text-sm">Sounds</Label>
+                          <Switch
+                            id="tab-sounds"
+                            checked={!blurSettingsData?.tabVisibility?.sounds}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, sounds: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-storage" className="text-sm">File Storage</Label>
+                          <Switch
+                            id="tab-storage"
+                            checked={!blurSettingsData?.tabVisibility?.storage}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, storage: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-vehicles" className="text-sm">Vehicles</Label>
+                          <Switch
+                            id="tab-vehicles"
+                            checked={!blurSettingsData?.tabVisibility?.vehicles}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, vehicles: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-dispatch" className="text-sm">Dispatch</Label>
+                          <Switch
+                            id="tab-dispatch"
+                            checked={!blurSettingsData?.tabVisibility?.dispatch}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, dispatch: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-integrations" className="text-sm">Integrations</Label>
+                          <Switch
+                            id="tab-integrations"
+                            checked={!blurSettingsData?.tabVisibility?.integrations}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, integrations: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-navigation" className="text-sm">Navigation</Label>
+                          <Switch
+                            id="tab-navigation"
+                            checked={!blurSettingsData?.tabVisibility?.navigation}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, navigation: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-rollouts" className="text-sm">Rollouts</Label>
+                          <Switch
+                            id="tab-rollouts"
+                            checked={!blurSettingsData?.tabVisibility?.rollouts}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, rollouts: !checked } 
+                            }))}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                          <Label htmlFor="tab-reminders" className="text-sm">Reminders</Label>
+                          <Switch
+                            id="tab-reminders"
+                            checked={!blurSettingsData?.tabVisibility?.reminders}
+                            onCheckedChange={(checked) => setBlurSettingsData(prev => ({ 
+                              ...prev, 
+                              tabVisibility: { ...prev.tabVisibility, reminders: !checked } 
+                            }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="flex justify-end mt-4">
                       <Button 
                         onClick={() => saveBlurSettingsMutation.mutate()}

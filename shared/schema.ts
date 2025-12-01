@@ -6464,6 +6464,32 @@ export const blurSettings = pgTable("blur_settings", {
   blurDeploySettings: boolean("blur_deploy_settings").default(true),
   blurAnalyticsSettings: boolean("blur_analytics_settings").default(true),
   
+  // Tab visibility settings - JSONB object with tab names as keys and boolean values
+  // true = tab is hidden/blurred, false = tab is visible
+  tabVisibility: jsonb("tab_visibility").$type<{
+    payment?: boolean;
+    company?: boolean;
+    email?: boolean;
+    sms?: boolean;
+    leads?: boolean;
+    jobs?: boolean;
+    calendar?: boolean;
+    ocr?: boolean;
+    reviews?: boolean;
+    invoices?: boolean;
+    dashboard?: boolean;
+    weather?: boolean;
+    backup?: boolean;
+    sounds?: boolean;
+    storage?: boolean;
+    vehicles?: boolean;
+    dispatch?: boolean;
+    integrations?: boolean;
+    navigation?: boolean;
+    rollouts?: boolean;
+    reminders?: boolean;
+  }>().default({}),
+  
   // Custom message shown when section is blurred
   blurMessage: text("blur_message").default("This feature is restricted for your organization. Contact your administrator for access."),
   

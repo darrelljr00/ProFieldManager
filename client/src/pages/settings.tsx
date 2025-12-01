@@ -352,9 +352,38 @@ export default function Settings() {
     blurDeploySettings: boolean;
     blurAnalyticsSettings: boolean;
     blurMessage: string;
+    tabVisibility?: {
+      payment?: boolean;
+      company?: boolean;
+      email?: boolean;
+      sms?: boolean;
+      leads?: boolean;
+      jobs?: boolean;
+      calendar?: boolean;
+      ocr?: boolean;
+      reviews?: boolean;
+      invoices?: boolean;
+      dashboard?: boolean;
+      weather?: boolean;
+      backup?: boolean;
+      sounds?: boolean;
+      storage?: boolean;
+      vehicles?: boolean;
+      dispatch?: boolean;
+      integrations?: boolean;
+      navigation?: boolean;
+      rollouts?: boolean;
+      reminders?: boolean;
+    };
   }>({
     queryKey: ["/api/settings/blur"],
   });
+
+  // Helper function to check if a tab should be hidden
+  const isTabHidden = (tabName: string): boolean => {
+    if (!blurSettings?.tabVisibility) return false;
+    return blurSettings.tabVisibility[tabName as keyof typeof blurSettings.tabVisibility] === true;
+  };
 
   // Get organization users for admin dashboard management
   const { data: organizationUsers } = useQuery({
@@ -1086,27 +1115,27 @@ export default function Settings() {
 
       <Tabs defaultValue="payment" className="space-y-6">
         <TabsList className="flex flex-wrap h-auto w-full justify-start gap-1 bg-muted p-1">
-          <TabsTrigger value="payment" className="flex-shrink-0">Payment</TabsTrigger>
-          <TabsTrigger value="company" className="flex-shrink-0">Company</TabsTrigger>
-          <TabsTrigger value="email" className="flex-shrink-0">Email</TabsTrigger>
-          <TabsTrigger value="sms" className="flex-shrink-0">SMS</TabsTrigger>
-          <TabsTrigger value="leads" className="flex-shrink-0">Leads</TabsTrigger>
-          <TabsTrigger value="jobs" className="flex-shrink-0">Job Settings</TabsTrigger>
-          <TabsTrigger value="calendar" className="flex-shrink-0">Calendar</TabsTrigger>
-          <TabsTrigger value="ocr" className="flex-shrink-0">OCR</TabsTrigger>
-          <TabsTrigger value="reviews" className="flex-shrink-0">Reviews</TabsTrigger>
-          <TabsTrigger value="invoices" className="flex-shrink-0">Templates</TabsTrigger>
-          <TabsTrigger value="dashboard" className="flex-shrink-0">Dashboard</TabsTrigger>
-          <TabsTrigger value="weather" className="flex-shrink-0">Weather</TabsTrigger>
-          <TabsTrigger value="backup" className="flex-shrink-0">Backup</TabsTrigger>
-          <TabsTrigger value="sounds" className="flex-shrink-0">Sounds</TabsTrigger>
-          <TabsTrigger value="storage" className="flex-shrink-0">File Storage</TabsTrigger>
-          <TabsTrigger value="vehicles" className="flex-shrink-0">Vehicles</TabsTrigger>
-          <TabsTrigger value="dispatch" className="flex-shrink-0">Dispatch Routing</TabsTrigger>
-          <TabsTrigger value="integrations" className="flex-shrink-0">Integrations</TabsTrigger>
-          <TabsTrigger value="navigation" className="flex-shrink-0">Navigation</TabsTrigger>
-          <TabsTrigger value="rollouts" className="flex-shrink-0">Rollouts</TabsTrigger>
-          <TabsTrigger value="reminders" className="flex-shrink-0">Reminders</TabsTrigger>
+          {!isTabHidden('payment') && <TabsTrigger value="payment" className="flex-shrink-0">Payment</TabsTrigger>}
+          {!isTabHidden('company') && <TabsTrigger value="company" className="flex-shrink-0">Company</TabsTrigger>}
+          {!isTabHidden('email') && <TabsTrigger value="email" className="flex-shrink-0">Email</TabsTrigger>}
+          {!isTabHidden('sms') && <TabsTrigger value="sms" className="flex-shrink-0">SMS</TabsTrigger>}
+          {!isTabHidden('leads') && <TabsTrigger value="leads" className="flex-shrink-0">Leads</TabsTrigger>}
+          {!isTabHidden('jobs') && <TabsTrigger value="jobs" className="flex-shrink-0">Job Settings</TabsTrigger>}
+          {!isTabHidden('calendar') && <TabsTrigger value="calendar" className="flex-shrink-0">Calendar</TabsTrigger>}
+          {!isTabHidden('ocr') && <TabsTrigger value="ocr" className="flex-shrink-0">OCR</TabsTrigger>}
+          {!isTabHidden('reviews') && <TabsTrigger value="reviews" className="flex-shrink-0">Reviews</TabsTrigger>}
+          {!isTabHidden('invoices') && <TabsTrigger value="invoices" className="flex-shrink-0">Templates</TabsTrigger>}
+          {!isTabHidden('dashboard') && <TabsTrigger value="dashboard" className="flex-shrink-0">Dashboard</TabsTrigger>}
+          {!isTabHidden('weather') && <TabsTrigger value="weather" className="flex-shrink-0">Weather</TabsTrigger>}
+          {!isTabHidden('backup') && <TabsTrigger value="backup" className="flex-shrink-0">Backup</TabsTrigger>}
+          {!isTabHidden('sounds') && <TabsTrigger value="sounds" className="flex-shrink-0">Sounds</TabsTrigger>}
+          {!isTabHidden('storage') && <TabsTrigger value="storage" className="flex-shrink-0">File Storage</TabsTrigger>}
+          {!isTabHidden('vehicles') && <TabsTrigger value="vehicles" className="flex-shrink-0">Vehicles</TabsTrigger>}
+          {!isTabHidden('dispatch') && <TabsTrigger value="dispatch" className="flex-shrink-0">Dispatch Routing</TabsTrigger>}
+          {!isTabHidden('integrations') && <TabsTrigger value="integrations" className="flex-shrink-0">Integrations</TabsTrigger>}
+          {!isTabHidden('navigation') && <TabsTrigger value="navigation" className="flex-shrink-0">Navigation</TabsTrigger>}
+          {!isTabHidden('rollouts') && <TabsTrigger value="rollouts" className="flex-shrink-0">Rollouts</TabsTrigger>}
+          {!isTabHidden('reminders') && <TabsTrigger value="reminders" className="flex-shrink-0">Reminders</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="payment">
