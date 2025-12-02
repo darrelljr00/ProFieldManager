@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import React from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+
+const PromotionsPage = lazy(() => import("@/pages/promotions"));
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Save, X, Eye, Settings, Layout, Image, FileText, Globe, Sliders, Box, Palette, Monitor, Smartphone, Tablet, Crown, ExternalLink } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Eye, Settings, Layout, Image, FileText, Globe, Sliders, Box, Palette, Monitor, Smartphone, Tablet, Crown, ExternalLink, Ticket } from "lucide-react";
 
 interface FrontendPage {
   id: number;
@@ -807,7 +809,7 @@ export default function FrontendManagement() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="flex items-center gap-4">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="design" className="flex items-center space-x-2">
             <Palette className="h-4 w-4" />
             <span>Design</span>
@@ -831,6 +833,10 @@ export default function FrontendManagement() {
           <TabsTrigger value="boxes" className="flex items-center space-x-2">
             <Box className="h-4 w-4" />
             <span>Boxes</span>
+          </TabsTrigger>
+          <TabsTrigger value="promotions" className="flex items-center space-x-2">
+            <Ticket className="h-4 w-4" />
+            <span>Promotions</span>
           </TabsTrigger>
           <TabsTrigger value="layout" className="flex items-center space-x-2" data-testid="tab-layout">
             <Settings className="h-4 w-4" />
@@ -1487,6 +1493,13 @@ export default function FrontendManagement() {
               </Card>
             ))}
           </div>
+        </TabsContent>
+
+        {/* Promotions Tab */}
+        <TabsContent value="promotions" className="space-y-6">
+          <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading promotions...</div>}>
+            <PromotionsPage />
+          </Suspense>
         </TabsContent>
 
         {/* Layout Tab */}

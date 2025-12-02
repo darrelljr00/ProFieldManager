@@ -47,6 +47,7 @@ Preferred communication style: Simple, everyday language.
 - **Deployment**: Deploy to CWP System for server deployments with SSH/rsync, real-time logs, and deployment history.
 - **SEO**: Comprehensive SEO implementation for public-facing pages, dynamic sitemap/robots.txt, structured data.
 - **Mobile App**: OTA updates via Expo EAS.
+- **Promotions & Rewards**: Spin-to-win wheels for customer engagement, coupon code management, promotion campaigns with weighted probability selection, redemption tracking, and public-facing spin wheel pages with one-spin-per-user enforcement.
 
 ## External Dependencies
 
@@ -60,4 +61,8 @@ Preferred communication style: Simple, everyday language.
 - **ClamAV**: File security and virus scanning.
 - **AWS S3**: Backup storage.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
-6. **Security Fix - Auto-Login Bypass Removed**: Removed the development mode "ENHANCED FALLBACK" code that was automatically authenticating users without credentials by looking up existing database sessions. Now users must enter valid username/email and password to log in.
+
+## Recent Updates (Dec 2, 2025)
+- **Promotion Settings Moved to Frontend Management**: Promotions, coupon codes, redemptions, and spin wheel configuration are now accessible from the Frontend Management page under a new "Promotions" tab (in addition to the standalone promotions page)
+- **Spin Wheel Feature Complete**: Interactive spin-to-win wheel with CSS animation, weighted probability selection, one-spin enforcement, optional email capture, and integration with coupon code system
+- **Public Spin Wheel Pages**: Customers can access individual spin wheel campaigns via public URLs (`/spin-wheel/{id}`) with localStorage and database-backed spin tracking
