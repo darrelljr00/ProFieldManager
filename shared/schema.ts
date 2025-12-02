@@ -6505,3 +6505,104 @@ export const insertBlurSettingsSchema = createInsertSchema(blurSettings).omit({
 
 export type BlurSettings = typeof blurSettings.$inferSelect;
 export type InsertBlurSettings = z.infer<typeof insertBlurSettingsSchema>;
+
+// Promotions - Main promotions/discounts table
+export const promotions = pgTable("promotions", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id),
+  
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  status: text("status").notNull().default("active"), // active, inactive, expired, archived
+  
+  discountType: text("discount_type").notNull(), // percentage, fixed_amount, free_trial
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }),
+  
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  
+  maxRedemptions: integer("max_redemptions"),
+  currentRedemptions: integer("current_redemptions").default(0),
+  perCustomerLimit: integer("per_customer_limit").default(1),
+  
+  appliesTo: text("applies_to").default("all"), // all, new_customers, existing_customers
+  minimumPurchase: decimal("minimum_purchase", { precision: 10, scale: 2 }),
+  
+  restrictedToPlanIds: jsonb("restricted_to_plan_ids").$type<number[]>(),
+  
+  recurringDuration: integer("recurring_duration"),
+  
+  stackable: boolean("stackable").default(false),
+  autoApply: boolean("auto_apply").default(false),
+  
+  stripeCouponId: text("stripe_coupon_id"),
+  stripePromotionCodeId: text("stripe_promotion_code_id"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPromotionSchema = createInsertSchema(promotions).omit({
+  id: true,
+  currentRedemptions: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Promotion = typeof promotions.$inferSelect;
+export type InsertPromotion = z.infer<typeof insertPromotionSchema>;
+
+// Coupon Codes - Individual codes linked to promotions
+export const couponCodes = pgTable("coupon_codes", {
+  id: serial("id").primaryKey(),
+  promotionId: integer("promotion_id").notNull().references(() => promotions.id, { onDelete: "cascade" }),
+  
+  code: text("code").notNull(),
+  
+  maxRedemptions: integer("max_redemptions"),
+  currentRedemptions: integer("current_redemptions").default(0),
+  
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+});
+
+export const insertCouponCodeSchema = createInsertSchema(couponCodes).omit({
+  id: true,
+  currentRedemptions: true,
+  createdAt: true,
+});
+
+export type CouponCode = typeof couponCodes.$inferSelect;
+export type InsertCouponCode = z.infer<typeof insertCouponCodeSchema>;
+
+// Promotion Redemptions - Track usage history
+export const promotionRedemptions = pgTable("promotion_redemptions", {
+  id: serial("id").primaryKey(),
+  promotionId: integer("promotion_id").notNull().references(() => promotions.id),
+  couponCodeId: integer("coupon_code_id").references(() => couponCodes.id),
+  
+  organizationId: integer("organization_id").references(() => organizations.id),
+  userId: integer("user_id").references(() => users.id),
+  customerId: integer("customer_id").references(() => customers.id),
+  
+  subscriptionId: text("subscription_id"),
+  invoiceId: integer("invoice_id").references(() => invoices.id),
+  
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).notNull(),
+  originalAmount: decimal("original_amount", { precision: 10, scale: 2 }),
+  
+  status: text("status").default("applied"), // applied, refunded, expired
+  
+  redeemedAt: timestamp("redeemed_at").defaultNow(),
+});
+
+export const insertPromotionRedemptionSchema = createInsertSchema(promotionRedemptions).omit({
+  id: true,
+  redeemedAt: true,
+});
+
+export type PromotionRedemption = typeof promotionRedemptions.$inferSelect;
+export type InsertPromotionRedemption = z.infer<typeof insertPromotionRedemptionSchema>;
