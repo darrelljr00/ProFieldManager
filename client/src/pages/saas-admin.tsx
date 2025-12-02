@@ -2647,6 +2647,10 @@ export default function SaasAdminPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="onboarding" className="space-y-6">
+          <AdminOnboardingTab />
+        </TabsContent>
       </Tabs>
 
       {/* Create Subscription Dialog */}
