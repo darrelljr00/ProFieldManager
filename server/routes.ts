@@ -84,7 +84,7 @@ import {
   insertPlannedRouteSchema, insertRouteWaypointSchema, insertRouteDeviationSchema, insertRouteStopSchema,
   InsertRouteWaypoint,
   cacheSettings, insertCacheSettingsSchema, customerEtaSettings, customerEtaNotifications,
-  vehicleInspectionAlertSettings, vehicleInspectionAlerts, blurSettings
+  vehicleInspectionAlertSettings, vehicleInspectionAlerts, blurSettings, promotions, couponCodes, promotionRedemptions, insertPromotionSchema, insertCouponCodeSchema
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -2167,6 +2167,453 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   
   // COMPLETELY STEALTH AUTH ENDPOINT - Looks like regular data validation
+
+  // ============================================
+  // PROMOTIONS & COUPON CODES API ROUTES
+  // ============================================
+
+  // Get all promotions for an organization (Admin only)
+  app.get('/api/promotions', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const promos = await db
+        .select()
+        .from(promotions)
+        .where(eq(promotions.organizationId, user.organizationId))
+        .orderBy(desc(promotions.createdAt));
+      
+      res.json(promos);
+    } catch (error: any) {
+      console.error('Error fetching promotions:', error);
+      res.status(500).json({ message: 'Failed to fetch promotions' });
+    }
+  });
+
+  // Get single promotion with coupon codes
+  app.get('/api/promotions/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      const codes = await db
+        .select()
+        .from(couponCodes)
+        .where(eq(couponCodes.promotionId, promoId))
+        .orderBy(desc(couponCodes.createdAt));
+      
+      res.json({ ...promo, couponCodes: codes });
+    } catch (error: any) {
+      console.error('Error fetching promotion:', error);
+      res.status(500).json({ message: 'Failed to fetch promotion' });
+    }
+  });
+
+  // Create new promotion
+  app.post('/api/promotions', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const [newPromo] = await db
+        .insert(promotions)
+        .values({
+          ...req.body,
+          organizationId: user.organizationId,
+          currentRedemptions: 0
+        })
+        .returning();
+      
+      res.status(201).json(newPromo);
+    } catch (error: any) {
+      console.error('Error creating promotion:', error);
+      res.status(500).json({ message: 'Failed to create promotion' });
+    }
+  });
+
+  // Update promotion
+  app.put('/api/promotions/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [existing] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!existing) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      const [updated] = await db
+        .update(promotions)
+        .set({
+          ...req.body,
+          updatedAt: new Date()
+        })
+        .where(eq(promotions.id, promoId))
+        .returning();
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error updating promotion:', error);
+      res.status(500).json({ message: 'Failed to update promotion' });
+    }
+  });
+
+  // Delete promotion
+  app.delete('/api/promotions/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [existing] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!existing) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      await db.delete(promotions).where(eq(promotions.id, promoId));
+      
+      res.json({ message: 'Promotion deleted successfully' });
+    } catch (error: any) {
+      console.error('Error deleting promotion:', error);
+      res.status(500).json({ message: 'Failed to delete promotion' });
+    }
+  });
+
+  // Get coupon codes for a promotion
+  app.get('/api/promotions/:id/codes', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      const codes = await db
+        .select()
+        .from(couponCodes)
+        .where(eq(couponCodes.promotionId, promoId))
+        .orderBy(desc(couponCodes.createdAt));
+      
+      res.json(codes);
+    } catch (error: any) {
+      console.error('Error fetching coupon codes:', error);
+      res.status(500).json({ message: 'Failed to fetch coupon codes' });
+    }
+  });
+
+  // Create coupon code
+  app.post('/api/promotions/:id/codes', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      const [newCode] = await db
+        .insert(couponCodes)
+        .values({
+          promotionId: promoId,
+          code: req.body.code.toUpperCase(),
+          maxRedemptions: req.body.maxRedemptions,
+          expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : null,
+          isActive: true,
+          currentRedemptions: 0
+        })
+        .returning();
+      
+      res.status(201).json(newCode);
+    } catch (error: any) {
+      console.error('Error creating coupon code:', error);
+      res.status(500).json({ message: 'Failed to create coupon code' });
+    }
+  });
+
+  // Toggle coupon code active status
+  app.patch('/api/promotions/codes/:id/toggle', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const codeId = parseInt(req.params.id);
+      
+      const [code] = await db
+        .select({
+          id: couponCodes.id,
+          isActive: couponCodes.isActive,
+          promotionId: couponCodes.promotionId
+        })
+        .from(couponCodes)
+        .where(eq(couponCodes.id, codeId))
+        .limit(1);
+      
+      if (!code) {
+        return res.status(404).json({ message: 'Coupon code not found' });
+      }
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, code.promotionId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      const [updated] = await db
+        .update(couponCodes)
+        .set({ isActive: !code.isActive })
+        .where(eq(couponCodes.id, codeId))
+        .returning();
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error toggling coupon code:', error);
+      res.status(500).json({ message: 'Failed to toggle coupon code' });
+    }
+  });
+
+  // Delete coupon code
+  app.delete('/api/promotions/codes/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const codeId = parseInt(req.params.id);
+      
+      const [code] = await db
+        .select({
+          id: couponCodes.id,
+          promotionId: couponCodes.promotionId
+        })
+        .from(couponCodes)
+        .where(eq(couponCodes.id, codeId))
+        .limit(1);
+      
+      if (!code) {
+        return res.status(404).json({ message: 'Coupon code not found' });
+      }
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, code.promotionId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      await db.delete(couponCodes).where(eq(couponCodes.id, codeId));
+      
+      res.json({ message: 'Coupon code deleted successfully' });
+    } catch (error: any) {
+      console.error('Error deleting coupon code:', error);
+      res.status(500).json({ message: 'Failed to delete coupon code' });
+    }
+  });
+
+  // Get promotion redemptions
+  app.get('/api/promotions/:id/redemptions', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      const redemptions = await db
+        .select()
+        .from(promotionRedemptions)
+        .where(eq(promotionRedemptions.promotionId, promoId))
+        .orderBy(desc(promotionRedemptions.redeemedAt));
+      
+      res.json(redemptions);
+    } catch (error: any) {
+      console.error('Error fetching redemptions:', error);
+      res.status(500).json({ message: 'Failed to fetch redemptions' });
+    }
+  });
+
+  // Validate coupon code (public endpoint for checkout)
+  app.post('/api/promotions/validate-code', async (req, res) => {
+    try {
+      const { code, organizationId } = req.body;
+      
+      if (!code || !organizationId) {
+        return res.status(400).json({ valid: false, message: 'Code and organization ID required' });
+      }
+      
+      const [couponCode] = await db
+        .select({
+          id: couponCodes.id,
+          code: couponCodes.code,
+          isActive: couponCodes.isActive,
+          maxRedemptions: couponCodes.maxRedemptions,
+          currentRedemptions: couponCodes.currentRedemptions,
+          expiresAt: couponCodes.expiresAt,
+          promotionId: couponCodes.promotionId
+        })
+        .from(couponCodes)
+        .where(eq(couponCodes.code, code.toUpperCase()))
+        .limit(1);
+      
+      if (!couponCode) {
+        return res.json({ valid: false, message: 'Invalid coupon code' });
+      }
+      
+      if (!couponCode.isActive) {
+        return res.json({ valid: false, message: 'This coupon code is no longer active' });
+      }
+      
+      if (couponCode.expiresAt && new Date(couponCode.expiresAt) < new Date()) {
+        return res.json({ valid: false, message: 'This coupon code has expired' });
+      }
+      
+      if (couponCode.maxRedemptions && couponCode.currentRedemptions >= couponCode.maxRedemptions) {
+        return res.json({ valid: false, message: 'This coupon code has reached its usage limit' });
+      }
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, couponCode.promotionId),
+          eq(promotions.organizationId, organizationId),
+          eq(promotions.status, 'active')
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.json({ valid: false, message: 'This promotion is not available' });
+      }
+      
+      if (promo.startDate && new Date(promo.startDate) > new Date()) {
+        return res.json({ valid: false, message: 'This promotion has not started yet' });
+      }
+      
+      if (promo.endDate && new Date(promo.endDate) < new Date()) {
+        return res.json({ valid: false, message: 'This promotion has expired' });
+      }
+      
+      if (promo.maxRedemptions && promo.currentRedemptions >= promo.maxRedemptions) {
+        return res.json({ valid: false, message: 'This promotion has reached its usage limit' });
+      }
+      
+      res.json({
+        valid: true,
+        promotion: {
+          id: promo.id,
+          name: promo.name,
+          discountType: promo.discountType,
+          discountValue: promo.discountValue,
+          minimumPurchase: promo.minimumPurchase
+        },
+        couponCodeId: couponCode.id
+      });
+    } catch (error: any) {
+      console.error('Error validating coupon code:', error);
+      res.status(500).json({ valid: false, message: 'Failed to validate coupon code' });
+    }
+  });
+
+  // SaaS Admin: Get all promotions across all organizations
+  app.get('/api/admin/promotions', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const [userOrg] = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, user.organizationId))
+        .limit(1);
+      
+      if (!userOrg || userOrg.slug !== 'profieldmanager') {
+        return res.status(403).json({ message: 'Only SaaS administrators can access this endpoint' });
+      }
+      
+      const allPromos = await db
+        .select({
+          id: promotions.id,
+          organizationId: promotions.organizationId,
+          name: promotions.name,
+          status: promotions.status,
+          discountType: promotions.discountType,
+          discountValue: promotions.discountValue,
+          currentRedemptions: promotions.currentRedemptions,
+          maxRedemptions: promotions.maxRedemptions,
+          createdAt: promotions.createdAt
+        })
+        .from(promotions)
+        .orderBy(desc(promotions.createdAt));
+      
+      res.json(allPromos);
+    } catch (error: any) {
+      console.error('Error fetching all promotions:', error);
+      res.status(500).json({ message: 'Failed to fetch promotions' });
+    }
+  });
+
   app.post("/api/data/validate-credentials", async (req, res) => {
     console.log('🎯🎯🎯 ULTIMATE STEALTH ENDPOINT HIT - TOTAL BYPASS! 🎯🎯🎯');
     console.log('🔐 Processing data validation request:', {
