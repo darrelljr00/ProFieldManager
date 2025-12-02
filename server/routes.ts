@@ -2175,6 +2175,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all promotions for an organization (Admin only)
   app.get('/api/promotions', requireAuth, async (req, res) => {
     try {
+      if (!user.organizationId || isNaN(user.organizationId)) {
+        return res.status(400).json({ message: "Invalid organization" });
+      }
       const user = getAuthenticatedUser(req);
       
       const promos = await db
@@ -2635,6 +2638,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get all wheel configs for organization
   app.get('/api/promotions/wheels', requireAuth, async (req, res) => {
+      if (!user.organizationId || isNaN(user.organizationId)) {
+        return res.status(400).json({ message: "Invalid organization" });
+      }
     try {
       const user = getAuthenticatedUser(req);
       
