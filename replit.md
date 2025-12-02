@@ -63,6 +63,12 @@ Preferred communication style: Simple, everyday language.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
 ## Recent Updates (Dec 2, 2025)
+- **Dual Onboarding System Enhancements**: 
+  - Added "Onboarding" navigation item to sidebar for organization admins to view their own progress (`/onboarding-overview` page)
+  - Enhanced SaaS Admin Onboarding tab with Monitor/Settings tabs
+  - Settings tab allows configuring email templates (welcome/reminder), reminder delay timing, and enabling/disabling onboarding steps
+  - Created `onboarding_settings` database table for platform-wide configuration persistence
+  - API routes `/api/admin/onboarding/settings` (GET/PUT) protected with `isSuperAdmin` middleware
 - **Promotion Settings Moved to Frontend Management**: Promotions, coupon codes, redemptions, and spin wheel configuration are now accessible from the Frontend Management page under a new "Promotions" tab (in addition to the standalone promotions page)
 - **Spin Wheel Feature Complete**: Interactive spin-to-win wheel with CSS animation, weighted probability selection, one-spin enforcement, optional email capture, and integration with coupon code system
 - **Public Spin Wheel Pages**: Customers can access individual spin wheel campaigns via public URLs (`/spin-wheel/{id}`) with localStorage and database-backed spin tracking
