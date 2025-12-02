@@ -8,13 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Copy, Tag, Ticket, BarChart3, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, Tag, Ticket, BarChart3, RefreshCw, CircleDot, Eye, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import { SpinWheel } from "@/components/SpinWheel";
 
 interface Promotion {
   id: number;
@@ -31,12 +32,8 @@ interface Promotion {
   perCustomerLimit: number;
   appliesTo: string;
   minimumPurchase: string | null;
-  restrictedToPlanIds: number[] | null;
-  recurringDuration: number | null;
   stackable: boolean;
   autoApply: boolean;
-  stripeCouponId: string | null;
-  stripePromotionCodeId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,23 +53,53 @@ interface PromotionRedemption {
   id: number;
   promotionId: number;
   couponCodeId: number | null;
-  organizationId: number | null;
-  userId: number | null;
-  customerId: number | null;
-  subscriptionId: string | null;
-  invoiceId: number | null;
   discountAmount: string;
   originalAmount: string | null;
   status: string;
   redeemedAt: string;
 }
 
+interface WheelConfig {
+  id: number;
+  organizationId: number;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  backgroundColor: string;
+  pointerColor: string;
+  spinDuration: number;
+  requireEmail: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface WheelSegment {
+  id?: number;
+  wheelId?: number;
+  couponCodeId: number | null;
+  couponCode?: string;
+  label: string;
+  color: string;
+  probabilityWeight: number;
+  isWinner: boolean;
+  displayOrder: number;
+}
+
+const DEFAULT_COLORS = [
+  "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", 
+  "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
+  "#BB8FCE", "#85C1E9", "#F8B500", "#00CED1"
+];
+
 export default function PromotionsPage() {
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCodeDialog, setShowCodeDialog] = useState(false);
+  const [showWheelDialog, setShowWheelDialog] = useState(false);
+  const [showWheelPreview, setShowWheelPreview] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
+  const [selectedWheel, setSelectedWheel] = useState<WheelConfig | null>(null);
   const [activeTab, setActiveTab] = useState("promotions");
 
   const [formData, setFormData] = useState({
@@ -97,18 +124,42 @@ export default function PromotionsPage() {
     expiresAt: ""
   });
 
-  const { data: promotions = [], isLoading: promotionsLoading, refetch: refetchPromotions } = useQuery<Promotion[]>({
+  const [wheelFormData, setWheelFormData] = useState({
+    name: "",
+    description: "",
+    backgroundColor: "#ffffff",
+    pointerColor: "#ff6b6b",
+    spinDuration: 5000,
+    requireEmail: false,
+    segments: [] as WheelSegment[]
+  });
+
+  const { data: promotions = [], isLoading: promotionsLoading } = useQuery<Promotion[]>({
     queryKey: ["/api/promotions"]
   });
 
-  const { data: promotionWithCodes, isLoading: codesLoading, refetch: refetchCodes } = useQuery<Promotion & { couponCodes: CouponCode[] }>({
+  const { data: promotionWithCodes, isLoading: codesLoading } = useQuery<Promotion & { couponCodes: CouponCode[] }>({
     queryKey: ["/api/promotions", selectedPromotion?.id],
     enabled: !!selectedPromotion?.id
   });
 
-  const { data: redemptions = [], isLoading: redemptionsLoading, refetch: refetchRedemptions } = useQuery<PromotionRedemption[]>({
+  const { data: redemptions = [], isLoading: redemptionsLoading } = useQuery<PromotionRedemption[]>({
     queryKey: ["/api/promotions", selectedPromotion?.id, "redemptions"],
     enabled: !!selectedPromotion?.id && activeTab === "redemptions"
+  });
+
+  const { data: wheels = [], isLoading: wheelsLoading } = useQuery<WheelConfig[]>({
+    queryKey: ["/api/promotions/wheels"]
+  });
+
+  const { data: wheelWithSegments } = useQuery<WheelConfig & { segments: WheelSegment[] }>({
+    queryKey: ["/api/promotions/wheels", selectedWheel?.id],
+    enabled: !!selectedWheel?.id
+  });
+
+  const { data: allCouponCodes = [] } = useQuery<CouponCode[]>({
+    queryKey: ["/api/promotions/all-codes"],
+    enabled: activeTab === "wheels"
   });
 
   const createPromotionMutation = useMutation({
@@ -229,6 +280,50 @@ export default function PromotionsPage() {
     }
   });
 
+  const createWheelMutation = useMutation({
+    mutationFn: async (data: typeof wheelFormData) => {
+      return apiRequest("POST", "/api/promotions/wheels", data);
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Spin wheel created successfully" });
+      setShowWheelDialog(false);
+      resetWheelForm();
+      queryClient.invalidateQueries({ queryKey: ["/api/promotions/wheels"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to create wheel", variant: "destructive" });
+    }
+  });
+
+  const updateWheelMutation = useMutation({
+    mutationFn: async (data: typeof wheelFormData) => {
+      if (!selectedWheel) throw new Error("No wheel selected");
+      return apiRequest("PUT", `/api/promotions/wheels/${selectedWheel.id}`, data);
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Spin wheel updated successfully" });
+      setShowWheelDialog(false);
+      resetWheelForm();
+      queryClient.invalidateQueries({ queryKey: ["/api/promotions/wheels"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to update wheel", variant: "destructive" });
+    }
+  });
+
+  const deleteWheelMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/promotions/wheels/${id}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Spin wheel deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/promotions/wheels"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to delete wheel", variant: "destructive" });
+    }
+  });
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -246,6 +341,19 @@ export default function PromotionsPage() {
       autoApply: false
     });
     setSelectedPromotion(null);
+  };
+
+  const resetWheelForm = () => {
+    setWheelFormData({
+      name: "",
+      description: "",
+      backgroundColor: "#ffffff",
+      pointerColor: "#ff6b6b",
+      spinDuration: 5000,
+      requireEmail: false,
+      segments: []
+    });
+    setSelectedWheel(null);
   };
 
   const handleEditPromotion = (promo: Promotion) => {
@@ -273,6 +381,29 @@ export default function PromotionsPage() {
     setActiveTab("codes");
   };
 
+  const handleEditWheel = async (wheel: WheelConfig) => {
+    setSelectedWheel(wheel);
+    const response = await fetch(`/api/promotions/wheels/${wheel.id}`, {
+      credentials: 'include'
+    });
+    const data = await response.json();
+    setWheelFormData({
+      name: data.name,
+      description: data.description || "",
+      backgroundColor: data.backgroundColor || "#ffffff",
+      pointerColor: data.pointerColor || "#ff6b6b",
+      spinDuration: data.spinDuration || 5000,
+      requireEmail: data.requireEmail || false,
+      segments: data.segments || []
+    });
+    setShowWheelDialog(true);
+  };
+
+  const handlePreviewWheel = async (wheel: WheelConfig) => {
+    setSelectedWheel(wheel);
+    setShowWheelPreview(true);
+  };
+
   const copyCodeToClipboard = (code: string) => {
     navigator.clipboard.writeText(code);
     toast({ title: "Copied", description: `Code "${code}" copied to clipboard` });
@@ -287,6 +418,32 @@ export default function PromotionsPage() {
     setCodeFormData({ ...codeFormData, code });
   };
 
+  const addWheelSegment = () => {
+    const newSegment: WheelSegment = {
+      label: `Prize ${wheelFormData.segments.length + 1}`,
+      color: DEFAULT_COLORS[wheelFormData.segments.length % DEFAULT_COLORS.length],
+      couponCodeId: null,
+      probabilityWeight: 1,
+      isWinner: true,
+      displayOrder: wheelFormData.segments.length
+    };
+    setWheelFormData({
+      ...wheelFormData,
+      segments: [...wheelFormData.segments, newSegment]
+    });
+  };
+
+  const updateSegment = (index: number, updates: Partial<WheelSegment>) => {
+    const newSegments = [...wheelFormData.segments];
+    newSegments[index] = { ...newSegments[index], ...updates };
+    setWheelFormData({ ...wheelFormData, segments: newSegments });
+  };
+
+  const removeSegment = (index: number) => {
+    const newSegments = wheelFormData.segments.filter((_, i) => i !== index);
+    setWheelFormData({ ...wheelFormData, segments: newSegments });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -295,8 +452,6 @@ export default function PromotionsPage() {
         return <Badge variant="secondary" data-testid="badge-status-inactive">Inactive</Badge>;
       case "expired":
         return <Badge variant="destructive" data-testid="badge-status-expired">Expired</Badge>;
-      case "archived":
-        return <Badge variant="outline" data-testid="badge-status-archived">Archived</Badge>;
       default:
         return <Badge data-testid="badge-status-unknown">{status}</Badge>;
     }
@@ -313,17 +468,17 @@ export default function PromotionsPage() {
     return promo.discountValue || "-";
   };
 
+  const getPublicWheelUrl = (wheelId: number) => {
+    return `${window.location.origin}/spin-wheel/${wheelId}`;
+  };
+
   return (
     <div className="container mx-auto py-6 px-4">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-page-title">Promotions & Coupons</h1>
-          <p className="text-muted-foreground">Create and manage promotional offers and coupon codes</p>
+          <p className="text-muted-foreground">Create and manage promotional offers, coupon codes, and spin wheels</p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)} data-testid="button-create-promotion">
-          <Plus className="w-4 h-4 mr-2" />
-          Create Promotion
-        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -340,13 +495,23 @@ export default function PromotionsPage() {
             <BarChart3 className="w-4 h-4 mr-2" />
             Redemptions
           </TabsTrigger>
+          <TabsTrigger value="wheels" data-testid="tab-wheels">
+            <CircleDot className="w-4 h-4 mr-2" />
+            Spin Wheels
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="promotions">
           <Card>
-            <CardHeader>
-              <CardTitle>All Promotions</CardTitle>
-              <CardDescription>Manage your promotional offers and discounts</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>All Promotions</CardTitle>
+                <CardDescription>Manage your promotional offers and discounts</CardDescription>
+              </div>
+              <Button onClick={() => setShowCreateDialog(true)} data-testid="button-create-promotion">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Promotion
+              </Button>
             </CardHeader>
             <CardContent>
               {promotionsLoading ? (
@@ -568,11 +733,109 @@ export default function PromotionsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="wheels">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Spin Wheels</CardTitle>
+                <CardDescription>Create interactive spin-to-win wheels for customers</CardDescription>
+              </div>
+              <Button onClick={() => { resetWheelForm(); setShowWheelDialog(true); }} data-testid="button-create-wheel">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Wheel
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {wheelsLoading ? (
+                <div className="flex justify-center py-8">
+                  <RefreshCw className="w-6 h-6 animate-spin" />
+                </div>
+              ) : wheels.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CircleDot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No spin wheels yet. Create your first wheel to engage customers!</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Require Email</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {wheels.map((wheel) => (
+                      <TableRow key={wheel.id} data-testid={`row-wheel-${wheel.id}`}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium" data-testid={`text-wheel-name-${wheel.id}`}>{wheel.name}</p>
+                            <p className="text-sm text-muted-foreground">{wheel.description}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={wheel.isActive ? "bg-green-500" : ""} variant={wheel.isActive ? "default" : "secondary"}>
+                            {wheel.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{wheel.requireEmail ? "Yes" : "No"}</TableCell>
+                        <TableCell>{format(new Date(wheel.createdAt), "MMM d, yyyy")}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handlePreviewWheel(wheel)}
+                              data-testid={`button-preview-wheel-${wheel.id}`}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const url = getPublicWheelUrl(wheel.id);
+                                navigator.clipboard.writeText(url);
+                                toast({ title: "Link Copied", description: "Public wheel link copied to clipboard" });
+                              }}
+                              data-testid={`button-copy-wheel-link-${wheel.id}`}
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditWheel(wheel)}
+                              data-testid={`button-edit-wheel-${wheel.id}`}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteWheelMutation.mutate(wheel.id)}
+                              data-testid={`button-delete-wheel-${wheel.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Create Promotion Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Promotion</DialogTitle>
             <DialogDescription>Set up a new promotional offer for your customers</DialogDescription>
@@ -598,7 +861,6 @@ export default function PromotionsPage() {
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -691,33 +953,6 @@ export default function PromotionsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Applies To</Label>
-                <Select value={formData.appliesTo} onValueChange={(value) => setFormData({ ...formData, appliesTo: value })}>
-                  <SelectTrigger data-testid="select-applies-to">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Customers</SelectItem>
-                    <SelectItem value="new_customers">New Customers Only</SelectItem>
-                    <SelectItem value="existing_customers">Existing Customers Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="minimumPurchase">Minimum Purchase ($)</Label>
-                <Input
-                  id="minimumPurchase"
-                  type="number"
-                  value={formData.minimumPurchase}
-                  onChange={(e) => setFormData({ ...formData, minimumPurchase: e.target.value })}
-                  placeholder="Leave empty for no minimum"
-                  data-testid="input-min-purchase"
-                />
-              </div>
-            </div>
-
             <div className="flex items-center gap-6">
               <div className="flex items-center space-x-2">
                 <Switch
@@ -726,7 +961,7 @@ export default function PromotionsPage() {
                   onCheckedChange={(checked) => setFormData({ ...formData, stackable: checked })}
                   data-testid="switch-stackable"
                 />
-                <Label htmlFor="stackable">Stackable with other promotions</Label>
+                <Label htmlFor="stackable">Stackable</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
@@ -735,7 +970,7 @@ export default function PromotionsPage() {
                   onCheckedChange={(checked) => setFormData({ ...formData, autoApply: checked })}
                   data-testid="switch-auto-apply"
                 />
-                <Label htmlFor="autoApply">Auto-apply without code</Label>
+                <Label htmlFor="autoApply">Auto-apply</Label>
               </div>
             </div>
           </div>
@@ -756,7 +991,7 @@ export default function PromotionsPage() {
 
       {/* Edit Promotion Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Promotion</DialogTitle>
             <DialogDescription>Update the promotion details</DialogDescription>
@@ -782,7 +1017,6 @@ export default function PromotionsPage() {
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
                     <SelectItem value="expired">Expired</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -813,62 +1047,13 @@ export default function PromotionsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-discountValue">
-                  {formData.discountType === "percentage" ? "Percentage" : formData.discountType === "fixed_amount" ? "Amount ($)" : "Trial Days"}
-                </Label>
+                <Label htmlFor="edit-discountValue">Discount Value</Label>
                 <Input
                   id="edit-discountValue"
                   type="number"
                   value={formData.discountValue}
                   onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
                   data-testid="input-edit-discount-value"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-startDate">Start Date</Label>
-                <Input
-                  id="edit-startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  data-testid="input-edit-start-date"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-endDate">End Date</Label>
-                <Input
-                  id="edit-endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  data-testid="input-edit-end-date"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-maxRedemptions">Max Redemptions</Label>
-                <Input
-                  id="edit-maxRedemptions"
-                  type="number"
-                  value={formData.maxRedemptions}
-                  onChange={(e) => setFormData({ ...formData, maxRedemptions: e.target.value })}
-                  placeholder="Leave empty for unlimited"
-                  data-testid="input-edit-max-redemptions"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-perCustomerLimit">Per Customer Limit</Label>
-                <Input
-                  id="edit-perCustomerLimit"
-                  type="number"
-                  value={formData.perCustomerLimit}
-                  onChange={(e) => setFormData({ ...formData, perCustomerLimit: e.target.value })}
-                  data-testid="input-edit-per-customer-limit"
                 />
               </div>
             </div>
@@ -967,6 +1152,244 @@ export default function PromotionsPage() {
               {createCodeMutation.isPending ? "Creating..." : "Create Code"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Wheel Configuration Dialog */}
+      <Dialog open={showWheelDialog} onOpenChange={setShowWheelDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedWheel ? "Edit Spin Wheel" : "Create Spin Wheel"}</DialogTitle>
+            <DialogDescription>Configure your spin-to-win wheel with prizes and segments</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="wheelName">Wheel Name</Label>
+                <Input
+                  id="wheelName"
+                  value={wheelFormData.name}
+                  onChange={(e) => setWheelFormData({ ...wheelFormData, name: e.target.value })}
+                  placeholder="e.g., Holiday Spin & Win"
+                  data-testid="input-wheel-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="spinDuration">Spin Duration (ms)</Label>
+                <Input
+                  id="spinDuration"
+                  type="number"
+                  value={wheelFormData.spinDuration}
+                  onChange={(e) => setWheelFormData({ ...wheelFormData, spinDuration: parseInt(e.target.value) || 5000 })}
+                  data-testid="input-spin-duration"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="wheelDescription">Description</Label>
+              <Textarea
+                id="wheelDescription"
+                value={wheelFormData.description}
+                onChange={(e) => setWheelFormData({ ...wheelFormData, description: e.target.value })}
+                placeholder="Spin to win amazing prizes!"
+                data-testid="input-wheel-description"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bgColor">Background Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="bgColor"
+                    type="color"
+                    value={wheelFormData.backgroundColor}
+                    onChange={(e) => setWheelFormData({ ...wheelFormData, backgroundColor: e.target.value })}
+                    className="w-12 h-10 p-1"
+                    data-testid="input-bg-color"
+                  />
+                  <Input
+                    value={wheelFormData.backgroundColor}
+                    onChange={(e) => setWheelFormData({ ...wheelFormData, backgroundColor: e.target.value })}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="pointerColor">Pointer Color</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="pointerColor"
+                    type="color"
+                    value={wheelFormData.pointerColor}
+                    onChange={(e) => setWheelFormData({ ...wheelFormData, pointerColor: e.target.value })}
+                    className="w-12 h-10 p-1"
+                    data-testid="input-pointer-color"
+                  />
+                  <Input
+                    value={wheelFormData.pointerColor}
+                    onChange={(e) => setWheelFormData({ ...wheelFormData, pointerColor: e.target.value })}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2 flex items-end">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="requireEmail"
+                    checked={wheelFormData.requireEmail}
+                    onCheckedChange={(checked) => setWheelFormData({ ...wheelFormData, requireEmail: checked })}
+                    data-testid="switch-require-email"
+                  />
+                  <Label htmlFor="requireEmail">Require Email</Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label className="text-lg font-semibold">Wheel Segments</Label>
+                <Button type="button" variant="outline" onClick={addWheelSegment} data-testid="button-add-segment">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Segment
+                </Button>
+              </div>
+
+              {wheelFormData.segments.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground border-2 border-dashed rounded-lg">
+                  <p>No segments yet. Add segments to create your wheel.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {wheelFormData.segments.map((segment, index) => (
+                    <div key={index} className="flex items-center gap-3 p-3 border rounded-lg" data-testid={`segment-row-${index}`}>
+                      <div className="flex-1 grid grid-cols-4 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Label</Label>
+                          <Input
+                            value={segment.label}
+                            onChange={(e) => updateSegment(index, { label: e.target.value })}
+                            placeholder="Prize name"
+                            data-testid={`input-segment-label-${index}`}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Color</Label>
+                          <div className="flex gap-1">
+                            <Input
+                              type="color"
+                              value={segment.color}
+                              onChange={(e) => updateSegment(index, { color: e.target.value })}
+                              className="w-10 h-9 p-1"
+                              data-testid={`input-segment-color-${index}`}
+                            />
+                            <Input
+                              value={segment.color}
+                              onChange={(e) => updateSegment(index, { color: e.target.value })}
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Probability Weight</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={segment.probabilityWeight}
+                            onChange={(e) => updateSegment(index, { probabilityWeight: parseInt(e.target.value) || 1 })}
+                            data-testid={`input-segment-weight-${index}`}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Is Winner?</Label>
+                          <div className="flex items-center h-9">
+                            <Switch
+                              checked={segment.isWinner}
+                              onCheckedChange={(checked) => updateSegment(index, { isWinner: checked })}
+                              data-testid={`switch-segment-winner-${index}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeSegment(index)}
+                        data-testid={`button-remove-segment-${index}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {wheelFormData.segments.length >= 2 && (
+              <div className="flex justify-center pt-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-center mb-2 font-medium">Preview</p>
+                  <SpinWheel
+                    wheelId={0}
+                    segments={wheelFormData.segments.map((s, i) => ({
+                      id: i,
+                      label: s.label,
+                      color: s.color,
+                      displayOrder: i
+                    }))}
+                    spinDuration={wheelFormData.spinDuration}
+                    pointerColor={wheelFormData.pointerColor}
+                    backgroundColor={wheelFormData.backgroundColor}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowWheelDialog(false); resetWheelForm(); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => selectedWheel ? updateWheelMutation.mutate(wheelFormData) : createWheelMutation.mutate(wheelFormData)}
+              disabled={createWheelMutation.isPending || updateWheelMutation.isPending || wheelFormData.segments.length < 2}
+              data-testid="button-save-wheel"
+            >
+              {(createWheelMutation.isPending || updateWheelMutation.isPending) ? "Saving..." : selectedWheel ? "Update Wheel" : "Create Wheel"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Wheel Preview Dialog */}
+      <Dialog open={showWheelPreview} onOpenChange={setShowWheelPreview}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Wheel Preview: {selectedWheel?.name}</DialogTitle>
+            <DialogDescription>This is how customers will see your wheel</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {wheelWithSegments && wheelWithSegments.segments.length >= 2 ? (
+              <SpinWheel
+                wheelId={selectedWheel?.id || 0}
+                segments={wheelWithSegments.segments.map((s) => ({
+                  id: s.id || 0,
+                  label: s.label,
+                  color: s.color,
+                  displayOrder: s.displayOrder
+                }))}
+                spinDuration={wheelWithSegments.spinDuration}
+                pointerColor={wheelWithSegments.pointerColor}
+                backgroundColor={wheelWithSegments.backgroundColor}
+                requireEmail={wheelWithSegments.requireEmail}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>This wheel needs at least 2 segments to preview.</p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

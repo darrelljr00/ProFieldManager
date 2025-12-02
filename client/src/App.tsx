@@ -57,6 +57,7 @@ const Users = lazy(() => import("@/pages/users"));
 const AdminSettings = lazy(() => import("@/pages/admin-settings"));
 const SaasAdmin = lazy(() => import("@/pages/saas-admin"));
 const Promotions = lazy(() => import("@/pages/promotions"));
+const SpinWheelPage = lazy(() => import("@/pages/spin-wheel"));
 const SaasCallManagerPage = lazy(() => import("@/pages/saas-admin/call-manager"));
 const CallManager = lazy(() => import("@/pages/call-manager"));
 const SmsPage = lazy(() => import("@/pages/sms"));
@@ -311,6 +312,7 @@ function PublicRoutes() {
           <Route path="/services/window-washers" component={WindowWashersPage} />
           <Route path="/services/service-techs" component={ServiceTechsPage} />
           <Route path="/get-started" component={GetStartedPage} />
+          <Route path="/spin-wheel/:id" component={SpinWheelPage} />
           <Route path="/login" component={UniversalLogin} />
           <Route path="/password-reset-request" component={PasswordResetRequest} />
           <Route path="/password-reset-complete" component={PasswordResetComplete} />
