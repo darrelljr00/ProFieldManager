@@ -86,7 +86,7 @@ import {
   cacheSettings, insertCacheSettingsSchema, customerEtaSettings, customerEtaNotifications,
   vehicleInspectionAlertSettings, vehicleInspectionAlerts, blurSettings, promotions, couponCodes, promotionRedemptions, insertPromotionSchema, insertCouponCodeSchema
 } from "@shared/schema";
-import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
+import { eq, and, desc, asc, like, or, sql, gt, gte, lt, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
 import { ensureOrganizationFolders, createOrganizationFolders } from "./folderCreation";
 import { Client } from '@googlemaps/google-maps-services-js';
@@ -2576,6 +2576,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ valid: false, message: 'Failed to validate coupon code' });
     }
   });
+  // Public: Get auto-apply promotions for an organization
+  app.post("/api/promotions/auto-apply", async (req, res) => {
+    try {
+      const { organizationId, customerType } = req.body;
+      
+      if (!organizationId) {
+        return res.status(400).json({ success: false, message: "Organization ID required" });
+      }
+      
+      const now = new Date();
+      
+      const autoApplyPromos = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.organizationId, organizationId),
+          eq(promotions.status, "active"),
+          eq(promotions.autoApply, true),
+          or(isNull(promotions.startDate), lte(promotions.startDate, now)),
+          or(isNull(promotions.endDate), gte(promotions.endDate, now)),
+          or(
+            isNull(promotions.maxRedemptions),
+            lt(promotions.currentRedemptions, promotions.maxRedemptions)
+          )
+        ));
+      
+      // Filter by customer type if specified
+      const filteredPromos = autoApplyPromos.filter(promo => {
+        if (promo.appliesTo === "all") return true;
+        if (promo.appliesTo === "new_customers" && customerType === "new") return true;
+        if (promo.appliesTo === "existing_customers" && customerType === "existing") return true;
+        return false;
+      });
+      
+      res.json({
+        success: true,
+        promotions: filteredPromos.map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          discountType: p.discountType,
+          discountValue: p.discountValue,
+          minimumPurchase: p.minimumPurchase
+        }))
+      });
+    } catch (error: any) {
+      console.error("Error fetching auto-apply promotions:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch promotions" });
+    }
+  });
 
   // SaaS Admin: Get all promotions across all organizations
   app.get('/api/admin/promotions', requireAuth, async (req, res) => {
@@ -4476,7 +4526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders', '/captcha/', '/public/', '/analytics/'];
+    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders', '/captcha/', '/public/', '/analytics/', '/promotions/validate-code', '/promotions/auto-apply'];
     // Add special handling for debug routes
     const debugRoutes = ['/debug/custom-domain-test'];
     const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token}
