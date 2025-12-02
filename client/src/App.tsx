@@ -56,6 +56,7 @@ const ImageGallery = lazy(() => import("@/pages/image-gallery"));
 const Users = lazy(() => import("@/pages/users"));
 const AdminSettings = lazy(() => import("@/pages/admin-settings"));
 const SaasAdmin = lazy(() => import("@/pages/saas-admin"));
+const Promotions = lazy(() => import("@/pages/promotions"));
 const SaasCallManagerPage = lazy(() => import("@/pages/saas-admin/call-manager"));
 const CallManager = lazy(() => import("@/pages/call-manager"));
 const SmsPage = lazy(() => import("@/pages/sms"));
@@ -263,6 +264,7 @@ function AuthenticatedApp() {
               <Route path="/parts-supplies" component={PartsSupplies} />
               {isAdmin && <Route path="/admin-settings" component={AdminSettings} />}
               {isAdmin && <Route path="/saas-admin" component={SaasAdmin} />}
+              {isAdmin && <Route path="/promotions" component={Promotions} />}
               {isAdmin && <Route path="/saas-admin/call-manager" component={SaasCallManagerPage} />}
               <Route path="/call-manager" component={CallManager} />
               <Route path="/settings" component={Settings} />
