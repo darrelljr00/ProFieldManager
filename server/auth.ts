@@ -298,6 +298,22 @@ export const requireAdmin = requireRole(['admin']);
 // Manager or admin access
 export const requireManagerOrAdmin = requireRole(['admin', 'manager']);
 
+// Super admin (SaaS platform admin) access - requires canAccessSaasAdmin permission
+export function isSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  const user = req.user;
+  
+  if (!user) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+  
+  // Check if user has SaaS admin access permission
+  if (!user.canAccessSaasAdmin) {
+    return res.status(403).json({ message: "Super admin access required" });
+  }
+  
+  next();
+}
+
 export function requireTaskDelegationPermission(req: Request, res: Response, next: NextFunction) {
   const user = req.user;
   if (!user) {
