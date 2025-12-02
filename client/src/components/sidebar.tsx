@@ -526,6 +526,13 @@ export function Sidebar() {
       permission: "canAccessDashboard",
     },
     {
+      name: "Onboarding",
+      href: "/onboarding-overview",
+      icon: Rocket,
+      requiresAuth: true,
+      adminOnly: true,
+    },
+    {
       name: "Calendar",
       href: "/calendar",
       icon: Calendar,
