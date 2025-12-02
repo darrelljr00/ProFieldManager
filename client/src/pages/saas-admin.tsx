@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { AdminOnboardingTab } from "@/components/AdminOnboardingTab";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -697,6 +698,7 @@ export default function SaasAdminPage() {
           <TabsTrigger value="call-manager">Call Manager</TabsTrigger>
           <TabsTrigger value="sync">Server Sync</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
+          <TabsTrigger value="onboarding">Onboarding</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
