@@ -20775,6 +20775,41 @@ ${fromName || ''}
         isActive: true,
       });
 
+      // Initialize onboarding progress for the new organization
+      try {
+        const { onboardingProgress } = await import('@shared/schema');
+        const { sendWelcomeEmail } = await import('./services/onboardingEmails');
+        
+        // Create onboarding progress record
+        await db.insert(onboardingProgress).values({
+          organizationId: organization.id,
+          currentStep: 1,
+          startedAt: new Date(),
+        });
+        console.log(`✅ Created onboarding progress for org ${organization.id}`);
+        
+        // Send welcome email with onboarding link
+        const baseUrl = process.env.APP_URL || 'https://profieldmanager.com';
+        const onboardingLink = `${baseUrl}/onboarding`;
+        
+        const emailSent = await sendWelcomeEmail(
+          email,
+          organizationName,
+          onboardingLink,
+          organization.id
+        );
+        
+        if (emailSent) {
+          // Update welcomeEmailSentAt
+          await db.update(onboardingProgress)
+            .set({ welcomeEmailSentAt: new Date() })
+            .where(eq(onboardingProgress.organizationId, organization.id));
+        }
+      } catch (onboardingError) {
+        console.error('Failed to initialize onboarding:', onboardingError);
+        // Don't fail the signup if onboarding init fails
+      }
+
       res.status(201).json({
         message: "Organization created successfully",
         organization: {
