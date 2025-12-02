@@ -2655,6 +2655,47 @@ export type PlanFeatureValue = typeof planFeatureValues.$inferSelect;
 export type InsertPlanFeatureValue = z.infer<typeof insertPlanFeatureValueSchema>;
 export type OrganizationSignupData = z.infer<typeof organizationSignupSchema>;
 
+// Organization Onboarding Progress
+export const onboardingProgress = pgTable("onboarding_progress", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id).unique(),
+  
+  // Step completion tracking
+  companyProfileComplete: boolean("company_profile_complete").default(false),
+  teamMembersComplete: boolean("team_members_complete").default(false),
+  stripeConnectComplete: boolean("stripe_connect_complete").default(false),
+  servicesComplete: boolean("services_complete").default(false),
+  brandingComplete: boolean("branding_complete").default(false),
+  firstCustomerComplete: boolean("first_customer_complete").default(false),
+  
+  // Overall status
+  isComplete: boolean("is_complete").default(false),
+  currentStep: integer("current_step").default(1),
+  completedSteps: integer("completed_steps").default(0),
+  totalSteps: integer("total_steps").default(6),
+  
+  // Tracking
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  
+  // Email tracking
+  welcomeEmailSentAt: timestamp("welcome_email_sent_at"),
+  reminderEmailSentAt: timestamp("reminder_email_sent_at"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertOnboardingProgressSchema = createInsertSchema(onboardingProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type OnboardingProgress = typeof onboardingProgress.$inferSelect;
+export type InsertOnboardingProgress = z.infer<typeof insertOnboardingProgressSchema>;
+
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
