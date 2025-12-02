@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { StatsCards } from "@/components/stats-cards";
+import { OnboardingWidget } from "@/components/OnboardingWidget";
 import { RevenueChart } from "@/components/revenue-chart";
 import { RecentActivity } from "@/components/recent-activity";
 import { InvoicesTable } from "@/components/invoices-table";
@@ -197,6 +198,11 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="p-4 md:p-6">
+        {/* Onboarding Widget */}
+        <div className="mb-6">
+          <OnboardingWidget />
+        </div>
+
         {/* Stats Cards */}
         {settings.showStatsCards && (
           <StatsCards stats={stats} isLoading={statsLoading} />
