@@ -6606,3 +6606,70 @@ export const insertPromotionRedemptionSchema = createInsertSchema(promotionRedem
 
 export type PromotionRedemption = typeof promotionRedemptions.$inferSelect;
 export type InsertPromotionRedemption = z.infer<typeof insertPromotionRedemptionSchema>;
+
+// Promotion Wheel Configs - Manage spin wheel configurations
+export const promotionWheelConfigs = pgTable("promotion_wheel_configs", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  promotionId: integer("promotion_id").references(() => promotions.id),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  backgroundColor: varchar("background_color", { length: 50 }).default("#ffffff"),
+  pointerColor: varchar("pointer_color", { length: 50 }).default("#ff6b6b"),
+  spinDuration: integer("spin_duration").default(5000),
+  requireEmail: boolean("require_email").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPromotionWheelConfigSchema = createInsertSchema(promotionWheelConfigs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type PromotionWheelConfig = typeof promotionWheelConfigs.$inferSelect;
+export type InsertPromotionWheelConfig = z.infer<typeof insertPromotionWheelConfigSchema>;
+
+// Promotion Wheel Segments - Individual wheel segments/prizes
+export const promotionWheelSegments = pgTable("promotion_wheel_segments", {
+  id: serial("id").primaryKey(),
+  wheelId: integer("wheel_id").notNull().references(() => promotionWheelConfigs.id, { onDelete: "cascade" }),
+  couponCodeId: integer("coupon_code_id").references(() => couponCodes.id),
+  label: varchar("label", { length: 255 }).notNull(),
+  color: varchar("color", { length: 50 }).notNull(),
+  probabilityWeight: integer("probability_weight").default(1),
+  isWinner: boolean("is_winner").default(true),
+  displayOrder: integer("display_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPromotionWheelSegmentSchema = createInsertSchema(promotionWheelSegments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type PromotionWheelSegment = typeof promotionWheelSegments.$inferSelect;
+export type InsertPromotionWheelSegment = z.infer<typeof insertPromotionWheelSegmentSchema>;
+
+// Promotion Wheel Spins - Track spin history
+export const promotionWheelSpins = pgTable("promotion_wheel_spins", {
+  id: serial("id").primaryKey(),
+  wheelId: integer("wheel_id").notNull().references(() => promotionWheelConfigs.id, { onDelete: "cascade" }),
+  segmentId: integer("segment_id").references(() => promotionWheelSegments.id),
+  couponCodeId: integer("coupon_code_id").references(() => couponCodes.id),
+  userIdentifier: varchar("user_identifier", { length: 255 }).notNull(),
+  email: varchar("email", { length: 255 }),
+  ipAddress: varchar("ip_address", { length: 50 }),
+  wonPrize: boolean("won_prize").default(false),
+  spunAt: timestamp("spun_at").defaultNow(),
+});
+
+export const insertPromotionWheelSpinSchema = createInsertSchema(promotionWheelSpins).omit({
+  id: true,
+  spunAt: true,
+});
+
+export type PromotionWheelSpin = typeof promotionWheelSpins.$inferSelect;
+export type InsertPromotionWheelSpin = z.infer<typeof insertPromotionWheelSpinSchema>;

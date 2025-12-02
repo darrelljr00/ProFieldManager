@@ -84,7 +84,7 @@ import {
   insertPlannedRouteSchema, insertRouteWaypointSchema, insertRouteDeviationSchema, insertRouteStopSchema,
   InsertRouteWaypoint,
   cacheSettings, insertCacheSettingsSchema, customerEtaSettings, customerEtaNotifications,
-  vehicleInspectionAlertSettings, vehicleInspectionAlerts, blurSettings, promotions, couponCodes, promotionRedemptions, insertPromotionSchema, insertCouponCodeSchema
+  vehicleInspectionAlertSettings, vehicleInspectionAlerts, blurSettings, promotions, couponCodes, promotionRedemptions, insertPromotionSchema, insertCouponCodeSchema, promotionWheelConfigs, promotionWheelSegments, promotionWheelSpins
 } from "@shared/schema";
 import { eq, and, desc, asc, like, or, sql, gt, gte, lt, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
@@ -2628,6 +2628,442 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // SaaS Admin: Get all promotions across all organizations
+
+  // ============================================
+  // Promotion Wheel Routes
+  // ============================================
+
+  // Get all wheel configs for organization
+  app.get('/api/promotions/wheels', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const wheels = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(eq(promotionWheelConfigs.organizationId, user.organizationId))
+        .orderBy(desc(promotionWheelConfigs.createdAt));
+      
+      res.json(wheels);
+    } catch (error: any) {
+      console.error('Error fetching wheel configs:', error);
+      res.status(500).json({ message: 'Failed to fetch wheel configs' });
+    }
+  });
+
+  // Get single wheel config with segments
+  app.get('/api/promotions/wheels/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const wheelId = parseInt(req.params.id);
+      
+      const [wheel] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!wheel) {
+        return res.status(404).json({ message: 'Wheel not found' });
+      }
+      
+      const segments = await db
+        .select({
+          id: promotionWheelSegments.id,
+          wheelId: promotionWheelSegments.wheelId,
+          couponCodeId: promotionWheelSegments.couponCodeId,
+          label: promotionWheelSegments.label,
+          color: promotionWheelSegments.color,
+          probabilityWeight: promotionWheelSegments.probabilityWeight,
+          isWinner: promotionWheelSegments.isWinner,
+          displayOrder: promotionWheelSegments.displayOrder,
+          couponCode: couponCodes.code
+        })
+        .from(promotionWheelSegments)
+        .leftJoin(couponCodes, eq(promotionWheelSegments.couponCodeId, couponCodes.id))
+        .where(eq(promotionWheelSegments.wheelId, wheelId))
+        .orderBy(asc(promotionWheelSegments.displayOrder));
+      
+      res.json({ ...wheel, segments });
+    } catch (error: any) {
+      console.error('Error fetching wheel:', error);
+      res.status(500).json({ message: 'Failed to fetch wheel' });
+    }
+  });
+
+  // Create wheel config
+  app.post('/api/promotions/wheels', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { name, description, backgroundColor, pointerColor, spinDuration, requireEmail, segments } = req.body;
+      
+      const [wheel] = await db.insert(promotionWheelConfigs).values({
+        organizationId: user.organizationId,
+        name,
+        description,
+        backgroundColor: backgroundColor || '#ffffff',
+        pointerColor: pointerColor || '#ff6b6b',
+        spinDuration: spinDuration || 5000,
+        requireEmail: requireEmail || false,
+        isActive: true
+      }).returning();
+      
+      // Add segments if provided
+      if (segments && segments.length > 0) {
+        for (let i = 0; i < segments.length; i++) {
+          const seg = segments[i];
+          await db.insert(promotionWheelSegments).values({
+            wheelId: wheel.id,
+            couponCodeId: seg.couponCodeId || null,
+            label: seg.label,
+            color: seg.color,
+            probabilityWeight: seg.probabilityWeight || 1,
+            isWinner: seg.isWinner !== false,
+            displayOrder: i
+          });
+        }
+      }
+      
+      res.json(wheel);
+    } catch (error: any) {
+      console.error('Error creating wheel:', error);
+      res.status(500).json({ message: 'Failed to create wheel' });
+    }
+  });
+
+  // Update wheel config
+  app.put('/api/promotions/wheels/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const wheelId = parseInt(req.params.id);
+      const { name, description, backgroundColor, pointerColor, spinDuration, requireEmail, isActive, segments } = req.body;
+      
+      const [existing] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!existing) {
+        return res.status(404).json({ message: 'Wheel not found' });
+      }
+      
+      const [wheel] = await db
+        .update(promotionWheelConfigs)
+        .set({
+          name,
+          description,
+          backgroundColor,
+          pointerColor,
+          spinDuration,
+          requireEmail,
+          isActive,
+          updatedAt: new Date()
+        })
+        .where(eq(promotionWheelConfigs.id, wheelId))
+        .returning();
+      
+      // Update segments if provided
+      if (segments) {
+        // Delete existing segments
+        await db.delete(promotionWheelSegments).where(eq(promotionWheelSegments.wheelId, wheelId));
+        
+        // Add new segments
+        for (let i = 0; i < segments.length; i++) {
+          const seg = segments[i];
+          await db.insert(promotionWheelSegments).values({
+            wheelId: wheel.id,
+            couponCodeId: seg.couponCodeId || null,
+            label: seg.label,
+            color: seg.color,
+            probabilityWeight: seg.probabilityWeight || 1,
+            isWinner: seg.isWinner !== false,
+            displayOrder: i
+          });
+        }
+      }
+      
+      res.json(wheel);
+    } catch (error: any) {
+      console.error('Error updating wheel:', error);
+      res.status(500).json({ message: 'Failed to update wheel' });
+    }
+  });
+
+  // Delete wheel config
+  app.delete('/api/promotions/wheels/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const wheelId = parseInt(req.params.id);
+      
+      const [existing] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!existing) {
+        return res.status(404).json({ message: 'Wheel not found' });
+      }
+      
+      await db.delete(promotionWheelConfigs).where(eq(promotionWheelConfigs.id, wheelId));
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting wheel:', error);
+      res.status(500).json({ message: 'Failed to delete wheel' });
+    }
+  });
+
+  // Public: Get wheel for spinning (no auth required)
+  app.get('/api/promotions/wheel/:id/public', async (req, res) => {
+    try {
+      const wheelId = parseInt(req.params.id);
+      
+      const [wheel] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.isActive, true)
+        ))
+        .limit(1);
+      
+      if (!wheel) {
+        return res.status(404).json({ message: 'Wheel not found or inactive' });
+      }
+      
+      const segments = await db
+        .select({
+          id: promotionWheelSegments.id,
+          label: promotionWheelSegments.label,
+          color: promotionWheelSegments.color,
+          displayOrder: promotionWheelSegments.displayOrder
+        })
+        .from(promotionWheelSegments)
+        .where(eq(promotionWheelSegments.wheelId, wheelId))
+        .orderBy(asc(promotionWheelSegments.displayOrder));
+      
+      res.json({
+        id: wheel.id,
+        name: wheel.name,
+        description: wheel.description,
+        backgroundColor: wheel.backgroundColor,
+        pointerColor: wheel.pointerColor,
+        spinDuration: wheel.spinDuration,
+        requireEmail: wheel.requireEmail,
+        segments: segments
+      });
+    } catch (error: any) {
+      console.error('Error fetching public wheel:', error);
+      res.status(500).json({ message: 'Failed to fetch wheel' });
+    }
+  });
+
+  // Public: Spin the wheel
+  app.post('/api/promotions/wheel/:id/spin', async (req, res) => {
+    try {
+      const wheelId = parseInt(req.params.id);
+      const { userIdentifier, email } = req.body;
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+      
+      if (!userIdentifier) {
+        return res.status(400).json({ success: false, message: 'User identifier required' });
+      }
+      
+      const [wheel] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.isActive, true)
+        ))
+        .limit(1);
+      
+      if (!wheel) {
+        return res.status(404).json({ success: false, message: 'Wheel not found or inactive' });
+      }
+      
+      // Check if user already spun
+      const [existingSpin] = await db
+        .select()
+        .from(promotionWheelSpins)
+        .where(and(
+          eq(promotionWheelSpins.wheelId, wheelId),
+          eq(promotionWheelSpins.userIdentifier, userIdentifier)
+        ))
+        .limit(1);
+      
+      if (existingSpin) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'You have already spun this wheel',
+          alreadySpun: true 
+        });
+      }
+      
+      // Get segments with their weights
+      const segments = await db
+        .select({
+          id: promotionWheelSegments.id,
+          couponCodeId: promotionWheelSegments.couponCodeId,
+          label: promotionWheelSegments.label,
+          color: promotionWheelSegments.color,
+          probabilityWeight: promotionWheelSegments.probabilityWeight,
+          isWinner: promotionWheelSegments.isWinner,
+          displayOrder: promotionWheelSegments.displayOrder,
+          couponCode: couponCodes.code
+        })
+        .from(promotionWheelSegments)
+        .leftJoin(couponCodes, eq(promotionWheelSegments.couponCodeId, couponCodes.id))
+        .where(eq(promotionWheelSegments.wheelId, wheelId))
+        .orderBy(asc(promotionWheelSegments.displayOrder));
+      
+      if (segments.length === 0) {
+        return res.status(400).json({ success: false, message: 'Wheel has no segments' });
+      }
+      
+      // Weighted random selection
+      const totalWeight = segments.reduce((sum, seg) => sum + (seg.probabilityWeight || 1), 0);
+      let random = Math.random() * totalWeight;
+      let selectedSegment = segments[0];
+      
+      for (const segment of segments) {
+        random -= (segment.probabilityWeight || 1);
+        if (random <= 0) {
+          selectedSegment = segment;
+          break;
+        }
+      }
+      
+      // Record the spin
+      await db.insert(promotionWheelSpins).values({
+        wheelId,
+        segmentId: selectedSegment.id,
+        couponCodeId: selectedSegment.couponCodeId,
+        userIdentifier,
+        email: email || null,
+        ipAddress: typeof ipAddress === 'string' ? ipAddress : String(ipAddress),
+        wonPrize: selectedSegment.isWinner
+      });
+      
+      // Calculate landing angle (segment index for frontend animation)
+      const segmentIndex = segments.findIndex(s => s.id === selectedSegment.id);
+      
+      res.json({
+        success: true,
+        segmentIndex,
+        segment: {
+          id: selectedSegment.id,
+          label: selectedSegment.label,
+          color: selectedSegment.color,
+          isWinner: selectedSegment.isWinner,
+          couponCode: selectedSegment.couponCode || null
+        }
+      });
+    } catch (error: any) {
+      console.error('Error spinning wheel:', error);
+      res.status(500).json({ success: false, message: 'Failed to spin wheel' });
+    }
+  });
+
+  // Check if user has already spun
+  app.post('/api/promotions/wheel/:id/check-spin', async (req, res) => {
+    try {
+      const wheelId = parseInt(req.params.id);
+      const { userIdentifier } = req.body;
+      
+      if (!userIdentifier) {
+        return res.json({ hasSpun: false });
+      }
+      
+      const [existingSpin] = await db
+        .select({
+          id: promotionWheelSpins.id,
+          segmentLabel: promotionWheelSegments.label,
+          couponCode: couponCodes.code,
+          wonPrize: promotionWheelSpins.wonPrize
+        })
+        .from(promotionWheelSpins)
+        .leftJoin(promotionWheelSegments, eq(promotionWheelSpins.segmentId, promotionWheelSegments.id))
+        .leftJoin(couponCodes, eq(promotionWheelSpins.couponCodeId, couponCodes.id))
+        .where(and(
+          eq(promotionWheelSpins.wheelId, wheelId),
+          eq(promotionWheelSpins.userIdentifier, userIdentifier)
+        ))
+        .limit(1);
+      
+      if (existingSpin) {
+        res.json({
+          hasSpun: true,
+          previousResult: {
+            label: existingSpin.segmentLabel,
+            couponCode: existingSpin.couponCode,
+            wonPrize: existingSpin.wonPrize
+          }
+        });
+      } else {
+        res.json({ hasSpun: false });
+      }
+    } catch (error: any) {
+      console.error('Error checking spin:', error);
+      res.status(500).json({ hasSpun: false });
+    }
+  });
+
+  // Get spin history for a wheel (admin)
+  app.get('/api/promotions/wheels/:id/spins', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const wheelId = parseInt(req.params.id);
+      
+      // Verify wheel belongs to org
+      const [wheel] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!wheel) {
+        return res.status(404).json({ message: 'Wheel not found' });
+      }
+      
+      const spins = await db
+        .select({
+          id: promotionWheelSpins.id,
+          userIdentifier: promotionWheelSpins.userIdentifier,
+          email: promotionWheelSpins.email,
+          segmentLabel: promotionWheelSegments.label,
+          couponCode: couponCodes.code,
+          wonPrize: promotionWheelSpins.wonPrize,
+          spunAt: promotionWheelSpins.spunAt
+        })
+        .from(promotionWheelSpins)
+        .leftJoin(promotionWheelSegments, eq(promotionWheelSpins.segmentId, promotionWheelSegments.id))
+        .leftJoin(couponCodes, eq(promotionWheelSpins.couponCodeId, couponCodes.id))
+        .where(eq(promotionWheelSpins.wheelId, wheelId))
+        .orderBy(desc(promotionWheelSpins.spunAt))
+        .limit(100);
+      
+      res.json(spins);
+    } catch (error: any) {
+      console.error('Error fetching spins:', error);
+      res.status(500).json({ message: 'Failed to fetch spins' });
+    }
+  });
+
   app.get('/api/admin/promotions', requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
@@ -4526,7 +4962,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders', '/captcha/', '/public/', '/analytics/', '/promotions/validate-code', '/promotions/auto-apply'];
+    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders', '/captcha/', '/public/', '/analytics/', '/promotions/validate-code', '/promotions/auto-apply', '/promotions/wheel/'];
     // Add special handling for debug routes
     const debugRoutes = ['/debug/custom-domain-test'];
     const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token}
