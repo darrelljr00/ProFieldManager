@@ -105,10 +105,7 @@ function CompanyProfileStep({ onComplete, progress }: { onComplete: () => void; 
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("/api/organization/profile", {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("PATCH", "/api/organization/profile", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/onboarding/progress"] });
@@ -202,10 +199,7 @@ function TeamMembersStep({ onComplete }: { onComplete: () => void }) {
       if (validInvites.length === 0) {
         return { skipped: true };
       }
-      return apiRequest("/api/users/invite-bulk", {
-        method: "POST",
-        body: JSON.stringify({ invites: validInvites }),
-      });
+      return apiRequest("POST", "/api/users/invite-bulk", { invites: validInvites });
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/onboarding/progress"] });
@@ -303,7 +297,8 @@ function StripeConnectStep({ onComplete }: { onComplete: () => void }) {
 
   const connectMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/stripe-connect/create-account", { method: "POST" });
+      const response = await apiRequest("POST", "/api/stripe-connect/create-account");
+      return response.json();
     },
     onSuccess: (data: any) => {
       if (data?.url) {
@@ -317,10 +312,7 @@ function StripeConnectStep({ onComplete }: { onComplete: () => void }) {
 
   const skipMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/onboarding/step/stripeConnect", {
-        method: "POST",
-        body: JSON.stringify({ completed: false, skipped: true }),
-      });
+      return apiRequest("POST", "/api/onboarding/step/stripeConnect", { completed: false, skipped: true });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/onboarding/progress"] });
@@ -407,13 +399,12 @@ function ServicesStep({ onComplete }: { onComplete: () => void }) {
       if (validServices.length === 0) {
         return { skipped: true };
       }
-      return apiRequest("/api/services/bulk-create", {
-        method: "POST",
-        body: JSON.stringify({ services: validServices.map(s => ({
+      return apiRequest("POST", "/api/services/bulk-create", { 
+        services: validServices.map(s => ({
           name: s.name,
           description: s.description,
           basePrice: parseFloat(s.price) || 0,
-        })) }),
+        })) 
       });
     },
     onSuccess: (data: any) => {
@@ -627,10 +618,7 @@ function FirstCustomerStep({ onComplete }: { onComplete: () => void }) {
       if (!data.name.trim()) {
         return { skipped: true };
       }
-      return apiRequest("/api/customers", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/customers", data);
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/onboarding/progress"] });
@@ -765,7 +753,7 @@ export default function OnboardingPage() {
 
   const completeMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/onboarding/complete", { method: "POST" });
+      return apiRequest("POST", "/api/onboarding/complete");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/onboarding/progress"] });
@@ -774,10 +762,7 @@ export default function OnboardingPage() {
 
   const stepMutation = useMutation({
     mutationFn: async ({ stepName, completed }: { stepName: string; completed: boolean }) => {
-      return apiRequest(`/api/onboarding/step/${stepName}`, {
-        method: "POST",
-        body: JSON.stringify({ completed }),
-      });
+      return apiRequest("POST", `/api/onboarding/step/${stepName}`, { completed });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/onboarding/progress"] });
