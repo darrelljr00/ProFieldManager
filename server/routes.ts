@@ -2870,6 +2870,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Public: Spin the wheel
+
+  app.get('/api/promotions/wheels/active', async (req, res) => {
+    try {
+      const wheels = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(eq(promotionWheelConfigs.isActive, true));
+
+      res.json(wheels);
+    } catch (error) {
+      console.error('Error fetching active wheels:', error);
+      res.status(500).json({ message: 'Failed to fetch wheels' });
+    }
+  });
   app.post('/api/promotions/wheel/:id/spin', async (req, res) => {
     try {
       const wheelId = parseInt(req.params.id);
@@ -4962,7 +4976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders', '/captcha/', '/public/', '/analytics/', '/promotions/validate-code', '/promotions/auto-apply', '/promotions/wheel/'];
+    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders', '/captcha/', '/public/', '/analytics/', '/promotions/validate-code', '/promotions/auto-apply', '/promotions/wheel/', '/promotions/wheels/active'];
     // Add special handling for debug routes
     const debugRoutes = ['/debug/custom-domain-test'];
     const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token}
