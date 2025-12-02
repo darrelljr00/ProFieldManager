@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -5,9 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { 
   Building2, Users, CreditCard, Wrench, Palette, UserPlus, 
-  Check, X, Clock, Mail, RefreshCw, Loader2, AlertCircle
+  Check, X, Clock, Mail, RefreshCw, Loader2, AlertCircle,
+  Settings, BarChart3, Save
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -32,13 +39,56 @@ interface OnboardingStatus {
   reminderEmailSentAt: string | null;
 }
 
-const stepIcons = {
-  companyProfile: Building2,
-  teamMembers: Users,
-  stripeConnect: CreditCard,
-  services: Wrench,
-  branding: Palette,
-  firstCustomer: UserPlus,
+interface OnboardingSettings {
+  welcomeEmailEnabled: boolean;
+  reminderEmailEnabled: boolean;
+  reminderDelayHours: number;
+  welcomeEmailSubject: string;
+  welcomeEmailBody: string;
+  reminderEmailSubject: string;
+  reminderEmailBody: string;
+  companyProfileStepEnabled: boolean;
+  teamMembersStepEnabled: boolean;
+  stripeConnectStepEnabled: boolean;
+  servicesStepEnabled: boolean;
+  brandingStepEnabled: boolean;
+  firstCustomerStepEnabled: boolean;
+}
+
+const defaultSettings: OnboardingSettings = {
+  welcomeEmailEnabled: true,
+  reminderEmailEnabled: true,
+  reminderDelayHours: 24,
+  welcomeEmailSubject: "Welcome to Pro Field Manager! Let's Get Started",
+  welcomeEmailBody: `Hi {{ownerName}},
+
+Welcome to Pro Field Manager! We're excited to have {{organizationName}} on board.
+
+Complete your account setup to unlock all features:
+{{onboardingLink}}
+
+Need help? Reply to this email or contact our support team.
+
+Best regards,
+The Pro Field Manager Team`,
+  reminderEmailSubject: "Don't forget to complete your Pro Field Manager setup",
+  reminderEmailBody: `Hi {{ownerName}},
+
+We noticed you haven't completed setting up your Pro Field Manager account yet. 
+
+You're {{percentComplete}}% done! Continue where you left off:
+{{onboardingLink}}
+
+Need assistance? We're here to help.
+
+Best regards,
+The Pro Field Manager Team`,
+  companyProfileStepEnabled: true,
+  teamMembersStepEnabled: true,
+  stripeConnectStepEnabled: true,
+  servicesStepEnabled: true,
+  brandingStepEnabled: true,
+  firstCustomerStepEnabled: true,
 };
 
 function StepBadge({ complete, label }: { complete: boolean; label: string }) {
@@ -56,7 +106,7 @@ function StepBadge({ complete, label }: { complete: boolean; label: string }) {
   );
 }
 
-export function AdminOnboardingTab() {
+function MonitorTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -249,5 +299,236 @@ export function AdminOnboardingTab() {
         </Card>
       )}
     </div>
+  );
+}
+
+function SettingsTab() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [settings, setSettings] = useState<OnboardingSettings>(defaultSettings);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const { isLoading } = useQuery<OnboardingSettings>({
+    queryKey: ["/api/admin/onboarding/settings"],
+    enabled: true,
+  });
+
+  const updateSetting = <K extends keyof OnboardingSettings>(key: K, value: OnboardingSettings[K]) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+    setHasChanges(true);
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("/api/admin/onboarding/settings", {
+        method: "PUT",
+        body: JSON.stringify(settings),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/onboarding/settings"] });
+      toast({ title: "Settings Saved", description: "Onboarding settings have been updated." });
+      setHasChanges(false);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="w-5 h-5" />
+            Email Settings
+          </CardTitle>
+          <CardDescription>Configure automatic onboarding emails</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <Label className="text-base font-medium">Welcome Email</Label>
+              <p className="text-sm text-muted-foreground">Send welcome email when organization signs up</p>
+            </div>
+            <Switch
+              checked={settings.welcomeEmailEnabled}
+              onCheckedChange={(checked) => updateSetting("welcomeEmailEnabled", checked)}
+              data-testid="switch-welcome-email"
+            />
+          </div>
+
+          {settings.welcomeEmailEnabled && (
+            <div className="space-y-4 pl-4 border-l-2 border-primary/20">
+              <div className="space-y-2">
+                <Label>Subject Line</Label>
+                <Input
+                  value={settings.welcomeEmailSubject}
+                  onChange={(e) => updateSetting("welcomeEmailSubject", e.target.value)}
+                  placeholder="Welcome email subject"
+                  data-testid="input-welcome-subject"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email Body</Label>
+                <Textarea
+                  value={settings.welcomeEmailBody}
+                  onChange={(e) => updateSetting("welcomeEmailBody", e.target.value)}
+                  placeholder="Welcome email content"
+                  rows={8}
+                  className="font-mono text-sm"
+                  data-testid="textarea-welcome-body"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Variables: {"{{ownerName}}"}, {"{{organizationName}}"}, {"{{onboardingLink}}"}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div>
+              <Label className="text-base font-medium">Reminder Email</Label>
+              <p className="text-sm text-muted-foreground">Automatically remind organizations to complete setup</p>
+            </div>
+            <Switch
+              checked={settings.reminderEmailEnabled}
+              onCheckedChange={(checked) => updateSetting("reminderEmailEnabled", checked)}
+              data-testid="switch-reminder-email"
+            />
+          </div>
+
+          {settings.reminderEmailEnabled && (
+            <div className="space-y-4 pl-4 border-l-2 border-primary/20">
+              <div className="space-y-2">
+                <Label>Send Reminder After (hours)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={168}
+                  value={settings.reminderDelayHours}
+                  onChange={(e) => updateSetting("reminderDelayHours", parseInt(e.target.value) || 24)}
+                  data-testid="input-reminder-delay"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Subject Line</Label>
+                <Input
+                  value={settings.reminderEmailSubject}
+                  onChange={(e) => updateSetting("reminderEmailSubject", e.target.value)}
+                  placeholder="Reminder email subject"
+                  data-testid="input-reminder-subject"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email Body</Label>
+                <Textarea
+                  value={settings.reminderEmailBody}
+                  onChange={(e) => updateSetting("reminderEmailBody", e.target.value)}
+                  placeholder="Reminder email content"
+                  rows={8}
+                  className="font-mono text-sm"
+                  data-testid="textarea-reminder-body"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Variables: {"{{ownerName}}"}, {"{{organizationName}}"}, {"{{onboardingLink}}"}, {"{{percentComplete}}"}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            Onboarding Steps
+          </CardTitle>
+          <CardDescription>Enable or disable onboarding steps</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[
+              { key: "companyProfileStepEnabled", label: "Company Profile", desc: "Business name, logo, contact info", icon: Building2 },
+              { key: "teamMembersStepEnabled", label: "Team Members", desc: "Invite employees and technicians", icon: Users },
+              { key: "stripeConnectStepEnabled", label: "Stripe Connect", desc: "Payment processing setup", icon: CreditCard },
+              { key: "servicesStepEnabled", label: "Services & Pricing", desc: "Define service offerings", icon: Wrench },
+              { key: "brandingStepEnabled", label: "Branding", desc: "Colors and invoice templates", icon: Palette },
+              { key: "firstCustomerStepEnabled", label: "First Customer", desc: "Add first customer (optional)", icon: UserPlus },
+            ].map((step) => {
+              const Icon = step.icon;
+              return (
+                <div key={step.key} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <Label className="text-base font-medium">{step.label}</Label>
+                      <p className="text-sm text-muted-foreground">{step.desc}</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={settings[step.key as keyof OnboardingSettings] as boolean}
+                    onCheckedChange={(checked) => updateSetting(step.key as keyof OnboardingSettings, checked)}
+                    data-testid={`switch-step-${step.key}`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end">
+        <Button
+          onClick={() => saveMutation.mutate()}
+          disabled={!hasChanges || saveMutation.isPending}
+          data-testid="button-save-settings"
+        >
+          {saveMutation.isPending ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4 mr-2" />
+          )}
+          Save Settings
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function AdminOnboardingTab() {
+  return (
+    <Tabs defaultValue="monitor" className="space-y-6">
+      <TabsList>
+        <TabsTrigger value="monitor" className="flex items-center gap-2">
+          <BarChart3 className="w-4 h-4" />
+          Monitor
+        </TabsTrigger>
+        <TabsTrigger value="settings" className="flex items-center gap-2">
+          <Settings className="w-4 h-4" />
+          Settings
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="monitor">
+        <MonitorTab />
+      </TabsContent>
+
+      <TabsContent value="settings">
+        <SettingsTab />
+      </TabsContent>
+    </Tabs>
   );
 }
