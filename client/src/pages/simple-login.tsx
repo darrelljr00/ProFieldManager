@@ -129,6 +129,13 @@ export default function SimpleLogin() {
         description: "You have been successfully logged in",
       });
       
+      // Check if user needs to complete onboarding
+      if (response?.needsOnboarding) {
+        console.log('📋 User needs onboarding, redirecting to /onboarding');
+        setLocation('/onboarding');
+        return;
+      }
+      
       // Use immediate redirect since auth state is now properly set
       const destination = getIntendedDestination();
       console.log('🎯 Redirecting after login to:', destination);

@@ -133,6 +133,13 @@ export default function UniversalLogin() {
         description: "Welcome to Pro Field Manager!",
       });
 
+      // Check if user needs to complete onboarding
+      if (result?.needsOnboarding) {
+        console.log('📋 User needs onboarding, redirecting to /onboarding');
+        window.location.href = '/onboarding';
+        return;
+      }
+
       console.log('🚀 LOGIN COMPLETE - REDIRECTING TO DASHBOARD');
       setTimeout(() => {
         if (isCustomDomain()) {

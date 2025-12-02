@@ -3534,6 +3534,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.cookie('auth_token', session.token, cookieConfig);
 
+      // Check if user needs to complete onboarding
+      let needsOnboarding = false;
+      if (user.role === 'admin') {
+        try {
+          const { onboardingProgress } = await import('@shared/schema');
+          const progress = await db
+            .select()
+            .from(onboardingProgress)
+            .where(eq(onboardingProgress.organizationId, user.organizationId))
+            .limit(1);
+          
+          if (progress.length > 0 && !progress[0].isComplete) {
+            needsOnboarding = true;
+          }
+        } catch (e) {
+          console.log('Could not check onboarding status:', e);
+        }
+      }
+
       const response = {
         user: {
           id: user.id,
@@ -3546,6 +3565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           demoExpiresAt: user.demoExpiresAt,
         },
         token: session.token, // Always include token for custom domain localStorage
+        needsOnboarding, // Flag to indicate if user needs to complete onboarding
       };
 
       console.log('✅ Login successful response prepared for user:', user.username);
@@ -30021,6 +30041,83 @@ ${fromName || ''}
   // Start quote follow-up reminder scheduler
   console.log("📅 Starting quote follow-up reminder scheduler...");
   checkQuoteFollowUps();
+
+  // Set up onboarding reminder scheduler (runs every hour)
+  const checkOnboardingReminders = async () => {
+    try {
+      const { onboardingProgress } = await import('@shared/schema');
+      const { sendOnboardingReminderEmail } = await import('./services/onboardingEmails');
+      
+      const twentyFourHoursAgo = new Date();
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+      
+      // Find organizations that:
+      // 1. Started onboarding more than 24 hours ago
+      // 2. Haven't completed onboarding
+      // 3. Haven't received a reminder email yet
+      const incompleteOnboarding = await db
+        .select({
+          progress: onboardingProgress,
+          org: organizations,
+        })
+        .from(onboardingProgress)
+        .leftJoin(organizations, eq(onboardingProgress.organizationId, organizations.id))
+        .where(
+          and(
+            eq(onboardingProgress.isComplete, false),
+            lte(onboardingProgress.startedAt, twentyFourHoursAgo),
+            isNull(onboardingProgress.reminderEmailSentAt)
+          )
+        );
+
+      for (const { progress, org } of incompleteOnboarding) {
+        if (!org) continue;
+        
+        // Get the admin user for this organization
+        const adminUser = await db
+          .select()
+          .from(users)
+          .where(
+            and(
+              eq(users.organizationId, org.id),
+              eq(users.role, 'admin')
+            )
+          )
+          .limit(1);
+        
+        if (adminUser.length > 0) {
+          const emailSent = await sendOnboardingReminderEmail(
+            adminUser[0].email,
+            org.name || 'Your Company',
+            org.id
+          );
+          
+          if (emailSent) {
+            // Mark reminder as sent
+            await db
+              .update(onboardingProgress)
+              .set({ reminderEmailSentAt: new Date() })
+              .where(eq(onboardingProgress.organizationId, org.id));
+            
+            console.log(`📬 Sent onboarding reminder for org ${org.id} (${org.name})`);
+          }
+        }
+      }
+      
+      if (incompleteOnboarding.length > 0) {
+        console.log(`✅ Processed ${incompleteOnboarding.length} onboarding reminder checks`);
+      }
+    } catch (error) {
+      console.error("❌ Error checking onboarding reminders:", error);
+    }
+
+    // Schedule next check in 1 hour
+    setTimeout(checkOnboardingReminders, 60 * 60 * 1000);
+  };
+
+  // Start onboarding reminder scheduler
+  console.log("📩 Starting onboarding reminder scheduler...");
+  checkOnboardingReminders();
 
   // ========================================
   // SERVER SYNC API ENDPOINTS

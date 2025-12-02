@@ -45,6 +45,12 @@ export default function CustomDomainLogin() {
         description: "Welcome to Pro Field Manager!",
       });
 
+      // Check if user needs to complete onboarding
+      if (result?.needsOnboarding) {
+        window.location.href = '/onboarding';
+        return;
+      }
+
       window.location.href = '/dashboard';
 
     } catch (error) {

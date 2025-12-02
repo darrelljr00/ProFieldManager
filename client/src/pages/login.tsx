@@ -51,7 +51,12 @@ export default function LoginPage() {
         description: `Welcome back, ${response.user?.username || ""}`,
       });
 
-      setLocation("/dashboard");
+      // Check if user needs to complete onboarding
+      if (response?.needsOnboarding) {
+        setLocation("/onboarding");
+      } else {
+        setLocation("/dashboard");
+      }
     },
     onError: (err: any) => {
       toast({
