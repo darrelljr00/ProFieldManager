@@ -196,6 +196,9 @@ export function PublicPageFooter() {
             © {currentYear} {copyright}
           </p>
           <div className="flex gap-6 text-sm">
+            <Link href="/promotions" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-promotions">
+              Promotions
+            </Link>
             <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors" data-testid="footer-link-privacy">
               Privacy Policy
             </Link>
