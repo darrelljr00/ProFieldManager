@@ -2175,10 +2175,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all promotions for an organization (Admin only)
   app.get('/api/promotions', requireAuth, async (req, res) => {
     try {
-      if (!user.organizationId || isNaN(user.organizationId)) {
-        return res.status(400).json({ message: "Invalid organization" });
-      }
       const user = getAuthenticatedUser(req);
+      
+      if (!user.organizationId || isNaN(user.organizationId)) {
+        return res.status(400).json({ message: 'Invalid organization' });
+      }
       
       const promos = await db
         .select()
@@ -2638,11 +2639,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get all wheel configs for organization
   app.get('/api/promotions/wheels', requireAuth, async (req, res) => {
-      if (!user.organizationId || isNaN(user.organizationId)) {
-        return res.status(400).json({ message: "Invalid organization" });
-      }
     try {
       const user = getAuthenticatedUser(req);
+      
+      if (!user.organizationId || isNaN(user.organizationId)) {
+        return res.status(400).json({ message: 'Invalid organization' });
+      }
       
       const wheels = await db
         .select()
@@ -2656,8 +2658,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch wheel configs' });
     }
   });
-
-  // Get single wheel config with segments
   app.get('/api/promotions/wheels/:id', requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
