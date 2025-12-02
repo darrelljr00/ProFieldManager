@@ -2696,6 +2696,32 @@ export const insertOnboardingProgressSchema = createInsertSchema(onboardingProgr
 export type OnboardingProgress = typeof onboardingProgress.$inferSelect;
 export type InsertOnboardingProgress = z.infer<typeof insertOnboardingProgressSchema>;
 
+export const onboardingSettings = pgTable("onboarding_settings", {
+  id: serial("id").primaryKey(),
+  welcomeEmailEnabled: boolean("welcome_email_enabled").default(true),
+  reminderEmailEnabled: boolean("reminder_email_enabled").default(true),
+  reminderDelayHours: integer("reminder_delay_hours").default(24),
+  welcomeEmailSubject: text("welcome_email_subject"),
+  welcomeEmailBody: text("welcome_email_body"),
+  reminderEmailSubject: text("reminder_email_subject"),
+  reminderEmailBody: text("reminder_email_body"),
+  companyProfileStepEnabled: boolean("company_profile_step_enabled").default(true),
+  teamMembersStepEnabled: boolean("team_members_step_enabled").default(true),
+  stripeConnectStepEnabled: boolean("stripe_connect_step_enabled").default(true),
+  servicesStepEnabled: boolean("services_step_enabled").default(true),
+  brandingStepEnabled: boolean("branding_step_enabled").default(true),
+  firstCustomerStepEnabled: boolean("first_customer_step_enabled").default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertOnboardingSettingsSchema = createInsertSchema(onboardingSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type OnboardingSettings = typeof onboardingSettings.$inferSelect;
+export type InsertOnboardingSettings = z.infer<typeof insertOnboardingSettingsSchema>;
+
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;

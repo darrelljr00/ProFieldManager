@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -308,10 +308,30 @@ function SettingsTab() {
   const [settings, setSettings] = useState<OnboardingSettings>(defaultSettings);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const { isLoading } = useQuery<OnboardingSettings>({
+  const { data: fetchedSettings, isLoading } = useQuery<OnboardingSettings>({
     queryKey: ["/api/admin/onboarding/settings"],
-    enabled: true,
   });
+
+  useEffect(() => {
+    if (fetchedSettings) {
+      setSettings({
+        welcomeEmailEnabled: fetchedSettings.welcomeEmailEnabled ?? defaultSettings.welcomeEmailEnabled,
+        reminderEmailEnabled: fetchedSettings.reminderEmailEnabled ?? defaultSettings.reminderEmailEnabled,
+        reminderDelayHours: fetchedSettings.reminderDelayHours ?? defaultSettings.reminderDelayHours,
+        welcomeEmailSubject: fetchedSettings.welcomeEmailSubject ?? defaultSettings.welcomeEmailSubject,
+        welcomeEmailBody: fetchedSettings.welcomeEmailBody ?? defaultSettings.welcomeEmailBody,
+        reminderEmailSubject: fetchedSettings.reminderEmailSubject ?? defaultSettings.reminderEmailSubject,
+        reminderEmailBody: fetchedSettings.reminderEmailBody ?? defaultSettings.reminderEmailBody,
+        companyProfileStepEnabled: fetchedSettings.companyProfileStepEnabled ?? defaultSettings.companyProfileStepEnabled,
+        teamMembersStepEnabled: fetchedSettings.teamMembersStepEnabled ?? defaultSettings.teamMembersStepEnabled,
+        stripeConnectStepEnabled: fetchedSettings.stripeConnectStepEnabled ?? defaultSettings.stripeConnectStepEnabled,
+        servicesStepEnabled: fetchedSettings.servicesStepEnabled ?? defaultSettings.servicesStepEnabled,
+        brandingStepEnabled: fetchedSettings.brandingStepEnabled ?? defaultSettings.brandingStepEnabled,
+        firstCustomerStepEnabled: fetchedSettings.firstCustomerStepEnabled ?? defaultSettings.firstCustomerStepEnabled,
+      });
+      setHasChanges(false);
+    }
+  }, [fetchedSettings]);
 
   const updateSetting = <K extends keyof OnboardingSettings>(key: K, value: OnboardingSettings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));

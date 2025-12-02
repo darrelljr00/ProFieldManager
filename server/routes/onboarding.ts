@@ -1,7 +1,7 @@
 import { Express } from 'express';
 import { requireAuth, isSuperAdmin } from '../auth';
 import { db } from '../db';
-import { onboardingProgress, organizations, users, services, customers } from '@shared/schema';
+import { onboardingProgress, organizations, users, services, customers, onboardingSettings } from '@shared/schema';
 import { eq, and, isNull, lt, sql } from 'drizzle-orm';
 
 export function registerOnboardingRoutes(app: Express) {
@@ -381,6 +381,119 @@ export function registerOnboardingRoutes(app: Express) {
     } catch (error: any) {
       console.error('Error in onboarding reminders cron:', error);
       res.status(500).json({ message: error.message || 'Failed to process reminders' });
+    }
+  });
+
+  // Admin: Get onboarding settings
+  app.get('/api/admin/onboarding/settings', requireAuth, isSuperAdmin, async (req, res) => {
+    try {
+      let settings = await db.query.onboardingSettings.findFirst();
+      
+      if (!settings) {
+        const defaultSettings = {
+          welcomeEmailEnabled: true,
+          reminderEmailEnabled: true,
+          reminderDelayHours: 24,
+          welcomeEmailSubject: "Welcome to Pro Field Manager! Let's Get Started",
+          welcomeEmailBody: `Hi {{ownerName}},
+
+Welcome to Pro Field Manager! We're excited to have {{organizationName}} on board.
+
+Complete your account setup to unlock all features:
+{{onboardingLink}}
+
+Need help? Reply to this email or contact our support team.
+
+Best regards,
+The Pro Field Manager Team`,
+          reminderEmailSubject: "Don't forget to complete your Pro Field Manager setup",
+          reminderEmailBody: `Hi {{ownerName}},
+
+We noticed you haven't completed setting up your Pro Field Manager account yet. 
+
+You're {{percentComplete}}% done! Continue where you left off:
+{{onboardingLink}}
+
+Need assistance? We're here to help.
+
+Best regards,
+The Pro Field Manager Team`,
+          companyProfileStepEnabled: true,
+          teamMembersStepEnabled: true,
+          stripeConnectStepEnabled: true,
+          servicesStepEnabled: true,
+          brandingStepEnabled: true,
+          firstCustomerStepEnabled: true,
+        };
+        
+        const [newSettings] = await db.insert(onboardingSettings)
+          .values(defaultSettings)
+          .returning();
+        settings = newSettings;
+      }
+      
+      res.json(settings);
+    } catch (error: any) {
+      console.error('Error getting onboarding settings:', error);
+      res.status(500).json({ message: error.message || 'Failed to get settings' });
+    }
+  });
+
+  // Admin: Update onboarding settings
+  app.put('/api/admin/onboarding/settings', requireAuth, isSuperAdmin, async (req, res) => {
+    try {
+      const {
+        welcomeEmailEnabled,
+        reminderEmailEnabled,
+        reminderDelayHours,
+        welcomeEmailSubject,
+        welcomeEmailBody,
+        reminderEmailSubject,
+        reminderEmailBody,
+        companyProfileStepEnabled,
+        teamMembersStepEnabled,
+        stripeConnectStepEnabled,
+        servicesStepEnabled,
+        brandingStepEnabled,
+        firstCustomerStepEnabled,
+      } = req.body;
+
+      let settings = await db.query.onboardingSettings.findFirst();
+      
+      const updateData = {
+        welcomeEmailEnabled,
+        reminderEmailEnabled,
+        reminderDelayHours,
+        welcomeEmailSubject,
+        welcomeEmailBody,
+        reminderEmailSubject,
+        reminderEmailBody,
+        companyProfileStepEnabled,
+        teamMembersStepEnabled,
+        stripeConnectStepEnabled,
+        servicesStepEnabled,
+        brandingStepEnabled,
+        firstCustomerStepEnabled,
+        updatedAt: new Date(),
+      };
+
+      if (!settings) {
+        const [newSettings] = await db.insert(onboardingSettings)
+          .values(updateData)
+          .returning();
+        settings = newSettings;
+      } else {
+        const [updatedSettings] = await db.update(onboardingSettings)
+          .set(updateData)
+          .where(eq(onboardingSettings.id, settings.id))
+          .returning();
+        settings = updatedSettings;
+      }
+      
+      res.json(settings);
+    } catch (error: any) {
+      console.error('Error updating onboarding settings:', error);
+      res.status(500).json({ message: error.message || 'Failed to update settings' });
     }
   });
 }
