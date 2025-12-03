@@ -306,8 +306,8 @@ export function isSuperAdmin(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ message: "Authentication required" });
   }
   
-  // Check if user has SaaS admin access permission
-  if (!user.canAccessSaasAdmin) {
+  // Check if user has SaaS admin access permission (stored as snake_case in req.user)
+  if (!user.can_access_saas_admin) {
     return res.status(403).json({ message: "Super admin access required" });
   }
   
