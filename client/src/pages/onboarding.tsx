@@ -298,7 +298,13 @@ function StripeConnectStep({ onComplete }: { onComplete: () => void }) {
   const connectMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("POST", "/api/stripe-connect/create-account");
-      return response.json();
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return response.json();
+      }
+      const text = await response.text();
+      console.error("Unexpected response:", text.substring(0, 200));
+      throw new Error("Stripe Connect setup is temporarily unavailable. Please try again from Settings > Payments.");
     },
     onSuccess: (data: any) => {
       if (data?.url) {

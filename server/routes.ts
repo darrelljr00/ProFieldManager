@@ -23770,6 +23770,10 @@ ${fromName || ''}
   const { registerOnboardingRoutes } = await import("./routes/onboarding");
   registerOnboardingRoutes(app);
 
+
+  // Stripe Connect Routes
+  const { registerStripeConnectRoutes } = await import("./routes/stripeConnect");
+  registerStripeConnectRoutes(app);
   // Website Layout CMS
   const { setupWebsiteLayoutRoutes } = await import("./website-layout-routes");
   setupWebsiteLayoutRoutes(app, storage, requireAuth, requireManagerOrAdmin, getAuthenticatedUser);
