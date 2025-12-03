@@ -1,15 +1,44 @@
 import Stripe from 'stripe';
 import { db } from '../db';
-import { organizations } from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { organizations, settings } from '../../shared/schema';
+import { eq, and } from 'drizzle-orm';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+let stripe: Stripe | null = null;
+
+// Initialize Stripe with environment key if available
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2024-11-20.acacia',
+  });
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-11-20.acacia',
-});
+// Get Stripe instance, using org-specific key if available
+async function getStripeInstance(organizationId?: number): Promise<Stripe> {
+  // First try org-specific key from database
+  if (organizationId) {
+    const orgSecretKey = await db
+      .select()
+      .from(settings)
+      .where(and(
+        eq(settings.organizationId, organizationId),
+        eq(settings.key, 'stripe_secret_key')
+      ))
+      .limit(1);
+    
+    if (orgSecretKey[0]?.value) {
+      return new Stripe(orgSecretKey[0].value, {
+        apiVersion: '2024-11-20.acacia',
+      });
+    }
+  }
+  
+  // Fall back to environment key
+  if (stripe) {
+    return stripe;
+  }
+  
+  throw new Error('Stripe API key not configured. Please add your secret key in Settings > Payments.');
+}
 
 export interface ConnectOnboardingParams {
   organizationId: number;
@@ -36,7 +65,8 @@ export interface ConnectAccountStatus {
  */
 export async function createConnectAccount(organizationId: number, email: string): Promise<string> {
   try {
-    const account = await stripe.accounts.create({
+    const stripeInstance = await getStripeInstance(organizationId);
+    const account = await stripeInstance.accounts.create({
       type: 'express',
       email,
       capabilities: {
@@ -92,7 +122,8 @@ export async function createAccountLink(params: ConnectOnboardingParams): Promis
     }
 
     // Create account link for onboarding
-    const accountLink = await stripe.accountLinks.create({
+    const stripeInstance = await getStripeInstance(params.organizationId);
+    const accountLink = await stripeInstance.accountLinks.create({
       account: accountId,
       refresh_url: params.refreshUrl,
       return_url: params.returnUrl,
@@ -127,7 +158,8 @@ export async function getConnectAccountStatus(organizationId: number): Promise<C
     }
 
     // Fetch account from Stripe
-    const account = await stripe.accounts.retrieve(org.stripeConnectAccountId);
+    const stripeInstance = await getStripeInstance(organizationId);
+    const account = await stripeInstance.accounts.retrieve(org.stripeConnectAccountId);
 
     // Update local database with latest status
     await db.update(organizations)
@@ -173,7 +205,8 @@ export async function createDashboardLink(organizationId: number): Promise<strin
       throw new Error('No Stripe Connect account found');
     }
 
-    const loginLink = await stripe.accounts.createLoginLink(org.stripeConnectAccountId);
+    const stripeInstance = await getStripeInstance(organizationId);
+    const loginLink = await stripeInstance.accounts.createLoginLink(org.stripeConnectAccountId);
     return loginLink.url;
   } catch (error: any) {
     console.error('Error creating dashboard link:', error);
@@ -197,7 +230,8 @@ export async function disconnectConnectAccount(organizationId: number): Promise<
     }
 
     // Delete the account from Stripe
-    await stripe.accounts.del(org.stripeConnectAccountId);
+    const stripeInstance = await getStripeInstance(organizationId);
+    await stripeInstance.accounts.del(org.stripeConnectAccountId);
 
     // Clear Connect fields in database
     await db.update(organizations)
@@ -250,7 +284,8 @@ export async function createPaymentIntentWithFee(params: {
     const platformFee = Math.round(params.amount * (platformFeePercentage / 100));
 
     // Create payment intent on connected account
-    const paymentIntent = await stripe.paymentIntents.create({
+    const stripeInstance = await getStripeInstance(params.organizationId);
+    const paymentIntent = await stripeInstance.paymentIntents.create({
       amount: params.amount,
       currency: params.currency,
       application_fee_amount: platformFee,
