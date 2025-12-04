@@ -23861,6 +23861,10 @@ ${fromName || ''}
   const { registerOnboardingRoutes } = await import("./routes/onboarding");
   registerOnboardingRoutes(app);
 
+  // Technician Onboarding Routes
+  const { registerTechnicianOnboardingRoutes } = await import("./routes/technicianOnboarding");
+  registerTechnicianOnboardingRoutes(app);
+
 
   // Stripe Connect Routes
   const { registerStripeConnectRoutes } = await import("./routes/stripeConnect");
