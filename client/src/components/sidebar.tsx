@@ -609,6 +609,7 @@ export function Sidebar() {
           subItems: [
             { name: "All Expenses", href: "/expenses", icon: Receipt },
             { name: "Categories", href: "/expense-categories", icon: Folder },
+            { name: "Manage Categories", href: "/expense-category-management", icon: Settings },
             { name: "Expense Reports", href: "/expense-reports", icon: FileBarChart },
             { name: "Gas Cards", href: "/gas-cards", icon: CreditCard },
             { name: "Gas Card Providers", href: "/gas-card-providers", icon: CreditCard },
@@ -789,11 +790,6 @@ export function Sidebar() {
         { name: "File Security", href: "/file-security", icon: Shield },
         { name: "Mobile Test", href: "/mobile-test", icon: Smartphone },
         { name: "Deploy to CWP", href: "/deploy-cwp", icon: Rocket },
-        {
-          name: "Expense Categories",
-          href: "/expense-category-management",
-          icon: Folder,
-        },
       ],
     },
     {
