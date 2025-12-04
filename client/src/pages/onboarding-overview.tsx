@@ -1,13 +1,26 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   Building2, Users, CreditCard, Wrench, Palette, UserPlus, 
-  Check, ArrowRight, Sparkles, Rocket, CheckCircle2, Circle
+  Check, ArrowRight, Sparkles, Rocket, CheckCircle2, Circle, RotateCcw
 } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface OnboardingProgress {
   id: number;
@@ -80,9 +93,31 @@ const steps = [
 
 export default function OnboardingOverview() {
   const [, navigate] = useLocation();
+  const { toast } = useToast();
 
   const { data: progress, isLoading } = useQuery<OnboardingProgress>({
     queryKey: ["/api/onboarding/progress"],
+  });
+
+  const resetOnboardingMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/onboarding/reset");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/progress"] });
+      toast({
+        title: "Onboarding Reset",
+        description: "Your onboarding has been reset. Starting from the beginning.",
+      });
+      navigate("/onboarding");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reset onboarding",
+        variant: "destructive",
+      });
+    },
   });
 
   if (isLoading) {
@@ -251,13 +286,44 @@ export default function OnboardingOverview() {
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
               Your account is fully configured. You're ready to manage your business with Pro Field Manager.
             </p>
-            <div className="flex gap-4 justify-center">
-              <Button onClick={() => navigate("/")}>
+            <div className="flex gap-4 justify-center flex-wrap">
+              <Button onClick={() => navigate("/")} data-testid="button-go-to-dashboard">
                 Go to Dashboard
               </Button>
-              <Button variant="outline" onClick={() => navigate("/jobs")}>
+              <Button variant="outline" onClick={() => navigate("/jobs")} data-testid="button-view-jobs">
                 View Jobs
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    className="text-muted-foreground hover:text-foreground"
+                    data-testid="button-restart-onboarding"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Restart Onboarding
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Restart Onboarding?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will reset all your onboarding progress and start the setup wizard from the beginning. 
+                      Your existing data (customers, jobs, etc.) will not be affected.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel data-testid="button-cancel-restart">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => resetOnboardingMutation.mutate()}
+                      disabled={resetOnboardingMutation.isPending}
+                      data-testid="button-confirm-restart"
+                    >
+                      {resetOnboardingMutation.isPending ? "Resetting..." : "Yes, Restart"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </CardContent>
         </Card>
