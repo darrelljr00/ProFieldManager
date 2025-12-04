@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { StatsCards } from "@/components/stats-cards";
 import { OnboardingWidget } from "@/components/OnboardingWidget";
 import { TechnicianTrainingWidget } from "@/components/TechnicianTrainingWidget";
+import { DailyFlowWidget } from "@/components/DailyFlowWidget";
 import { RevenueChart } from "@/components/revenue-chart";
 import { RecentActivity } from "@/components/recent-activity";
 import { InvoicesTable } from "@/components/invoices-table";
@@ -206,6 +207,9 @@ export default function Dashboard() {
 
         {/* Technician Training Widget */}
         <TechnicianTrainingWidget />
+
+        {/* Daily Flow Widget for Technicians */}
+        <DailyFlowWidget />
 
         {/* Stats Cards */}
         {settings.showStatsCards && (
