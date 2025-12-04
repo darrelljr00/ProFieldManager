@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Rocket } from "lucide-react";
+import { Rocket, GraduationCap } from "lucide-react";
 import {
   FileText,
   BarChart3,
@@ -531,6 +531,12 @@ export function Sidebar() {
       icon: Rocket,
       requiresAuth: true,
       adminOnly: true,
+    },
+    {
+      name: "Training",
+      href: "/technician-training",
+      icon: GraduationCap,
+      requiresAuth: true,
     },
     {
       name: "Calendar",
