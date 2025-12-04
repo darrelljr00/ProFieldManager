@@ -9371,7 +9371,35 @@ ${fromName || ''}
       const projects = await storage.getProjects(user.organizationId, user.id, user.role, status);
       console.log('📍 PROJECTS STEP 6: Projects retrieved, count:', projects.length);
       
-      res.json(projects);
+      // Add total service hours to each project
+      const projectsWithServiceHours = await Promise.all(
+        projects.map(async (project: any) => {
+          try {
+            const projectServices = await db
+              .select({
+                estimatedTimeSnapshot: jobsServices.estimatedTimeSnapshot,
+                quantity: jobsServices.quantity,
+              })
+              .from(jobsServices)
+              .where(eq(jobsServices.jobId, project.id));
+            
+            const totalServiceMinutes = projectServices.reduce((sum, service) => {
+              const time = service.estimatedTimeSnapshot || 0;
+              const qty = service.quantity || 1;
+              return sum + (time * qty);
+            }, 0);
+            
+            return {
+              ...project,
+              totalServiceMinutes,
+            };
+          } catch (err) {
+            return { ...project, totalServiceMinutes: 0 };
+          }
+        })
+      );
+      
+      res.json(projectsWithServiceHours);
     } catch (error: any) {
       console.error("❌ ERROR IN GET PROJECTS:", error);
       console.error("❌ Error stack:", error.stack);

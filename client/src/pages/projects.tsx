@@ -1565,13 +1565,14 @@ export default function Jobs() {
                 <OnsiteTimer project={project} />
                 
                 {/* Job Duration */}
-                {project.estimatedDuration && project.estimatedDuration > 0 && (
+                {(project.estimatedDuration > 0 || project.totalServiceMinutes > 0) && (
                   <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-md">
                     <Clock className="h-4 w-4" />
                     <span className="font-medium">
-                      Est. Duration: {(() => {
-                        const hours = Math.floor(project.estimatedDuration / 60);
-                        const minutes = project.estimatedDuration % 60;
+                      Total Hours: {(() => {
+                        const totalMinutes = project.totalServiceMinutes || project.estimatedDuration || 0;
+                        const hours = Math.floor(totalMinutes / 60);
+                        const minutes = totalMinutes % 60;
                         if (hours === 0) {
                           return `${minutes}min`;
                         } else if (minutes === 0) {
