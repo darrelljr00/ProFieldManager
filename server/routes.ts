@@ -10282,6 +10282,39 @@ ${fromName || ''}
   });
 
   // Tasks
+
+  // Get job services
+  app.get("/api/projects/:id/services", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const organizationId = req.user!.organizationId;
+      
+      const jobServices = await db
+        .select({
+          id: jobsServices.id,
+          serviceId: jobsServices.serviceId,
+          serviceName: services.name,
+          priceSnapshot: jobsServices.priceSnapshot,
+          materialsCostSnapshot: jobsServices.materialsCostSnapshot,
+          estimatedTimeSnapshot: jobsServices.estimatedTimeSnapshot,
+          quantity: jobsServices.quantity,
+        })
+        .from(jobsServices)
+        .innerJoin(services, eq(jobsServices.serviceId, services.id))
+        .where(
+          and(
+            eq(jobsServices.jobId, projectId),
+            eq(jobsServices.organizationId, organizationId)
+          )
+        );
+      
+      res.json(jobServices);
+    } catch (error: any) {
+      console.error("Error fetching job services:", error);
+      res.status(500).json({ message: "Failed to fetch job services" });
+    }
+  });
+
   app.get("/api/projects/:id/tasks", requireAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);

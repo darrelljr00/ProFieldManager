@@ -669,6 +669,13 @@ export default function Jobs() {
     enabled: !!selectedProject,
   });
 
+  // Fetch job services when viewing details
+  const { data: jobServices = [] } = useQuery<any[]>({
+    queryKey: ["/api/projects", selectedProject?.id, "services"],
+    queryFn: () => selectedProject ? apiRequest("GET", `/api/projects/${selectedProject.id}/services`).then(res => res.json()) : [],
+    enabled: !!selectedProject,
+  });
+
   // Fetch waiver documents from file manager
   const { data: waiverDocuments = [] } = useQuery({
     queryKey: ["/api/files", "waivers"],
@@ -2886,6 +2893,58 @@ export default function Jobs() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Services & Duration */}
+              {(jobServices.length > 0 || selectedProject.estimatedDuration) && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300">Services & Duration</h3>
+                  </div>
+                  
+                  {selectedProject.estimatedDuration && (
+                    <div className="mb-3 pb-3 border-b border-blue-200 dark:border-blue-700">
+                      <Label className="text-xs font-medium text-blue-700 dark:text-blue-300">Estimated Job Duration</Label>
+                      <p className="text-lg font-bold text-blue-600 dark:text-blue-400 mt-1">
+                        {Math.floor(selectedProject.estimatedDuration / 60) > 0 && (
+                          <>{Math.floor(selectedProject.estimatedDuration / 60)}h </>
+                        )}
+                        {selectedProject.estimatedDuration % 60 > 0 && (
+                          <>{selectedProject.estimatedDuration % 60}m</>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {jobServices.length > 0 && (
+                    <div>
+                      <Label className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2 block">Services Included</Label>
+                      <div className="space-y-2">
+                        {jobServices.map((service: any) => (
+                          <div key={service.id} className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-md p-2 border border-blue-100 dark:border-blue-800">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{service.serviceName}</span>
+                              {service.quantity > 1 && (
+                                <Badge variant="secondary" className="text-xs">x{service.quantity}</Badge>
+                              )}
+                            </div>
+                            {service.estimatedTimeSnapshot && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {Math.floor(service.estimatedTimeSnapshot / 60) > 0 && (
+                                  <>{Math.floor(service.estimatedTimeSnapshot / 60)}h </>
+                                )}
+                                {service.estimatedTimeSnapshot % 60 > 0 && (
+                                  <>{service.estimatedTimeSnapshot % 60}m</>
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
