@@ -1461,7 +1461,7 @@ export default function Jobs() {
     );
     
     const inProgress = filteredJobs.filter(job => 
-      job.status === 'active' && 
+      (job.status === 'active' || job.status === 'in-progress') && 
       (!job.startDate || new Date(job.startDate) <= new Date()) &&
       job.progress < 100
     );
