@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { StatsCards } from "@/components/stats-cards";
 import { OnboardingWidget } from "@/components/OnboardingWidget";
+import { TechnicianTrainingWidget } from "@/components/TechnicianTrainingWidget";
 import { RevenueChart } from "@/components/revenue-chart";
 import { RecentActivity } from "@/components/recent-activity";
 import { InvoicesTable } from "@/components/invoices-table";
@@ -202,6 +203,9 @@ export default function Dashboard() {
         <div className="mb-6">
           <OnboardingWidget />
         </div>
+
+        {/* Technician Training Widget */}
+        <TechnicianTrainingWidget />
 
         {/* Stats Cards */}
         {settings.showStatsCards && (
