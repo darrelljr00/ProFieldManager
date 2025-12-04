@@ -9979,7 +9979,22 @@ ${fromName || ''}
         }
       }
       
-      res.json(updatedProject);
+      // Add totalServiceMinutes to response
+      const projectServices = await db
+        .select({
+          estimatedTimeSnapshot: jobsServices.estimatedTimeSnapshot,
+          quantity: jobsServices.quantity,
+        })
+        .from(jobsServices)
+        .where(eq(jobsServices.jobId, projectId));
+      
+      const totalServiceMinutes = projectServices.reduce((sum: number, service: any) => {
+        const time = service.estimatedTimeSnapshot || 0;
+        const qty = service.quantity || 1;
+        return sum + (time * qty);
+      }, 0);
+      
+      res.json({ ...updatedProject, totalServiceMinutes });
     } catch (error: any) {
       console.error("Error updating project:", error);
       res.status(500).json({ message: "Failed to update project" });
@@ -10080,7 +10095,22 @@ ${fromName || ''}
         }
       }
 
-      res.json(updatedProject);
+      // Add totalServiceMinutes to response
+      const projectServices = await db
+        .select({
+          estimatedTimeSnapshot: jobsServices.estimatedTimeSnapshot,
+          quantity: jobsServices.quantity,
+        })
+        .from(jobsServices)
+        .where(eq(jobsServices.jobId, projectId));
+      
+      const totalServiceMinutes = projectServices.reduce((sum: number, service: any) => {
+        const time = service.estimatedTimeSnapshot || 0;
+        const qty = service.quantity || 1;
+        return sum + (time * qty);
+      }, 0);
+      
+      res.json({ ...updatedProject, totalServiceMinutes });
     } catch (error: any) {
       console.error("Error starting job:", error);
       res.status(500).json({ message: "Failed to start job" });
