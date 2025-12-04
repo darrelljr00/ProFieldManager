@@ -83,6 +83,8 @@ const Inspections = lazy(() => import("@/pages/inspections"));
 const Weather = lazy(() => import("@/pages/weather"));
 const FileSecurity = lazy(() => import("@/pages/file-security"));
 const PartsSupplies = lazy(() => import("@/pages/parts-supplies"));
+const TechInventory = lazy(() => import("@/pages/tech-inventory"));
+const TechnicianDailyFlow = lazy(() => import("@/pages/technician-daily-flow"));
 const MarketResearch = lazy(() => import("@/pages/market-research"));
 const TaskGroups = lazy(() => import("@/pages/task-groups"));
 const SmartCapture = lazy(() => import("@/pages/smart-capture"));
@@ -220,6 +222,8 @@ function AuthenticatedApp() {
               <Route path="/onboarding" component={Onboarding} />
               <Route path="/onboarding-overview" component={OnboardingOverview} />
               <Route path="/technician-training" component={TechnicianOnboarding} />
+              <Route path="/daily-flow" component={TechnicianDailyFlow} />
+              <Route path="/tech-inventory" component={TechInventory} />
               <Route path="/calendar" component={CalendarPage} />
               <Route path="/jobs" component={Projects} />
               <Route path="/jobs/deleted" component={DeletedJobs} />
