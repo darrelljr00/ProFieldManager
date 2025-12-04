@@ -23866,6 +23866,10 @@ ${fromName || ''}
   registerTechnicianOnboardingRoutes(app);
 
 
+  // Technician Daily Flow Routes
+  const { registerTechnicianDailyFlowRoutes } = await import("./routes/technicianDailyFlow");
+  registerTechnicianDailyFlowRoutes(app);
+
   // Stripe Connect Routes
   const { registerStripeConnectRoutes } = await import("./routes/stripeConnect");
   registerStripeConnectRoutes(app);

@@ -6779,3 +6779,180 @@ export const insertPromotionWheelSpinSchema = createInsertSchema(promotionWheelS
 
 export type PromotionWheelSpin = typeof promotionWheelSpins.$inferSelect;
 export type InsertPromotionWheelSpin = z.infer<typeof insertPromotionWheelSpinSchema>;
+
+// Technician Daily Flow Sessions - Track daily workflow completion
+export const technicianDailyFlowSessions = pgTable("technician_daily_flow_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  workDate: date("work_date").notNull(),
+  
+  // Step completion status
+  checkInComplete: boolean("check_in_complete").default(false),
+  checkInTime: timestamp("check_in_time"),
+  dailyJobsReviewed: boolean("daily_jobs_reviewed").default(false),
+  dailyJobsReviewedAt: timestamp("daily_jobs_reviewed_at"),
+  inventoryChecked: boolean("inventory_checked").default(false),
+  inventoryCheckedAt: timestamp("inventory_checked_at"),
+  vehicleInspectionComplete: boolean("vehicle_inspection_complete").default(false),
+  vehicleInspectionId: integer("vehicle_inspection_id").references(() => inspectionRecords.id),
+  vehicleInspectionCompletedAt: timestamp("vehicle_inspection_completed_at"),
+  
+  // Overall status
+  status: text("status").default("in_progress"), // in_progress, completed, skipped
+  currentStep: integer("current_step").default(1),
+  completedSteps: integer("completed_steps").default(0),
+  totalSteps: integer("total_steps").default(4),
+  isComplete: boolean("is_complete").default(false),
+  completedAt: timestamp("completed_at"),
+  
+  // Skip tracking
+  skippedSteps: text("skipped_steps").array(), // Array of skipped step names
+  skipReasons: jsonb("skip_reasons"), // JSON object with step: reason pairs
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userDateUnique: unique().on(table.userId, table.workDate),
+}));
+
+export const insertTechnicianDailyFlowSessionSchema = createInsertSchema(technicianDailyFlowSessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type TechnicianDailyFlowSession = typeof technicianDailyFlowSessions.$inferSelect;
+export type InsertTechnicianDailyFlowSession = z.infer<typeof insertTechnicianDailyFlowSessionSchema>;
+
+// Technician Inventory - Parts and supplies assigned to technicians
+export const technicianInventory = pgTable("technician_inventory", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  partId: integer("part_id").notNull().references(() => partsSupplies.id),
+  
+  // Quantity tracking
+  assignedQuantity: integer("assigned_quantity").default(0).notNull(),
+  currentQuantity: integer("current_quantity").default(0).notNull(),
+  minQuantity: integer("min_quantity").default(0), // Low stock alert threshold
+  
+  // Location tracking (e.g., which vehicle or toolbox)
+  location: text("location"),
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  isLowStock: boolean("is_low_stock").default(false),
+  lastRestockedAt: timestamp("last_restocked_at"),
+  lastUsedAt: timestamp("last_used_at"),
+  
+  // Notes
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userPartUnique: unique().on(table.userId, table.partId),
+}));
+
+export const insertTechnicianInventorySchema = createInsertSchema(technicianInventory).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type TechnicianInventory = typeof technicianInventory.$inferSelect;
+export type InsertTechnicianInventory = z.infer<typeof insertTechnicianInventorySchema>;
+
+// Technician Inventory Transactions - Track usage/restocking
+export const technicianInventoryTransactions = pgTable("technician_inventory_transactions", {
+  id: serial("id").primaryKey(),
+  technicianInventoryId: integer("technician_inventory_id").notNull().references(() => technicianInventory.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Transaction details
+  type: text("type").notNull(), // restock, use, return, adjustment, transfer
+  quantity: integer("quantity").notNull(),
+  previousQuantity: integer("previous_quantity").notNull(),
+  newQuantity: integer("new_quantity").notNull(),
+  
+  // Reference to job if used on a job
+  projectId: integer("project_id").references(() => projects.id),
+  
+  // Additional info
+  notes: text("notes"),
+  performedBy: integer("performed_by").references(() => users.id),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTechnicianInventoryTransactionSchema = createInsertSchema(technicianInventoryTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type TechnicianInventoryTransaction = typeof technicianInventoryTransactions.$inferSelect;
+export type InsertTechnicianInventoryTransaction = z.infer<typeof insertTechnicianInventoryTransactionSchema>;
+
+// Relations for Technician Daily Flow Sessions
+export const technicianDailyFlowSessionsRelations = relations(technicianDailyFlowSessions, ({ one }) => ({
+  user: one(users, {
+    fields: [technicianDailyFlowSessions.userId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [technicianDailyFlowSessions.organizationId],
+    references: [organizations.id],
+  }),
+  vehicleInspection: one(inspectionRecords, {
+    fields: [technicianDailyFlowSessions.vehicleInspectionId],
+    references: [inspectionRecords.id],
+  }),
+}));
+
+// Relations for Technician Inventory
+export const technicianInventoryRelations = relations(technicianInventory, ({ one, many }) => ({
+  user: one(users, {
+    fields: [technicianInventory.userId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [technicianInventory.organizationId],
+    references: [organizations.id],
+  }),
+  part: one(partsSupplies, {
+    fields: [technicianInventory.partId],
+    references: [partsSupplies.id],
+  }),
+  vehicle: one(vehicles, {
+    fields: [technicianInventory.vehicleId],
+    references: [vehicles.id],
+  }),
+  transactions: many(technicianInventoryTransactions),
+}));
+
+// Relations for Technician Inventory Transactions
+export const technicianInventoryTransactionsRelations = relations(technicianInventoryTransactions, ({ one }) => ({
+  technicianInventory: one(technicianInventory, {
+    fields: [technicianInventoryTransactions.technicianInventoryId],
+    references: [technicianInventory.id],
+  }),
+  user: one(users, {
+    fields: [technicianInventoryTransactions.userId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [technicianInventoryTransactions.organizationId],
+    references: [organizations.id],
+  }),
+  project: one(projects, {
+    fields: [technicianInventoryTransactions.projectId],
+    references: [projects.id],
+  }),
+  performer: one(users, {
+    fields: [technicianInventoryTransactions.performedBy],
+    references: [users.id],
+  }),
+}));
