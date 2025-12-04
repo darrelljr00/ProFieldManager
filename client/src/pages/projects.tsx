@@ -1562,7 +1562,7 @@ export default function Jobs() {
                     <Users className="h-4 w-4" />
                     <span>{project.users.length} member{project.users.length !== 1 ? 's' : ''}</span>
                   </div>
-                  {project.budget && (
+                  {isAdminOrManager && project.budget && (
                     <div className="text-green-600 font-medium">
                       ${parseFloat(project.budget).toLocaleString()}
                     </div>
