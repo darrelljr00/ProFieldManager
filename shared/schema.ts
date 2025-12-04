@@ -2722,6 +2722,45 @@ export const insertOnboardingSettingsSchema = createInsertSchema(onboardingSetti
 export type OnboardingSettings = typeof onboardingSettings.$inferSelect;
 export type InsertOnboardingSettings = z.infer<typeof insertOnboardingSettingsSchema>;
 
+// Technician Onboarding Progress - tracks individual user training progress
+export const technicianOnboardingProgress = pgTable("technician_onboarding_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Step completion tracking (7 steps)
+  welcomeComplete: boolean("welcome_complete").default(false),
+  scheduleComplete: boolean("schedule_complete").default(false),
+  jobDetailsComplete: boolean("job_details_complete").default(false),
+  imageUploadsComplete: boolean("image_uploads_complete").default(false),
+  timeClockComplete: boolean("time_clock_complete").default(false),
+  tasksComplete: boolean("tasks_complete").default(false),
+  gpsNavigationComplete: boolean("gps_navigation_complete").default(false),
+  
+  // Overall status
+  isComplete: boolean("is_complete").default(false),
+  currentStep: integer("current_step").default(1),
+  completedSteps: integer("completed_steps").default(0),
+  totalSteps: integer("total_steps").default(7),
+  
+  // Tracking
+  startedAt: timestamp("started_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertTechnicianOnboardingProgressSchema = createInsertSchema(technicianOnboardingProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type TechnicianOnboardingProgress = typeof technicianOnboardingProgress.$inferSelect;
+export type InsertTechnicianOnboardingProgress = z.infer<typeof insertTechnicianOnboardingProgressSchema>;
+
 export type LoginData = z.infer<typeof loginSchema>;
 export type RegisterData = z.infer<typeof registerSchema>;
 export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
