@@ -1113,7 +1113,7 @@ export default function Jobs() {
       selectedDays: isRecurring && recurrencePattern === 'weekly' ? selectedDays : [],
       dayOfMonth: isRecurring && recurrencePattern === 'monthly' ? dayOfMonth : null,
       recurringStartTime: isRecurring ? recurringStartTime : null,
-      estimatedDuration: isRecurring ? estimatedDuration : null,
+      estimatedDuration: isRecurring ? estimatedDuration * 60 : (estimatedTotalTime > 0 ? estimatedTotalTime : null),
       defaultTechnicians: isRecurring ? defaultTechnicians : [],
       seriesEndType: isRecurring ? seriesEndType : null,
       seriesEndDate: isRecurring && seriesEndType === 'date' ? seriesEndDate : null,
@@ -1556,6 +1556,26 @@ export default function Jobs() {
                 
                 {/* Onsite Timer */}
                 <OnsiteTimer project={project} />
+                
+                {/* Job Duration */}
+                {project.estimatedDuration && project.estimatedDuration > 0 && (
+                  <div className="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-md">
+                    <Clock className="h-4 w-4" />
+                    <span className="font-medium">
+                      Est. Duration: {(() => {
+                        const hours = Math.floor(project.estimatedDuration / 60);
+                        const minutes = project.estimatedDuration % 60;
+                        if (hours === 0) {
+                          return `${minutes}min`;
+                        } else if (minutes === 0) {
+                          return `${hours}hr`;
+                        } else {
+                          return `${hours}hr ${minutes}min`;
+                        }
+                      })()}
+                    </span>
+                  </div>
+                )}
                 
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <div className="flex items-center space-x-2">
