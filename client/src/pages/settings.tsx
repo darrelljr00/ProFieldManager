@@ -2774,7 +2774,7 @@ export default function Settings() {
                                   variant="outline"
                                   size="sm"
                                   onClick={handleResetUserDashboard}
-                                  disabled={dashboardUpdateMutation.isPending}
+                                  disabled={dashboardMutation.isPending}
                                 >
                                   Reset to Default
                                 </Button>
