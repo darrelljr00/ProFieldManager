@@ -68,7 +68,7 @@ Preferred communication style: Simple, everyday language.
   - Added `technician_onboarding_progress` database table for individual user progress tracking
   - API routes `/api/technician-onboarding/progress` (GET/POST) for progress management
   - TechnicianTrainingWidget on Dashboard prompts users with incomplete training
-  - Added "Training" menu item to sidebar navigation for all users
+  - Role-based sidebar navigation: Admins/managers see "Onboarding" menu with "Admin Onboarding" and "Technician Onboarding" subtabs; technicians only see "Training" tab
   - Progress persists per-step with completion percentage tracking
 
 ## Previous Updates (Dec 2, 2025)

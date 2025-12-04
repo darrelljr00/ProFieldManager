@@ -525,19 +525,27 @@ export function Sidebar() {
       requiresAuth: true,
       permission: "canAccessDashboard",
     },
-    {
-      name: "Onboarding",
-      href: "/onboarding-overview",
-      icon: Rocket,
-      requiresAuth: true,
-      adminOnly: true,
-    },
-    {
-      name: "Training",
-      href: "/technician-training",
-      icon: GraduationCap,
-      requiresAuth: true,
-    },
+    ...(user?.role === "admin" || user?.role === "manager"
+      ? [
+          {
+            name: "Onboarding",
+            href: "/onboarding-overview",
+            icon: Rocket,
+            requiresAuth: true,
+            subItems: [
+              { name: "Admin Onboarding", href: "/onboarding-overview", icon: Rocket },
+              { name: "Technician Onboarding", href: "/technician-training", icon: GraduationCap },
+            ],
+          },
+        ]
+      : [
+          {
+            name: "Training",
+            href: "/technician-training",
+            icon: GraduationCap,
+            requiresAuth: true,
+          },
+        ]),
     {
       name: "Calendar",
       href: "/calendar",
