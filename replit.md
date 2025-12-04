@@ -62,7 +62,16 @@ Preferred communication style: Simple, everyday language.
 - **AWS S3**: Backup storage.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
-## Recent Updates (Dec 2, 2025)
+## Recent Updates (Dec 4, 2025)
+- **Technician Onboarding System**: 
+  - Created user-scoped technician training wizard with 7 steps: Welcome, Schedule, Job Details, Image Uploads, Time Clock, Tasks, and GPS
+  - Added `technician_onboarding_progress` database table for individual user progress tracking
+  - API routes `/api/technician-onboarding/progress` (GET/POST) for progress management
+  - TechnicianTrainingWidget on Dashboard prompts users with incomplete training
+  - Added "Training" menu item to sidebar navigation for all users
+  - Progress persists per-step with completion percentage tracking
+
+## Previous Updates (Dec 2, 2025)
 - **Dual Onboarding System Enhancements**: 
   - Added "Onboarding" navigation item to sidebar for organization admins to view their own progress (`/onboarding-overview` page)
   - Enhanced SaaS Admin Onboarding tab with Monitor/Settings tabs
