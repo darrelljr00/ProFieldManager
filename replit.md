@@ -63,12 +63,24 @@ Preferred communication style: Simple, everyday language.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
 ## Recent Updates (Dec 4, 2025)
+- **Technician Daily Flow System**: 
+  - Created 4-step daily workflow wizard for field technicians: Check-In, Daily Jobs Review, Tech Inventory, Vehicle Inspection
+  - Added `technician_daily_flow_sessions` database table for tracking daily session progress
+  - API routes `/api/technician-daily-flow` (GET/PATCH) for session management
+  - DailyFlowWidget on Dashboard prompts technicians to complete their daily checklist
+  - Each step links to existing systems (time clock, my schedule, tech inventory, inspections)
+  - Session resets daily and tracks completion status per step
+- **Technician Inventory Management**:
+  - Created `/tech-inventory` page for technicians to view and manage their assigned parts/tools
+  - Added `technician_inventory` and `technician_inventory_transactions` database tables
+  - Supports quantity tracking, vehicle assignment, and restock alerts
+  - Transaction logging for usage, restocking, and adjustments
 - **Technician Onboarding System**: 
   - Created user-scoped technician training wizard with 7 steps: Welcome, Schedule, Job Details, Image Uploads, Time Clock, Tasks, and GPS
   - Added `technician_onboarding_progress` database table for individual user progress tracking
   - API routes `/api/technician-onboarding/progress` (GET/POST) for progress management
   - TechnicianTrainingWidget on Dashboard prompts users with incomplete training
-  - Role-based sidebar navigation: Admins/managers see "Onboarding" menu with "Admin Onboarding" and "Technician Onboarding" subtabs; technicians only see "Training" tab
+  - Role-based sidebar navigation: Admins/managers see "Onboarding" menu with "Admin Onboarding" and "Technician Onboarding" subtabs; technicians only see "Training" tab and "Daily Flow"
   - Progress persists per-step with completion percentage tracking
 
 ## Previous Updates (Dec 2, 2025)
