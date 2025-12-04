@@ -535,6 +535,7 @@ export function Sidebar() {
             subItems: [
               { name: "Admin Onboarding", href: "/onboarding-overview", icon: Rocket },
               { name: "Technician Onboarding", href: "/technician-training", icon: GraduationCap },
+              { name: "Tutorials", href: "/tutorials", icon: BookOpen },
             ],
           },
         ]
@@ -544,6 +545,10 @@ export function Sidebar() {
             href: "/technician-training",
             icon: GraduationCap,
             requiresAuth: true,
+            subItems: [
+              { name: "Technician Onboarding", href: "/technician-training", icon: GraduationCap },
+              { name: "Tutorials", href: "/tutorials", icon: BookOpen },
+            ],
           },
         ]),
     {
@@ -738,13 +743,6 @@ export function Sidebar() {
       icon: BarChart3,
       requiresAuth: true,
       permission: "canAccessMarketResearch",
-    },
-    {
-      name: "Tutorials",
-      href: "/tutorials",
-      icon: BookOpen,
-      requiresAuth: true,
-      permission: "canAccessTutorials",
     },
     {
       name: "Screen Sharing",
