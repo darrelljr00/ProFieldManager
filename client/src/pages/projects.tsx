@@ -2943,6 +2943,26 @@ export default function Jobs() {
                           </div>
                         ))}
                       </div>
+                      
+                      {/* Total Hours */}
+                      <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 flex items-center justify-between">
+                        <Label className="text-xs font-semibold text-blue-800 dark:text-blue-200">Total Hours</Label>
+                        <span className="text-base font-bold text-blue-600 dark:text-blue-400">
+                          {(() => {
+                            const totalMinutes = jobServices.reduce((sum: number, service: any) => {
+                              const time = service.estimatedTimeSnapshot || 0;
+                              const qty = service.quantity || 1;
+                              return sum + (time * qty);
+                            }, 0);
+                            const hours = Math.floor(totalMinutes / 60);
+                            const minutes = totalMinutes % 60;
+                            if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+                            if (hours > 0) return `${hours}h`;
+                            if (minutes > 0) return `${minutes}m`;
+                            return '0m';
+                          })()}
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
