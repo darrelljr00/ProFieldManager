@@ -26,6 +26,7 @@ PageLoader.displayName = 'PageLoader';
 import Dashboard from "@/pages/dashboard";
 import Onboarding from "@/pages/onboarding";
 import OnboardingOverview from "@/pages/onboarding-overview";
+import TechnicianOnboarding from "@/pages/technician-onboarding";
 import HomePage from "@/pages/home";
 import UniversalLogin from "@/pages/universal-login";
 import DirectLogin from "@/pages/direct-login";
@@ -218,6 +219,7 @@ function AuthenticatedApp() {
               <Route path="/dashboard" component={Dashboard} />
               <Route path="/onboarding" component={Onboarding} />
               <Route path="/onboarding-overview" component={OnboardingOverview} />
+              <Route path="/technician-training" component={TechnicianOnboarding} />
               <Route path="/calendar" component={CalendarPage} />
               <Route path="/jobs" component={Projects} />
               <Route path="/jobs/deleted" component={DeletedJobs} />
