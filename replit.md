@@ -63,6 +63,13 @@ Preferred communication style: Simple, everyday language.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
 ## Recent Updates (Dec 5, 2025)
+- **Personal Profile & My Reports Pages**:
+  - Created Personal Profile page (`/personal-profile`) showing user's own HR data
+  - Displays time off requests, performance reviews, and disciplinary actions for the logged-in user
+  - Created My Reports page (`/my-reports`) showing user's own performance analytics
+  - Includes task completion rates, job activity metrics, and documentation compliance
+  - API endpoints: `/api/my-time-off-requests`, `/api/my-performance-reviews`, `/api/my-disciplinary-actions`, `/api/my-reports/summary`
+  - Both pages accessible to all authenticated users as separate sidebar navigation items (no permission restriction)
 - **Time Clock Settings Admin-Only Restriction**:
   - Restricted Time Clock Settings tab to organization admins only
   - Both the tab trigger and tab content are conditionally rendered based on `isAdmin` check
