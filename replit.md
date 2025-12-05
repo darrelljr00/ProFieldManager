@@ -63,6 +63,13 @@ Preferred communication style: Simple, everyday language.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
 ## Recent Updates (Dec 5, 2025)
+- **Admin Inventory Management System**:
+  - Created Admin Inventory Management page (`/admin-inventory-management`) for admins/managers
+  - Allows creating inventory items with images and assigning them to technicians or vehicles
+  - Added `daily_inventory_verification` database table for tracking daily submissions
+  - API endpoints in `server/routes/technicianInventory.ts` for inventory CRUD and daily verification
+  - Navigation: "Inventory Assignment" sub-item under "Parts & Supplies" (admin/manager only)
+  - Integrates with Daily Flow system for required daily inventory verification
 - **Personal Profile & My Reports Pages**:
   - Created Personal Profile page (`/personal-profile`) showing user's own HR data
   - Displays time off requests, performance reviews, and disciplinary actions for the logged-in user
