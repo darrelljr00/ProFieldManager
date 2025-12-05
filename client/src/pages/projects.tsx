@@ -530,6 +530,9 @@ export default function Jobs() {
   
   // State for Smart Capture feature
   const [enableSmartCapture, setEnableSmartCapture] = useState(false);
+
+  // State for team member assignment during job creation
+  const [selectedTeamMembersForJob, setSelectedTeamMembersForJob] = useState<number[]>([]);
   const [createSmartCaptureDialogOpen, setCreateSmartCaptureDialogOpen] = useState(false);
   const [editSmartCaptureDialogOpen, setEditSmartCaptureDialogOpen] = useState(false);
   const [editingSmartCaptureItem, setEditingSmartCaptureItem] = useState<any>(null);
@@ -701,15 +704,33 @@ export default function Jobs() {
   });
 
 
-  const createJobMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/projects", data),
-    onSuccess: () => {
+  const createJobMutation = useMutation<any, Error, any>({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("POST", "/api/projects", data);
+      return response.json();
+    },
+    onSuccess: async (createdProject) => {
+      // Assign team members if any were selected
+      if (selectedTeamMembersForJob.length > 0 && createdProject?.id) {
+        try {
+          for (const userId of selectedTeamMembersForJob) {
+            await apiRequest('POST', `/api/projects/${createdProject.id}/users`, { userId });
+          }
+        } catch (error) {
+          console.error('Failed to assign team members:', error);
+        }
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setCreateDialogOpen(false);
       setQuoteConversionData(null);
+      setSelectedTeamMembersForJob([]);
+      setSelectedServiceIds([]);
       toast({
         title: "Success",
-        description: "Job created successfully",
+        description: selectedTeamMembersForJob.length > 0 
+          ? `Job created and ${selectedTeamMembersForJob.length} team member(s) assigned`
+          : "Job created successfully",
       });
     },
     onError: (error) => {
@@ -1774,6 +1795,8 @@ export default function Jobs() {
             setCreateDialogOpen(open);
             if (!open) {
               setQuoteConversionData(null);
+              setSelectedTeamMembersForJob([]);
+              setSelectedServiceIds([]);
             }
           }}>
           <DialogTrigger asChild>
@@ -1818,6 +1841,99 @@ export default function Jobs() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Team Member Assignment */}
+              <div className="space-y-2">
+                <Label>Assign Team Members (Optional)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                      type="button"
+                      data-testid="button-team-member-select"
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      {selectedTeamMembersForJob.length > 0
+                        ? `${selectedTeamMembersForJob.length} team member(s) selected`
+                        : "Select team members"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search team members..." />
+                      <CommandEmpty>No team members found.</CommandEmpty>
+                      <CommandList>
+                        <CommandGroup>
+                          {allUsers.map((teamMember: User) => (
+                            <CommandItem
+                              key={teamMember.id}
+                              onSelect={() => {
+                                setSelectedTeamMembersForJob((prev) =>
+                                  prev.includes(teamMember.id)
+                                    ? prev.filter((id) => id !== teamMember.id)
+                                    : [...prev, teamMember.id]
+                                );
+                              }}
+                            >
+                              <Checkbox
+                                checked={selectedTeamMembersForJob.includes(teamMember.id)}
+                                className="mr-2"
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium">
+                                  {teamMember.firstName && teamMember.lastName 
+                                    ? `${teamMember.firstName} ${teamMember.lastName}` 
+                                    : teamMember.username}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {teamMember.role} {teamMember.email && `• ${teamMember.email}`}
+                                </div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Selected Team Members Summary */}
+                {selectedTeamMembersForJob.length > 0 && (
+                  <Card className="bg-green-50 dark:bg-green-900/20 border-green-200">
+                    <CardContent className="pt-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Selected Team Members:</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {allUsers
+                            .filter((u: User) => selectedTeamMembersForJob.includes(u.id))
+                            .map((teamMember: User) => (
+                              <Badge 
+                                key={teamMember.id} 
+                                variant="secondary"
+                                className="flex items-center gap-1"
+                              >
+                                {teamMember.firstName && teamMember.lastName 
+                                  ? `${teamMember.firstName} ${teamMember.lastName}` 
+                                  : teamMember.username}
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedTeamMembersForJob((prev) => 
+                                    prev.filter((id) => id !== teamMember.id)
+                                  )}
+                                  className="ml-1 hover:text-red-500"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               {/* Service Selection */}

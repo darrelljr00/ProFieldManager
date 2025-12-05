@@ -63,6 +63,13 @@ Preferred communication style: Simple, everyday language.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
 ## Recent Updates (Dec 5, 2025)
+- **Team Member Assignment During Job Creation**:
+  - Added team member multi-select dropdown to the Create New Job dialog
+  - Uses Command/Popover UI pattern with searchable team member list
+  - Shows selected team members as removable badges with summary card
+  - Automatically assigns selected team members after job creation via `/api/projects/{id}/users` endpoint
+  - State resets when dialog closes or after successful job creation
+  - Located in `client/src/pages/projects.tsx` - uses `selectedTeamMembersForJob` state and `allUsers` query
 - **Technician Role Integration**:
   - "Technician" is now a fully recognized user role alongside User, Manager, and Admin
   - Added technician role option to Add User form, role filter dropdown, and bulk actions
