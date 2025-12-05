@@ -63,6 +63,13 @@ Preferred communication style: Simple, everyday language.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
 ## Recent Updates (Dec 5, 2025)
+- **Technician Role Integration**:
+  - "Technician" is now a fully recognized user role alongside User, Manager, and Admin
+  - Added technician role option to Add User form, role filter dropdown, and bulk actions
+  - Automatic technician feature initialization when user is created with role "technician" or when existing user's role is changed to "technician"
+  - Creates `technician_onboarding_progress` record automatically for technician users
+  - Located in storage.ts: `createUser()` and `updateUser()` functions handle automatic initialization
+  - Uses `onConflictDoNothing()` to prevent duplicate record errors
 - **Admin Inventory Management System Enhanced**:
   - Created dedicated `inventory_items` database table separate from `parts_supplies`
   - Admin Inventory Management page (`/admin-inventory-management`) with 3 tabs: Inventory, Assignments, Daily Verifications
