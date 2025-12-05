@@ -793,20 +793,24 @@ export function Sidebar() {
         { name: "Call Manager", href: "/saas-admin/call-manager", icon: Phone },
       ],
     },
-    {
-      name: "Website Management",
-      href: "/frontend-management",
-      icon: Monitor,
-      requiresAuth: true,
-      permission: "canAccessSaasAdmin",
-      subItems: [
-        { name: "Page Builder", href: "/frontend-management", icon: Layout },
-        { name: "Slider Management", href: "/slider-management", icon: Image },
-        { name: "Pop-ups", href: "/popup-management", icon: MessageSquare },
-        { name: "Live Chat", href: "/live-chat-management", icon: MessageCircle },
-        { name: "Analytics", href: "/website-analytics", icon: BarChart3 },
-      ],
-    },
+    ...(user?.organizationId === 1
+      ? [
+          {
+            name: "Website Management",
+            href: "/frontend-management",
+            icon: Monitor,
+            requiresAuth: true,
+            permission: "canAccessSaasAdmin",
+            subItems: [
+              { name: "Page Builder", href: "/frontend-management", icon: Layout },
+              { name: "Slider Management", href: "/slider-management", icon: Image },
+              { name: "Pop-ups", href: "/popup-management", icon: MessageSquare },
+              { name: "Live Chat", href: "/live-chat-management", icon: MessageCircle },
+              { name: "Analytics", href: "/website-analytics", icon: BarChart3 },
+            ],
+          },
+        ]
+      : []),
     {
       name: "Admin Settings",
       href: "/admin-settings",
