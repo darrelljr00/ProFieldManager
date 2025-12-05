@@ -12627,6 +12627,22 @@ ${fromName || ''}
         console.error("Error applying dashboard profile:", profileError);
       }
       
+      // Ensure all boolean settings are actual booleans (not strings)
+      const booleanKeys = [
+        'showStatsCards', 'showRevenueChart', 'showRecentActivity', 'showRecentInvoices',
+        'showNotifications', 'showQuickActions', 'showProjectsOverview', 'showWeatherWidget',
+        'showTasksWidget', 'showCalendarWidget', 'showMessagesWidget', 'showTeamOverview',
+        'showDailyFlowWidget', 'showTrainingWidget', 'animationsEnabled', 'showWelcomeMessage', 'compactMode'
+      ];
+      console.log("🔧 Before boolean conversion - showRevenueChart:", mergedSettings.showRevenueChart, typeof mergedSettings.showRevenueChart);
+      booleanKeys.forEach(key => {
+        if (mergedSettings[key] !== undefined) {
+          mergedSettings[key] = mergedSettings[key] === true || mergedSettings[key] === 'true';
+        }
+      });
+      
+      console.log("🔧 After boolean conversion - showRevenueChart:", mergedSettings.showRevenueChart, typeof mergedSettings.showRevenueChart);
+      
       // Include available tabs metadata for frontend
       mergedSettings.availableWidgetTabs = availableWidgetTabs;
       

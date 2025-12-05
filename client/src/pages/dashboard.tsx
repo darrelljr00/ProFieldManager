@@ -132,8 +132,16 @@ export default function Dashboard() {
     },
   });
 
-  // Use default settings if not loaded yet
-  const settings: DashboardSettings = dashboardSettings || {
+  // Helper function to convert string booleans to actual booleans
+  // This is needed because the API sometimes returns "true"/"false" strings instead of boolean values
+  const toBoolean = (value: any): boolean => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value === 'true';
+    return Boolean(value);
+  };
+
+  // Use default settings if not loaded yet, and ensure all boolean fields are actual booleans
+  const defaultSettings: DashboardSettings = {
     showStatsCards: true,
     showRevenueChart: true,
     showRecentActivity: true,
@@ -158,6 +166,29 @@ export default function Dashboard() {
     compactMode: false,
     widgetOrder: ["stats", "revenue", "activity", "invoices"],
   };
+
+  const settings: DashboardSettings = dashboardSettings
+    ? {
+        ...defaultSettings,
+        ...dashboardSettings,
+        // Ensure all boolean fields are actual booleans (not string "true"/"false")
+        showStatsCards: toBoolean(dashboardSettings.showStatsCards),
+        showRevenueChart: toBoolean(dashboardSettings.showRevenueChart),
+        showRecentActivity: toBoolean(dashboardSettings.showRecentActivity),
+        showRecentInvoices: toBoolean(dashboardSettings.showRecentInvoices),
+        showNotifications: toBoolean(dashboardSettings.showNotifications),
+        showQuickActions: toBoolean(dashboardSettings.showQuickActions),
+        showProjectsOverview: toBoolean(dashboardSettings.showProjectsOverview),
+        showWeatherWidget: toBoolean(dashboardSettings.showWeatherWidget),
+        showTasksWidget: toBoolean(dashboardSettings.showTasksWidget),
+        showCalendarWidget: toBoolean(dashboardSettings.showCalendarWidget),
+        showMessagesWidget: toBoolean(dashboardSettings.showMessagesWidget),
+        showTeamOverview: toBoolean(dashboardSettings.showTeamOverview),
+        animationsEnabled: toBoolean(dashboardSettings.animationsEnabled),
+        showWelcomeMessage: toBoolean(dashboardSettings.showWelcomeMessage),
+        compactMode: toBoolean(dashboardSettings.compactMode),
+      }
+    : defaultSettings;
 
   const recentInvoices =
     invoices?.slice(0, settings.recentItemsCount || 5) || [];
