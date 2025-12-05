@@ -3202,7 +3202,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Hash password
       const hashedPassword = await AuthService.hashPassword(validatedData.password);
-      
       // Create organization with business details (if provided)
       let organizationId;
       const orgName = validatedData.organizationName || validatedData.companyName || `${validatedData.username}'s Organization`;
@@ -8860,6 +8859,9 @@ ${fromName || ''}
 
       // Hash password and create user
       const hashedPassword = await AuthService.hashPassword(validatedData.password);
+      
+      // Check if this is a demo account
+      const isDemo = req.body.isDemoAccount === true;
       
       // For demo accounts, set expiration to 30 days from now
       const demoExpiresAt = isDemo ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
