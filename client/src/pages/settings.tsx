@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Save, Eye, EyeOff, Upload, X, Download, Database, Clock, AlertTriangle, Map, MessageSquare, FileSignature, Route, CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { Save, Eye, EyeOff, Upload, X, Download, Database, Clock, AlertTriangle, Map, MessageSquare, FileSignature, Route, CalendarIcon, Plus, Trash2, Settings as SettingsIcon } from "lucide-react";
 import { InvoicePreview } from "@/components/InvoicePreview";
 import SoundSettings from "@/components/SoundSettings";
 import { FileStorageManager } from "@/components/file-storage-manager";
@@ -2731,7 +2731,7 @@ export default function Settings() {
                     {user?.role === 'admin' && (
                       <div className="bg-blue-50 dark:bg-blue-950 p-6 rounded-lg border border-blue-200 dark:border-blue-800 space-y-4">
                         <div className="flex items-center gap-2">
-                          <Settings className="h-5 w-5 text-blue-600" />
+                          <SettingsIcon className="h-5 w-5 text-blue-600" />
                           <h3 className="text-lg font-medium text-blue-900 dark:text-blue-100">Admin Dashboard Control</h3>
                         </div>
                         <p className="text-sm text-blue-800 dark:text-blue-200">
