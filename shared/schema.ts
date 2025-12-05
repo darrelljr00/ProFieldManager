@@ -6925,11 +6925,6 @@ export const inventoryItems = pgTable("inventory_items", {
   initialStock: integer("initial_stock").default(0).notNull(),
   minStockLevel: integer("min_stock_level").default(0),
   
-  // Unit and pricing
-  unit: text("unit").default("each").notNull(), // each, box, case, pack, gallon, etc.
-  unitCost: decimal("unit_cost", { precision: 10, scale: 2 }),
-  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
-  
   // Image
   imageUrl: text("image_url"),
   
