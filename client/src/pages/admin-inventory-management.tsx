@@ -141,6 +141,19 @@ export default function AdminInventoryManagement() {
     minQuantity: 0,
   });
 
+  const [createItemDialogOpen, setCreateItemDialogOpen] = useState(false);
+  const [newItemData, setNewItemData] = useState({
+    name: "",
+    description: "",
+    category: "Part",
+    sku: "",
+    currentStock: 0,
+    minStockLevel: 0,
+    unit: "each",
+    unitCost: "",
+    unitPrice: "",
+  });
+
   const { data: assignments = [], isLoading: assignmentsLoading } = useQuery<InventoryAssignment[]>({
     queryKey: ["/api/admin/technician-inventory"],
   });
@@ -278,6 +291,48 @@ export default function AdminInventoryManagement() {
     },
   });
 
+  const createItemMutation = useMutation({
+    mutationFn: async (data: typeof newItemData) => {
+      return apiRequest("/api/parts-supplies", "POST", {
+        name: data.name,
+        description: data.description || null,
+        category: data.category,
+        sku: data.sku || null,
+        currentStock: data.currentStock,
+        minStockLevel: data.minStockLevel,
+        unit: data.unit,
+        unitCost: data.unitCost ? parseFloat(data.unitCost) : null,
+        unitPrice: data.unitPrice ? parseFloat(data.unitPrice) : null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/parts-supplies"] });
+      setCreateItemDialogOpen(false);
+      setNewItemData({
+        name: "",
+        description: "",
+        category: "Part",
+        sku: "",
+        currentStock: 0,
+        minStockLevel: 0,
+        unit: "each",
+        unitCost: "",
+        unitPrice: "",
+      });
+      toast({
+        title: "Item Created",
+        description: "The inventory item has been created successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create inventory item",
+        variant: "destructive",
+      });
+    },
+  });
+
   const resetForm = () => {
     setFormData({
       userId: "",
@@ -333,7 +388,11 @@ export default function AdminInventoryManagement() {
             Assign and manage technician inventory
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={() => setCreateItemDialogOpen(true)} variant="outline" data-testid="button-create-item">
+            <Package className="h-4 w-4 mr-2" />
+            Create Item
+          </Button>
           <Button onClick={() => setBulkAssignDialogOpen(true)} variant="outline" data-testid="button-bulk-assign">
             <Users className="h-4 w-4 mr-2" />
             Bulk Assign
@@ -889,6 +948,152 @@ export default function AdminInventoryManagement() {
               data-testid="button-confirm-bulk-assign"
             >
               {bulkAssignMutation.isPending ? "Assigning..." : `Assign to ${bulkFormData.userIds.length} Technicians`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={createItemDialogOpen} onOpenChange={setCreateItemDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create Inventory Item</DialogTitle>
+            <DialogDescription>
+              Add a new part or supply to your inventory.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <div className="space-y-2">
+              <Label>Name *</Label>
+              <Input
+                value={newItemData.name}
+                onChange={(e) => setNewItemData({ ...newItemData, name: e.target.value })}
+                placeholder="Enter item name"
+                data-testid="input-item-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={newItemData.description}
+                onChange={(e) => setNewItemData({ ...newItemData, description: e.target.value })}
+                placeholder="Enter item description"
+                data-testid="input-item-description"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Category *</Label>
+                <Select
+                  value={newItemData.category}
+                  onValueChange={(v) => setNewItemData({ ...newItemData, category: v })}
+                >
+                  <SelectTrigger data-testid="select-item-category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Part">Part</SelectItem>
+                    <SelectItem value="Tool">Tool</SelectItem>
+                    <SelectItem value="Supply">Supply</SelectItem>
+                    <SelectItem value="Chemical">Chemical</SelectItem>
+                    <SelectItem value="Equipment">Equipment</SelectItem>
+                    <SelectItem value="Safety">Safety</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>SKU</Label>
+                <Input
+                  value={newItemData.sku}
+                  onChange={(e) => setNewItemData({ ...newItemData, sku: e.target.value })}
+                  placeholder="e.g., PART-001"
+                  data-testid="input-item-sku"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Initial Stock</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={newItemData.currentStock}
+                  onChange={(e) => setNewItemData({ ...newItemData, currentStock: parseInt(e.target.value) || 0 })}
+                  data-testid="input-item-stock"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Min Stock Level</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={newItemData.minStockLevel}
+                  onChange={(e) => setNewItemData({ ...newItemData, minStockLevel: parseInt(e.target.value) || 0 })}
+                  data-testid="input-item-min-stock"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Unit</Label>
+              <Select
+                value={newItemData.unit}
+                onValueChange={(v) => setNewItemData({ ...newItemData, unit: v })}
+              >
+                <SelectTrigger data-testid="select-item-unit">
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="each">Each</SelectItem>
+                  <SelectItem value="box">Box</SelectItem>
+                  <SelectItem value="case">Case</SelectItem>
+                  <SelectItem value="pack">Pack</SelectItem>
+                  <SelectItem value="gallon">Gallon</SelectItem>
+                  <SelectItem value="quart">Quart</SelectItem>
+                  <SelectItem value="liter">Liter</SelectItem>
+                  <SelectItem value="pound">Pound</SelectItem>
+                  <SelectItem value="roll">Roll</SelectItem>
+                  <SelectItem value="foot">Foot</SelectItem>
+                  <SelectItem value="set">Set</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Unit Cost ($)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={newItemData.unitCost}
+                  onChange={(e) => setNewItemData({ ...newItemData, unitCost: e.target.value })}
+                  placeholder="0.00"
+                  data-testid="input-item-cost"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Unit Price ($)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={newItemData.unitPrice}
+                  onChange={(e) => setNewItemData({ ...newItemData, unitPrice: e.target.value })}
+                  placeholder="0.00"
+                  data-testid="input-item-price"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateItemDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => createItemMutation.mutate(newItemData)}
+              disabled={!newItemData.name || !newItemData.category || createItemMutation.isPending}
+              data-testid="button-confirm-create-item"
+            >
+              {createItemMutation.isPending ? "Creating..." : "Create Item"}
             </Button>
           </DialogFooter>
         </DialogContent>
