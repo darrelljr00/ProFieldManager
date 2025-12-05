@@ -373,6 +373,12 @@ export function Sidebar() {
     enabled: isAuthenticated,
   });
 
+  // Fetch role-based navigation permissions from profile
+  const { data: roleNavigationPermissions } = useQuery<Record<string, any>>({
+    queryKey: ["/api/navigation-permissions/my-permissions"],
+    enabled: isAuthenticated && !!user?.role,
+  });
+
   // Load custom navigation order
   const { data: savedOrder } = useQuery({
     queryKey: ["/api/navigation-order"],
@@ -847,6 +853,7 @@ export function Sidebar() {
   ];
 
   // Define permission checking function first to avoid hoisting issues
+  // This now uses role-based permissions from navigation_permission_profiles
   const hasPermission = (item: NavigationItem): boolean => {
     if (!item.permission) return true;
     if (!user) return false;
@@ -859,27 +866,26 @@ export function Sidebar() {
       return true;
     }
 
-    // Debug: log permission checks and user object structure for debugging auth issue
-    if (item.name === "SaaS Admin" || item.name === "Call Manager") {
-      console.log(`🔍 SIDEBAR DEBUG - User object for ${item.name}:`, {
-        username: user.username,
-        role: user.role,
-        permission: item.permission,
-        permissionValue: (user as any)[item.permission],
-        hasCanAccessSaasAdmin: (user as any).canAccessSaasAdmin,
-        can_access_saas_admin: (user as any).can_access_saas_admin,
-        allUserKeys: Object.keys(user)
-          .filter((key) => key.includes("Access") || key.includes("saas"))
-          .slice(0, 15),
-        fullUserObject: JSON.stringify(user, null, 2),
-      });
+    // Check role-based navigation permissions from profile first
+    if (roleNavigationPermissions && item.permission) {
+      const roleHasAccess = roleNavigationPermissions[item.permission];
+      
+      // Handle string "true"/"false" from API
+      const normalizedAccess = roleHasAccess === true || roleHasAccess === "true";
+      
+      console.log(
+        `🎯 ROLE-BASED PERMISSION for ${item.name}: ${item.permission} = ${roleHasAccess} (normalized: ${normalizedAccess})`,
+      );
+      
+      return normalizedAccess;
     }
 
+    // Fallback to user-level permissions if role permissions not available
     console.log(
-      `Checking permission for ${item.name}: ${item.permission} = ${(user as any)[item.permission]}`,
+      `⚠️ FALLBACK to user permission for ${item.name}: ${item.permission} = ${(user as any)[item.permission]}`,
     );
 
-    // Check the specific permission - handle both camelCase and snake_case
+    // Check the specific permission from user object
     const hasAccess = (user as any)[item.permission];
 
     // If camelCase doesn't work, try snake_case conversion as fallback
@@ -888,9 +894,6 @@ export function Sidebar() {
         .replace(/([A-Z])/g, "_$1")
         .toLowerCase();
       const snakeCaseAccess = (user as any)[snakeCasePermission];
-      console.log(
-        `🔄 PERMISSION FALLBACK: ${item.permission} -> ${snakeCasePermission} = ${snakeCaseAccess}`,
-      );
       return snakeCaseAccess === true;
     }
 
