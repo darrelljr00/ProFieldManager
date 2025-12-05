@@ -12578,6 +12578,51 @@ ${fromName || ''}
         }
       });
       
+      // Apply dashboard profile settings based on user's role
+      try {
+        const userRole = user?.role || 'user';
+        const profiles = await storage.getDashboardProfiles();
+        
+        // Find a profile that targets this user's role
+        let matchingProfile = profiles.find((p: any) => 
+          p.targetRoles && Array.isArray(p.targetRoles) && p.targetRoles.includes(userRole)
+        );
+        
+        // If no matching profile by target role, try to find one by profile type matching the role
+        if (!matchingProfile) {
+          matchingProfile = profiles.find((p: any) => p.profileType === userRole);
+        }
+        
+        // Apply profile widget visibility settings if found
+        if (matchingProfile) {
+          mergedSettings.showStatsCards = matchingProfile.showStatsCards ?? mergedSettings.showStatsCards;
+          mergedSettings.showRevenueChart = matchingProfile.showRevenueChart ?? mergedSettings.showRevenueChart;
+          mergedSettings.showRecentActivity = matchingProfile.showRecentActivity ?? mergedSettings.showRecentActivity;
+          mergedSettings.showRecentInvoices = matchingProfile.showRecentInvoices ?? mergedSettings.showRecentInvoices;
+          mergedSettings.showNotifications = matchingProfile.showNotifications ?? mergedSettings.showNotifications;
+          mergedSettings.showQuickActions = matchingProfile.showQuickActions ?? mergedSettings.showQuickActions;
+          mergedSettings.showProjectsOverview = matchingProfile.showProjectsOverview ?? mergedSettings.showProjectsOverview;
+          mergedSettings.showWeatherWidget = matchingProfile.showWeatherWidget ?? mergedSettings.showWeatherWidget;
+          mergedSettings.showTasksWidget = matchingProfile.showTasksWidget ?? mergedSettings.showTasksWidget;
+          mergedSettings.showCalendarWidget = matchingProfile.showCalendarWidget ?? mergedSettings.showCalendarWidget;
+          mergedSettings.showMessagesWidget = matchingProfile.showMessagesWidget ?? mergedSettings.showMessagesWidget;
+          mergedSettings.showTeamOverview = matchingProfile.showTeamOverview ?? mergedSettings.showTeamOverview;
+          mergedSettings.showDailyFlowWidget = matchingProfile.showDailyFlowWidget ?? mergedSettings.showDailyFlowWidget;
+          mergedSettings.showTrainingWidget = matchingProfile.showTrainingWidget ?? mergedSettings.showTrainingWidget;
+          
+          // Apply layout settings from profile if present
+          if (matchingProfile.layoutType) mergedSettings.layoutType = matchingProfile.layoutType;
+          if (matchingProfile.gridColumns) mergedSettings.gridColumns = matchingProfile.gridColumns;
+          if (matchingProfile.widgetSize) mergedSettings.widgetSize = matchingProfile.widgetSize;
+          if (matchingProfile.colorTheme) mergedSettings.colorTheme = matchingProfile.colorTheme;
+          
+          mergedSettings.appliedProfile = matchingProfile.name;
+          mergedSettings.appliedProfileType = matchingProfile.profileType;
+        }
+      } catch (profileError) {
+        console.error("Error applying dashboard profile:", profileError);
+      }
+      
       // Include available tabs metadata for frontend
       mergedSettings.availableWidgetTabs = availableWidgetTabs;
       
@@ -12587,7 +12632,6 @@ ${fromName || ''}
       res.status(500).json({ message: "Failed to fetch dashboard settings" });
     }
   });
-
   app.put("/api/settings/dashboard", requireAuth, async (req, res) => {
     try {
       const settingsData = req.body;
