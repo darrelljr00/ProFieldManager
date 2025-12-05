@@ -522,9 +522,11 @@ export interface IStorage {
 
   // Dashboard Profile methods
   getDashboardProfiles(): Promise<any[]>;
+  getOrganizationDashboardProfiles(organizationId: number): Promise<any[]>;
   getDashboardProfile(profileType: string): Promise<any>;
   createDashboardProfile(profileData: any): Promise<any>;
   updateDashboardProfile(id: number, updates: any): Promise<any>;
+  deleteDashboardProfile(id: number): Promise<boolean>;
   updateUserDashboardSettings(
     userId: number,
     organizationId: number,
