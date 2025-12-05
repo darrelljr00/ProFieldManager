@@ -78,16 +78,7 @@ export function useAuth() {
           if (res.ok) {
             const result = await res.json();
 
-            // If we have stored user, prefer it if ids match
-            if (storedUser) {
-              try {
-                const u = JSON.parse(storedUser);
-                if (u?.id === result?.user?.id) {
-                  return { user: u, token: storedToken };
-                }
-              } catch {}
-            }
-
+            // Always use fresh user data from API to ensure all fields (like organizationId) are current
             if (result?.user) {
               localStorage.setItem("user_data", JSON.stringify(result.user));
               return { user: result.user, token: storedToken };
