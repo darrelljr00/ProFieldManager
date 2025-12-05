@@ -2,11 +2,56 @@ import { Express } from 'express';
 import { requireAuth } from '../auth';
 import { db } from '../db';
 import { technicianDailyFlowSessions, timeClock, projects, technicianInventory, technicianInventoryTransactions, partsSupplies, vehicles, inspectionRecords, users } from '@shared/schema';
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc, or, inArray } from 'drizzle-orm';
+import { NotificationService } from '../notificationService';
 
 function getTodayDate(): string {
   const today = new Date();
   return today.toISOString().split('T')[0];
+}
+
+async function notifyManagersAndAdmins(
+  organizationId: number,
+  technicianId: number,
+  technicianName: string
+) {
+  try {
+    const managersAndAdmins = await db.query.users.findMany({
+      where: and(
+        eq(users.organizationId, organizationId),
+        or(
+          eq(users.role, 'admin'),
+          eq(users.role, 'manager')
+        ),
+        eq(users.isActive, true)
+      ),
+    });
+
+    const today = new Date().toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+
+    for (const recipient of managersAndAdmins) {
+      await NotificationService.createNotification({
+        type: 'daily_flow_completed',
+        title: 'Daily Flow Completed',
+        message: `${technicianName} has completed their daily flow checklist for ${today}.`,
+        userId: recipient.id,
+        organizationId: organizationId,
+        relatedEntityType: 'technician_daily_flow',
+        relatedEntityId: technicianId,
+        priority: 'normal',
+        category: 'team_based',
+        createdBy: technicianId,
+      });
+    }
+
+    console.log(`✅ Daily flow completion notifications sent to ${managersAndAdmins.length} managers/admins`);
+  } catch (error) {
+    console.error('Error sending daily flow completion notifications:', error);
+  }
 }
 
 export function registerTechnicianDailyFlowRoutes(app: Express) {
@@ -190,6 +235,14 @@ export function registerTechnicianDailyFlowRoutes(app: Express) {
         })
         .where(eq(technicianDailyFlowSessions.id, session.id));
       
+      // Send notification to managers/admins when daily flow is fully completed
+      if (isComplete) {
+        const technicianName = user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.username;
+        await notifyManagersAndAdmins(user.organizationId, user.id, technicianName);
+      }
+      
       res.json({
         ...updated,
         completedSteps,
@@ -245,6 +298,12 @@ export function registerTechnicianDailyFlowRoutes(app: Express) {
         })
         .where(eq(technicianDailyFlowSessions.id, session.id))
         .returning();
+      
+      // Send notification to managers/admins
+      const technicianName = user.firstName && user.lastName 
+        ? `${user.firstName} ${user.lastName}` 
+        : user.username;
+      await notifyManagersAndAdmins(user.organizationId, user.id, technicianName);
       
       res.json({
         ...updated,
