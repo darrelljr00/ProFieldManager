@@ -24189,6 +24189,9 @@ ${fromName || ''}
   const { registerTechnicianDailyFlowRoutes } = await import("./routes/technicianDailyFlow");
   registerTechnicianDailyFlowRoutes(app);
 
+  // Technician Inventory Routes
+  const { registerTechnicianInventoryRoutes } = await import("./routes/technicianInventory");
+  registerTechnicianInventoryRoutes(app);
   // Stripe Connect Routes
   const { registerStripeConnectRoutes } = await import("./routes/stripeConnect");
   registerStripeConnectRoutes(app);

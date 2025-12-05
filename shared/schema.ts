@@ -7041,3 +7041,70 @@ export const technicianInventoryTransactionsRelations = relations(technicianInve
     references: [users.id],
   }),
 }));
+
+// Daily Inventory Verification - Required daily submission for technicians
+export const dailyInventoryVerifications = pgTable("daily_inventory_verifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  verificationDate: date("verification_date").notNull(),
+  
+  // Verification status
+  status: text("status").default("pending").notNull(), // pending, verified, discrepancy
+  isComplete: boolean("is_complete").default(false),
+  completedAt: timestamp("completed_at"),
+  
+  // Items verified
+  itemsChecked: integer("items_checked").default(0),
+  totalItems: integer("total_items").default(0),
+  discrepancyCount: integer("discrepancy_count").default(0),
+  
+  // Verification details (JSON array of verified items)
+  verificationDetails: jsonb("verification_details"), // [{partId, expectedQty, actualQty, verified, notes}]
+  
+  // Photo documentation
+  photoUrls: text("photo_urls").array(),
+  
+  // Additional notes
+  notes: text("notes"),
+  
+  // Vehicle if applicable
+  vehicleId: integer("vehicle_id").references(() => vehicles.id),
+  
+  // Link to daily flow session if part of daily flow
+  dailyFlowSessionId: integer("daily_flow_session_id").references(() => technicianDailyFlowSessions.id),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userDateUnique: unique().on(table.userId, table.verificationDate),
+}));
+
+export const insertDailyInventoryVerificationSchema = createInsertSchema(dailyInventoryVerifications).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type DailyInventoryVerification = typeof dailyInventoryVerifications.$inferSelect;
+export type InsertDailyInventoryVerification = z.infer<typeof insertDailyInventoryVerificationSchema>;
+
+// Relations for Daily Inventory Verifications
+export const dailyInventoryVerificationsRelations = relations(dailyInventoryVerifications, ({ one }) => ({
+  user: one(users, {
+    fields: [dailyInventoryVerifications.userId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [dailyInventoryVerifications.organizationId],
+    references: [organizations.id],
+  }),
+  vehicle: one(vehicles, {
+    fields: [dailyInventoryVerifications.vehicleId],
+    references: [vehicles.id],
+  }),
+  dailyFlowSession: one(technicianDailyFlowSessions, {
+    fields: [dailyInventoryVerifications.dailyFlowSessionId],
+    references: [technicianDailyFlowSessions.id],
+  }),
+}));

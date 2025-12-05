@@ -708,6 +708,10 @@ export function Sidebar() {
       icon: Box,
       requiresAuth: true,
       permission: "canAccessPartsSupplies",
+      subItems: [
+        { name: "All Items", href: "/parts-supplies", icon: Box },
+        ...(user?.role === "admin" || user?.role === "manager" ? [{ name: "Inventory Assignment", href: "/admin-inventory-management", icon: Users }] : []),
+      ],
     },
     {
       name: "Inspections",
