@@ -12694,6 +12694,70 @@ ${fromName || ''}
     }
   });
 
+
+  // Create new dashboard profile (admin only)
+  app.post("/api/dashboard/profiles", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can create dashboard profiles" });
+      }
+
+      const profileData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        isSystem: false,
+      };
+
+      const profile = await storage.createDashboardProfile(profileData);
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error creating dashboard profile:", error);
+      res.status(500).json({ message: "Failed to create dashboard profile" });
+    }
+  });
+
+  // Update dashboard profile (admin only)
+  app.patch("/api/dashboard/profiles/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can update dashboard profiles" });
+      }
+
+      const profileId = parseInt(req.params.id);
+      const updates = req.body;
+
+      const profile = await storage.updateDashboardProfile(profileId, updates);
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error updating dashboard profile:", error);
+      res.status(500).json({ message: "Failed to update dashboard profile" });
+    }
+  });
+
+  // Delete dashboard profile (admin only, non-system profiles only)
+  app.delete("/api/dashboard/profiles/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can delete dashboard profiles" });
+      }
+
+      const profileId = parseInt(req.params.id);
+      const deleted = await storage.deleteDashboardProfile(profileId);
+      
+      if (!deleted) {
+        return res.status(400).json({ message: "Cannot delete system profiles" });
+      }
+      
+      res.json({ message: "Dashboard profile deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting dashboard profile:", error);
+      res.status(500).json({ message: "Failed to delete dashboard profile" });
+    }
+  });
+
   app.post("/api/dashboard/apply-profile", requireAuth, async (req, res) => {
     try {
       const user = req.user!;

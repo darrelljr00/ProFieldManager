@@ -257,6 +257,29 @@ export default function Settings() {
   // Admin dashboard management state
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserDashboard, setSelectedUserDashboard] = useState<any>(null);
+  // Dashboard Profiles management state
+  const [editingProfile, setEditingProfile] = useState<any>(null);
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [profileFormData, setProfileFormData] = useState<any>({
+    name: '',
+    description: '',
+    profileType: 'custom',
+    targetRoles: [],
+    showStatsCards: true,
+    showRevenueChart: true,
+    showRecentActivity: true,
+    showRecentInvoices: true,
+    showNotifications: true,
+    showQuickActions: true,
+    showProjectsOverview: false,
+    showWeatherWidget: false,
+    showTasksWidget: false,
+    showCalendarWidget: false,
+    showMessagesWidget: false,
+    showTeamOverview: false,
+    showDailyFlowWidget: false,
+    showTrainingWidget: false,
+  });
   // Rollouts dialog boxes state
   const [dialogBoxes, setDialogBoxes] = useState<DialogBoxConfig[]>([
     {
@@ -388,6 +411,12 @@ export default function Settings() {
   // Get organization users for admin dashboard management
   const { data: organizationUsers } = useQuery({
     queryKey: ["/api/users"],
+    enabled: user?.role === 'admin',
+  });
+
+  // Get all dashboard profiles for admin management
+  const { data: dashboardProfiles, isLoading: profilesLoading } = useQuery({
+    queryKey: ["/api/dashboard/profiles"],
     enabled: user?.role === 'admin',
   });
 
@@ -651,6 +680,139 @@ export default function Settings() {
       });
     },
   });
+
+  // Create dashboard profile mutation
+  const createProfileMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiRequest("POST", "/api/dashboard/profiles", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/profiles"] });
+      toast({
+        title: "Success",
+        description: "Dashboard profile created successfully",
+      });
+      setIsProfileDialogOpen(false);
+      setEditingProfile(null);
+      resetProfileForm();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create dashboard profile",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update dashboard profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: { id: number; updates: any }) =>
+      apiRequest("PATCH", `/api/dashboard/profiles/${data.id}`, data.updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/profiles"] });
+      toast({
+        title: "Success",
+        description: "Dashboard profile updated successfully",
+      });
+      setIsProfileDialogOpen(false);
+      setEditingProfile(null);
+      resetProfileForm();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update dashboard profile",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete dashboard profile mutation
+  const deleteProfileMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("DELETE", `/api/dashboard/profiles/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/profiles"] });
+      toast({
+        title: "Success",
+        description: "Dashboard profile deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete dashboard profile",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Helper function to reset profile form
+  const resetProfileForm = () => {
+    setProfileFormData({
+      name: '',
+      description: '',
+      profileType: 'custom',
+      targetRoles: [],
+      showStatsCards: true,
+      showRevenueChart: true,
+      showRecentActivity: true,
+      showRecentInvoices: true,
+      showNotifications: true,
+      showQuickActions: true,
+      showProjectsOverview: false,
+      showWeatherWidget: false,
+      showTasksWidget: false,
+      showCalendarWidget: false,
+      showMessagesWidget: false,
+      showTeamOverview: false,
+      showDailyFlowWidget: false,
+      showTrainingWidget: false,
+    });
+  };
+
+  // Helper function to open profile editor with existing data
+  const openProfileEditor = (profile?: any) => {
+    if (profile) {
+      setEditingProfile(profile);
+      setProfileFormData({
+        name: profile.name || '',
+        description: profile.description || '',
+        profileType: profile.profileType || 'custom',
+        targetRoles: profile.targetRoles || [],
+        showStatsCards: profile.showStatsCards ?? true,
+        showRevenueChart: profile.showRevenueChart ?? true,
+        showRecentActivity: profile.showRecentActivity ?? true,
+        showRecentInvoices: profile.showRecentInvoices ?? true,
+        showNotifications: profile.showNotifications ?? true,
+        showQuickActions: profile.showQuickActions ?? true,
+        showProjectsOverview: profile.showProjectsOverview ?? false,
+        showWeatherWidget: profile.showWeatherWidget ?? false,
+        showTasksWidget: profile.showTasksWidget ?? false,
+        showCalendarWidget: profile.showCalendarWidget ?? false,
+        showMessagesWidget: profile.showMessagesWidget ?? false,
+        showTeamOverview: profile.showTeamOverview ?? false,
+        showDailyFlowWidget: profile.showDailyFlowWidget ?? false,
+        showTrainingWidget: profile.showTrainingWidget ?? false,
+      });
+    } else {
+      resetProfileForm();
+      setEditingProfile(null);
+    }
+    setIsProfileDialogOpen(true);
+  };
+
+  // Handle save profile
+  const handleSaveProfile = () => {
+    if (editingProfile) {
+      updateProfileMutation.mutate({
+        id: editingProfile.id,
+        updates: profileFormData,
+      });
+    } else {
+      createProfileMutation.mutate(profileFormData);
+    }
+  };
 
   // Admin mutation for updating user-specific dashboard settings
   const userDashboardMutation = useMutation({
@@ -2727,121 +2889,274 @@ export default function Settings() {
                   className="space-y-8"
                 >
                   <div className="grid gap-8">
-                    {/* Admin Dashboard Control Section */}
+                    {/* Dashboard Profiles Management Section */}
                     {user?.role === 'admin' && (
                       <div className="bg-blue-50 dark:bg-blue-950 p-6 rounded-lg border border-blue-200 dark:border-blue-800 space-y-4">
-                        <div className="flex items-center gap-2">
-                          <SettingsIcon className="h-5 w-5 text-blue-600" />
-                          <h3 className="text-lg font-medium text-blue-900 dark:text-blue-100">Admin Dashboard Control</h3>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <SettingsIcon className="h-5 w-5 text-blue-600" />
+                            <h3 className="text-lg font-medium text-blue-900 dark:text-blue-100">Dashboard Profiles</h3>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => openProfileEditor()}
+                            data-testid="button-create-profile"
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Create Profile
+                          </Button>
                         </div>
                         <p className="text-sm text-blue-800 dark:text-blue-200">
-                          As an admin, you can control which dashboard widgets each team member can see and customize.
+                          Create and manage dashboard profiles to control what widgets are visible based on user roles. 
+                          Users assigned to a profile will see the widgets configured for that profile.
                         </p>
                         
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="userSelect" className="text-blue-900 dark:text-blue-100">
-                              Select Team Member
-                            </Label>
-                            <Select 
-                              value={selectedUserId || ''} 
-                              onValueChange={setSelectedUserId}
-                            >
-                              <SelectTrigger className="mt-1">
-                                <SelectValue placeholder="Choose a team member to manage their dashboard..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {organizationUsers?.map((orgUser: any) => (
-                                  <SelectItem key={orgUser.id} value={orgUser.id.toString()}>
-                                    {orgUser.firstName} {orgUser.lastName} ({orgUser.email}) - {orgUser.role}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                              Select a team member to customize their dashboard widget permissions
-                            </p>
-                          </div>
-
-                          {selectedUserId && (
-                            <div className="bg-white dark:bg-gray-900 p-4 rounded border">
-                              <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-medium">
-                                  Dashboard Permissions for {organizationUsers?.find((u: any) => u.id.toString() === selectedUserId)?.firstName} {organizationUsers?.find((u: any) => u.id.toString() === selectedUserId)?.lastName}
-                                </h4>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={handleResetUserDashboard}
-                                  disabled={dashboardMutation.isPending}
-                                >
-                                  Reset to Default
-                                </Button>
+                        {profilesLoading ? (
+                          <div className="text-center py-4">Loading profiles...</div>
+                        ) : (
+                          <div className="space-y-3">
+                            {dashboardProfiles?.length === 0 ? (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <p>No dashboard profiles yet.</p>
+                                <p className="text-sm">Create your first profile to control dashboard visibility for different roles.</p>
                               </div>
-                              <div className="grid grid-cols-2 gap-3 text-sm">
-                                {[
-                                  { key: 'showStatsCards', label: 'Stats Cards' },
-                                  { key: 'showRevenueChart', label: 'Revenue Chart' },
-                                  { key: 'showRecentActivity', label: 'Recent Activity' },
-                                  { key: 'showRecentInvoices', label: 'Recent Invoices' },
-                                  { key: 'showNotifications', label: 'Notifications' },
-                                  { key: 'showQuickActions', label: 'Quick Actions' },
-                                  { key: 'showProjectsOverview', label: 'Projects Overview' },
-                                  { key: 'showWeatherWidget', label: 'Weather Widget' },
-                                  { key: 'showTasksWidget', label: 'My Tasks' },
-                                  { key: 'showCalendarWidget', label: 'Calendar Widget' },
-                                  { key: 'showMessagesWidget', label: 'Team Messages' },
-                                  { key: 'showTeamOverview', label: 'Team Overview' }
-                                ].map((widget) => (
-                                  <div key={widget.key} className="flex items-center justify-between">
-                                    <Label htmlFor={`admin_${widget.key}`} className="text-xs">
-                                      {widget.label}
-                                    </Label>
-                                    <Switch
-                                      id={`admin_${widget.key}`}
-                                      checked={selectedUserDashboard?.[widget.key] ?? true}
-                                      onCheckedChange={(checked) => 
-                                        setSelectedUserDashboard((prev: any) => ({
-                                          ...prev,
-                                          [widget.key]: checked
-                                        }))
-                                      }
-                                    />
+                            ) : (
+                              dashboardProfiles?.map((profile: any) => (
+                                <div 
+                                  key={profile.id} 
+                                  className="bg-white dark:bg-gray-900 p-4 rounded border flex items-start justify-between"
+                                  data-testid={`profile-card-${profile.id}`}
+                                >
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-medium">{profile.name}</h4>
+                                      {profile.isSystem && (
+                                        <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">System</span>
+                                      )}
+                                      {profile.isDefault && (
+                                        <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-0.5 rounded">Default</span>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-1">{profile.description || 'No description'}</p>
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                      {profile.targetRoles?.length > 0 ? (
+                                        profile.targetRoles.map((role: string) => (
+                                          <span key={role} className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded capitalize">
+                                            {role}
+                                          </span>
+                                        ))
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">No roles assigned</span>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-wrap gap-1 mt-2 text-xs text-muted-foreground">
+                                      {[
+                                        profile.showStatsCards && 'Stats',
+                                        profile.showRevenueChart && 'Revenue',
+                                        profile.showRecentActivity && 'Activity',
+                                        profile.showRecentInvoices && 'Invoices',
+                                        profile.showNotifications && 'Notifications',
+                                        profile.showQuickActions && 'Actions',
+                                        profile.showProjectsOverview && 'Projects',
+                                        profile.showWeatherWidget && 'Weather',
+                                        profile.showTasksWidget && 'Tasks',
+                                        profile.showCalendarWidget && 'Calendar',
+                                        profile.showMessagesWidget && 'Messages',
+                                        profile.showTeamOverview && 'Team',
+                                        profile.showDailyFlowWidget && 'Daily Flow',
+                                        profile.showTrainingWidget && 'Training',
+                                      ].filter(Boolean).join(' • ')}
+                                    </div>
                                   </div>
-                                ))}
-                              </div>
-                              
-                              <div className="mt-4 flex gap-2">
-                                <Button
-                                  type="button"
-                                  onClick={handleSaveUserDashboard}
-                                  disabled={userDashboardMutation.isPending}
-                                  size="sm"
-                                >
-                                  {userDashboardMutation.isPending ? 'Saving...' : 'Save Changes'}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={() => setSelectedUserId(null)}
-                                  size="sm"
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                                  <div className="flex gap-2 ml-4">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openProfileEditor(profile)}
+                                      data-testid={`button-edit-profile-${profile.id}`}
+                                    >
+                                      Edit
+                                    </Button>
+                                    {!profile.isSystem && (
+                                      <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => {
+                                          if (confirm('Are you sure you want to delete this profile?')) {
+                                            deleteProfileMutation.mutate(profile.id);
+                                          }
+                                        }}
+                                        disabled={deleteProfileMutation.isPending}
+                                        data-testid={`button-delete-profile-${profile.id}`}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
                         
                         <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded">
                           <p className="text-xs text-amber-800 dark:text-amber-200">
-                            <strong>Note:</strong> Changes you make here will override the user's personal dashboard settings. 
-                            Users will see a notice that their dashboard is managed by an administrator.
+                            <strong>Tip:</strong> Assign roles to a profile to automatically apply it to users with those roles. 
+                            Users can still choose a different profile from their personal settings.
                           </p>
                         </div>
                       </div>
                     )}
+
+                    {/* Profile Editor Dialog */}
+                    <Dialog open={isProfileDialogOpen} onOpenChange={setIsProfileDialogOpen}>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>{editingProfile ? 'Edit Dashboard Profile' : 'Create Dashboard Profile'}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="profileName">Profile Name</Label>
+                              <Input
+                                id="profileName"
+                                value={profileFormData.name}
+                                onChange={(e) => setProfileFormData((prev: any) => ({ ...prev, name: e.target.value }))}
+                                placeholder="e.g., Technician Dashboard"
+                                data-testid="input-profile-name"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="profileType">Profile Type</Label>
+                              <Select
+                                value={profileFormData.profileType}
+                                onValueChange={(value) => setProfileFormData((prev: any) => ({ ...prev, profileType: value }))}
+                              >
+                                <SelectTrigger data-testid="select-profile-type">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="user">User</SelectItem>
+                                  <SelectItem value="technician">Technician</SelectItem>
+                                  <SelectItem value="manager">Manager</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                  <SelectItem value="hr">HR</SelectItem>
+                                  <SelectItem value="custom">Custom</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="profileDescription">Description</Label>
+                            <Textarea
+                              id="profileDescription"
+                              value={profileFormData.description}
+                              onChange={(e) => setProfileFormData((prev: any) => ({ ...prev, description: e.target.value }))}
+                              placeholder="Describe what this profile is for..."
+                              rows={2}
+                              data-testid="input-profile-description"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label>Target Roles</Label>
+                            <p className="text-xs text-muted-foreground">Select which roles will use this profile by default</p>
+                            <div className="flex flex-wrap gap-2">
+                              {['admin', 'manager', 'technician', 'user'].map((role) => (
+                                <label key={role} className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={profileFormData.targetRoles?.includes(role)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setProfileFormData((prev: any) => ({
+                                          ...prev,
+                                          targetRoles: [...(prev.targetRoles || []), role],
+                                        }));
+                                      } else {
+                                        setProfileFormData((prev: any) => ({
+                                          ...prev,
+                                          targetRoles: (prev.targetRoles || []).filter((r: string) => r !== role),
+                                        }));
+                                      }
+                                    }}
+                                    className="rounded"
+                                  />
+                                  <span className="capitalize text-sm">{role}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <Separator />
+                          
+                          <div className="space-y-3">
+                            <Label>Widget Visibility</Label>
+                            <p className="text-xs text-muted-foreground">Choose which widgets are visible for this profile</p>
+                            <div className="grid grid-cols-2 gap-3">
+                              {[
+                                { key: 'showStatsCards', label: 'Stats Cards' },
+                                { key: 'showRevenueChart', label: 'Revenue Chart' },
+                                { key: 'showRecentActivity', label: 'Recent Activity' },
+                                { key: 'showRecentInvoices', label: 'Recent Invoices' },
+                                { key: 'showNotifications', label: 'Notifications' },
+                                { key: 'showQuickActions', label: 'Quick Actions' },
+                                { key: 'showProjectsOverview', label: 'Projects Overview' },
+                                { key: 'showWeatherWidget', label: 'Weather Widget' },
+                                { key: 'showTasksWidget', label: 'My Tasks' },
+                                { key: 'showCalendarWidget', label: 'Calendar Widget' },
+                                { key: 'showMessagesWidget', label: 'Team Messages' },
+                                { key: 'showTeamOverview', label: 'Team Overview' },
+                                { key: 'showDailyFlowWidget', label: 'Daily Flow Widget' },
+                                { key: 'showTrainingWidget', label: 'Training Widget' },
+                              ].map((widget) => (
+                                <div key={widget.key} className="flex items-center justify-between p-2 border rounded">
+                                  <Label htmlFor={`profile_${widget.key}`} className="text-sm cursor-pointer">
+                                    {widget.label}
+                                  </Label>
+                                  <Switch
+                                    id={`profile_${widget.key}`}
+                                    checked={profileFormData[widget.key] ?? false}
+                                    onCheckedChange={(checked) =>
+                                      setProfileFormData((prev: any) => ({
+                                        ...prev,
+                                        [widget.key]: checked,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-end gap-2 pt-4">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setIsProfileDialogOpen(false);
+                                setEditingProfile(null);
+                                resetProfileForm();
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={handleSaveProfile}
+                              disabled={createProfileMutation.isPending || updateProfileMutation.isPending || !profileFormData.name}
+                              data-testid="button-save-profile"
+                            >
+                              {(createProfileMutation.isPending || updateProfileMutation.isPending) ? 'Saving...' : 'Save Profile'}
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
 
                     {/* Dashboard Profile Section */}
                     <div className="space-y-6">

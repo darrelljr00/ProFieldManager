@@ -146,6 +146,7 @@ import {
   isNull,
   exists,
   ne,
+  or,
   not,
   notInArray,
   lt,
@@ -9842,6 +9843,44 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+
+  async deleteDashboardProfile(id: number): Promise<boolean> {
+    try {
+      // Check if it's a system profile
+      const [profile] = await db
+        .select()
+        .from(dashboardProfiles)
+        .where(eq(dashboardProfiles.id, id));
+      
+      if (!profile || profile.isSystem) {
+        return false;
+      }
+      
+      await db.delete(dashboardProfiles).where(eq(dashboardProfiles.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting dashboard profile:", error);
+      throw error;
+    }
+  }
+
+  async getOrganizationDashboardProfiles(organizationId: number): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(dashboardProfiles)
+        .where(
+          or(
+            eq(dashboardProfiles.organizationId, organizationId),
+            isNull(dashboardProfiles.organizationId)
+          )
+        )
+        .orderBy(asc(dashboardProfiles.name));
+    } catch (error) {
+      console.error("Error getting organization dashboard profiles:", error);
+      throw error;
+    }
+  }
   async updateUserDashboardSettings(
     userId: number,
     organizationId: number,
