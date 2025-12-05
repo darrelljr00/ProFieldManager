@@ -360,7 +360,7 @@ export default function AdminInventoryManagement() {
         imageUrl = await uploadImage(itemImageFile);
       }
 
-      return apiRequest("/api/admin/inventory-items", "POST", {
+      return apiRequest("POST", "/api/admin/inventory-items", {
         name: data.name,
         description: data.description || null,
         category: data.category,
@@ -399,7 +399,7 @@ export default function AdminInventoryManagement() {
 
   const deleteItemMutation = useMutation({
     mutationFn: async (itemId: number) => {
-      return apiRequest(`/api/admin/inventory-items/${itemId}`, "DELETE");
+      return apiRequest("DELETE", `/api/admin/inventory-items/${itemId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/inventory-items"] });
