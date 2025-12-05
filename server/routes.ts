@@ -5010,7 +5010,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const isDebugRoute = debugRoutes.some(route => req.path === route);
     // Allow specific quote actions without auth (old system compatibility)
     const isQuoteAcceptDecline = req.path.match(/^\/quotes\/\d+\/(accept|decline)$/);
-    const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route) || sharedPhotoRoute || isSharedRoute || isDebugRoute || isQuoteAcceptDecline;
+    // Routes that require auth even if they match publicRoutes patterns
+    const protectedOverrides = ['/settings/dashboard'];
+    const matchesPublicRoute = publicRoutes.some(route => req.path.startsWith(route) || req.path === route);
+    const isProtectedOverride = protectedOverrides.some(route => req.path === route || req.path.startsWith(route + '/'));
+    const isPublic = (matchesPublicRoute && !isProtectedOverride) || sharedPhotoRoute || isSharedRoute || isDebugRoute || isQuoteAcceptDecline;
     
     console.log(`🔍 AUTH DEBUG - Path: ${req.path}, QuoteAcceptDecline: ${!!isQuoteAcceptDecline}, SharedPhotoRoute: ${!!sharedPhotoRoute}, IsSharedRoute: ${isSharedRoute}, IsPublic: ${isPublic}`);
     

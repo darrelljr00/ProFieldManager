@@ -62,7 +62,14 @@ Preferred communication style: Simple, everyday language.
 - **AWS S3**: Backup storage.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
-## Recent Updates (Dec 4, 2025)
+## Recent Updates (Dec 5, 2025)
+- **Dashboard Profile Matching Fix**: 
+  - Fixed critical bug where `/api/settings/dashboard` was incorrectly marked as a public route
+  - Profile-based widget visibility now correctly applies based on user role
+  - Technician users now see the correct dashboard configuration (no revenue chart, no recent invoices)
+  - Added `protectedOverrides` array in routes.ts to exclude specific paths from public route matching
+
+## Previous Updates (Dec 4, 2025)
 - **Technician Daily Flow System**: 
   - Created 4-step daily workflow wizard for field technicians: Check-In, Daily Jobs Review, Tech Inventory, Vehicle Inspection
   - Added `technician_daily_flow_sessions` database table for tracking daily session progress
