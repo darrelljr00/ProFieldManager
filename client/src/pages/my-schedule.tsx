@@ -14,6 +14,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import { useDailyFlowReturn } from '@/hooks/useDailyFlowReturn';
 import { apiRequest } from '@/lib/queryClient';
 import type { User } from '@shared/schema';
 
@@ -81,6 +82,7 @@ export default function MySchedulePage() {
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isFromDailyFlow, completeAndReturn, isPending: isDailyFlowPending } = useDailyFlowReturn();
 
   // Fetch current user
   const { data: currentUser } = useQuery({
@@ -308,6 +310,23 @@ export default function MySchedulePage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      {isFromDailyFlow && (
+        <Card className="mb-4 border-primary bg-primary/5">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium">Daily Flow: Review Today's Jobs</p>
+              <p className="text-sm text-muted-foreground">Review your schedule then click "Done" to continue your daily flow</p>
+            </div>
+            <Button
+              onClick={completeAndReturn}
+              disabled={isDailyFlowPending}
+              data-testid="button-complete-daily-flow-step"
+            >
+              {isDailyFlowPending ? "Saving..." : "Done - Return to Daily Flow"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">

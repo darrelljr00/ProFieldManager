@@ -36,6 +36,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from "@/hooks/use-toast";
+import { useDailyFlowReturn } from "@/hooks/useDailyFlowReturn";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -275,6 +276,7 @@ function SortableItem({
 export default function Inspections() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { isFromDailyFlow, completeAndReturn, isPending: isDailyFlowPending } = useDailyFlowReturn();
   const preTripFileInputRef = useRef<HTMLInputElement>(null);
   const postTripFileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState('pre-trip');
@@ -969,6 +971,23 @@ export default function Inspections() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-7xl mx-auto">
+        {isFromDailyFlow && (
+          <Card className="mb-4 border-primary bg-primary/5">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="font-medium">Daily Flow: Vehicle Inspection</p>
+                <p className="text-sm text-muted-foreground">Complete your vehicle inspection then click "Done" to continue</p>
+              </div>
+              <Button
+                onClick={completeAndReturn}
+                disabled={isDailyFlowPending}
+                data-testid="button-complete-daily-flow-step"
+              >
+                {isDailyFlowPending ? "Saving..." : "Done - Return to Daily Flow"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
         <div className="mb-8 text-center">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">Vehicle Inspections</h1>
           <p className="text-gray-600">Complete your pre-trip and post-trip vehicle inspections</p>

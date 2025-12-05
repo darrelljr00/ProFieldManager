@@ -374,7 +374,7 @@ export default function TechnicianDailyFlow() {
                   {status !== "completed" && (
                     <CardFooter className="pt-0 pb-4">
                       <div className="flex gap-2 w-full">
-                        <Link href={`/${step.action}`} className="flex-1">
+                        <Link href={`/${step.action}?from=daily-flow&step=${step.id}`} className="flex-1">
                           <Button className="w-full" data-testid={`button-action-${step.id}`}>
                             <Play className="h-4 w-4 mr-2" />
                             {step.actionLabel}

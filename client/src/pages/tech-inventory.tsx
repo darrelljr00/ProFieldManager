@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { useDailyFlowReturn } from "@/hooks/useDailyFlowReturn";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Package,
@@ -84,6 +85,7 @@ interface Transaction {
 export default function TechInventory() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isFromDailyFlow, completeAndReturn, isPending: isDailyFlowPending } = useDailyFlowReturn();
   const [searchQuery, setSearchQuery] = useState("");
   const [useItemDialogOpen, setUseItemDialogOpen] = useState(false);
   const [restockDialogOpen, setRestockDialogOpen] = useState(false);
@@ -186,6 +188,23 @@ export default function TechInventory() {
 
   return (
     <div className="p-6 space-y-6">
+      {isFromDailyFlow && (
+        <Card className="border-primary bg-primary/5">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium">Daily Flow: Check Inventory</p>
+              <p className="text-sm text-muted-foreground">Review your parts and supplies then click "Done" to continue</p>
+            </div>
+            <Button
+              onClick={completeAndReturn}
+              disabled={isDailyFlowPending}
+              data-testid="button-complete-daily-flow-step"
+            >
+              {isDailyFlowPending ? "Saving..." : "Done - Return to Daily Flow"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold" data-testid="text-page-title">Tech Inventory</h1>

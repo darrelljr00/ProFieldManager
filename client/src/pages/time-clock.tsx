@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useDailyFlowReturn } from "@/hooks/useDailyFlowReturn";
 import { apiRequest } from "@/lib/queryClient";
 import GoogleMaps from "@/components/google-maps";
 import { 
@@ -190,6 +191,7 @@ export default function TimeClock() {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { isFromDailyFlow, completeAndReturn, isPending: isDailyFlowPending } = useDailyFlowReturn();
   const isManager = user?.role === 'admin' || user?.role === 'manager';
   const isAdmin = user?.role === 'admin';
 
@@ -286,6 +288,9 @@ export default function TimeClock() {
         title: "Clocked In",
         description: "Successfully clocked in for work",
       });
+      if (isFromDailyFlow) {
+        setTimeout(() => completeAndReturn(), 500);
+      }
     },
     onError: (error: any) => {
       toast({
