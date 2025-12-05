@@ -378,7 +378,7 @@ export function registerTechnicianDailyFlowRoutes(app: Express) {
       const jobs = await db.query.projects.findMany({
         where: and(
           eq(projects.organizationId, user.organizationId),
-          sql`${projects.assignedTo}::text LIKE ${'%' + user.id + '%'}`,
+          eq(projects.assignedUserId, user.id),
           sql`DATE(${projects.scheduledDate}) = ${today}`
         ),
         orderBy: [projects.scheduledDate],
