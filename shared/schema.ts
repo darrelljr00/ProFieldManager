@@ -736,8 +736,8 @@ export const timeClock = pgTable("time_clock", {
   clockOutTime: timestamp("clock_out_time"),
   breakStart: timestamp("break_start"),
   breakEnd: timestamp("break_end"),
-  totalHours: decimal("total_hours", { precision: 5, scale: 2 }),
-  breakDuration: decimal("break_duration", { precision: 5, scale: 2 }).default("0.00"),
+  totalHours: decimal("total_hours", { precision: 8, scale: 2 }),
+  breakDuration: decimal("break_duration", { precision: 8, scale: 2 }).default("0.00"),
   clockInLocation: text("clock_in_location"), // GPS coordinates
   clockOutLocation: text("clock_out_location"), // GPS coordinates
   clockInIP: text("clock_in_ip"),
