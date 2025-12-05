@@ -119,6 +119,7 @@ import {
   websiteSocialLinks,
   websiteFooterSections,
   websiteFooterLinks,
+  technicianOnboardingProgress,
 } from "@shared/schema";
 import { marketResearchCompetitors } from "@shared/schema";
 import type {
@@ -1545,6 +1546,32 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error creating employee record for user:", error);
       // Don't fail user creation if employee creation fails
+    }
+
+    // Automatically initialize technician-specific features for technician role users
+    if (user.role === "technician") {
+      try {
+        // Create technician onboarding progress record
+        await db.insert(technicianOnboardingProgress).values({
+          userId: user.id,
+          organizationId: user.organizationId,
+          welcomeComplete: false,
+          scheduleComplete: false,
+          jobDetailsComplete: false,
+          imageUploadsComplete: false,
+          timeClockComplete: false,
+          tasksComplete: false,
+          gpsNavigationComplete: false,
+          isComplete: false,
+          currentStep: 1,
+          completedSteps: 0,
+          totalSteps: 7,
+        }).onConflictDoNothing();
+        console.log(`✅ Technician onboarding progress initialized for user ${user.id}`);
+      } catch (error) {
+        console.error("Error initializing technician features for user:", error);
+        // Don't fail user creation if technician initialization fails
+      }
     }
 
     return user;
