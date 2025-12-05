@@ -19171,6 +19171,106 @@ ${fromName || ''}
     }
   });
 
+
+  // ============================================
+  // Personal Profile & Reports API Routes
+  // (For technicians to view their own HR data)
+  // ============================================
+
+  // Get current user's time off requests
+  app.get("/api/my-time-off-requests", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const requests = await storage.getTimeOffRequests(user.organizationId, user.id);
+      res.json(requests);
+    } catch (error: any) {
+      console.error("Error fetching personal time off requests:", error);
+      res.status(500).json({ message: "Failed to fetch time off requests" });
+    }
+  });
+
+  // Get current user's performance reviews
+  app.get("/api/my-performance-reviews", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const reviews = await storage.getPerformanceReviews(user.organizationId, user.id);
+      res.json(reviews);
+    } catch (error: any) {
+      console.error("Error fetching personal performance reviews:", error);
+      res.status(500).json({ message: "Failed to fetch performance reviews" });
+    }
+  });
+
+  // Get current user's disciplinary actions
+  app.get("/api/my-disciplinary-actions", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const actions = await storage.getDisciplinaryActions(user.organizationId, user.id);
+      res.json(actions);
+    } catch (error: any) {
+      console.error("Error fetching personal disciplinary actions:", error);
+      res.status(500).json({ message: "Failed to fetch disciplinary actions" });
+    }
+  });
+
+  // Get current user's personal report stats
+  app.get("/api/my-reports/summary", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { startDate, endDate } = req.query;
+      
+      // Get task completion stats
+      const tasks = await storage.getTasksAssignedToUser(user.id);
+      const completedTasks = tasks.filter((t: any) => t.status === 'completed');
+      const taskCompletionRate = tasks.length > 0 
+        ? Math.round((completedTasks.length / tasks.length) * 100) 
+        : 0;
+      
+      // Get time clock entries for job activity
+      const timeEntries = await storage.getTimeClockEntries(user.id);
+      const totalClockIns = timeEntries.length;
+      const avgHoursPerDay = timeEntries.length > 0
+        ? timeEntries.reduce((sum: number, entry: any) => {
+            if (entry.clockOutTime) {
+              const hours = (new Date(entry.clockOutTime).getTime() - new Date(entry.clockInTime).getTime()) / (1000 * 60 * 60);
+              return sum + hours;
+            }
+            return sum;
+          }, 0) / timeEntries.length
+        : 0;
+      
+      // Get images uploaded (documentation compliance)
+      const images = await storage.getImages(user.id);
+      const imagesThisMonth = images.filter((img: any) => {
+        const imgDate = new Date(img.createdAt);
+        const now = new Date();
+        return imgDate.getMonth() === now.getMonth() && imgDate.getFullYear() === now.getFullYear();
+      });
+      
+      res.json({
+        taskStats: {
+          total: tasks.length,
+          completed: completedTasks.length,
+          pending: tasks.filter((t: any) => t.status === 'pending').length,
+          inProgress: tasks.filter((t: any) => t.status === 'in_progress').length,
+          completionRate: taskCompletionRate
+        },
+        jobActivity: {
+          totalClockIns,
+          avgHoursPerDay: Math.round(avgHoursPerDay * 10) / 10,
+          recentEntries: timeEntries.slice(0, 10)
+        },
+        documentation: {
+          totalImages: images.length,
+          imagesThisMonth: imagesThisMonth.length
+        }
+      });
+    } catch (error: any) {
+      console.error("Error fetching personal report summary:", error);
+      res.status(500).json({ message: "Failed to fetch report summary" });
+    }
+  });
+
   // Time Off Request API Routes
   
   // Get time off requests
