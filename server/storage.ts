@@ -1693,6 +1693,10 @@ export class DatabaseStorage implements IStorage {
       return user;
     }
 
+    // Get the current user to check if role is changing to technician
+    const [currentUser] = await db.select().from(users).where(eq(users.id, id));
+    const isBecomingTechnician = updates.role === "technician" && currentUser?.role !== "technician";
+
     // Add updatedAt timestamp
     updateData.updatedAt = new Date();
 
@@ -1701,6 +1705,33 @@ export class DatabaseStorage implements IStorage {
       .set(updateData)
       .where(eq(users.id, id))
       .returning();
+
+    // Initialize technician-specific features when role is changed to technician
+    if (isBecomingTechnician && user) {
+      try {
+        // Create technician onboarding progress record if it doesn't exist
+        await db.insert(technicianOnboardingProgress).values({
+          userId: user.id,
+          organizationId: user.organizationId,
+          welcomeComplete: false,
+          scheduleComplete: false,
+          jobDetailsComplete: false,
+          imageUploadsComplete: false,
+          timeClockComplete: false,
+          tasksComplete: false,
+          gpsNavigationComplete: false,
+          isComplete: false,
+          currentStep: 1,
+          completedSteps: 0,
+          totalSteps: 7,
+        }).onConflictDoNothing();
+        console.log(`✅ Technician onboarding progress initialized for user ${user.id} (role changed to technician)`);
+      } catch (error) {
+        console.error("Error initializing technician features for user:", error);
+        // Don't fail user update if technician initialization fails
+      }
+    }
+
     return user;
   }
 
