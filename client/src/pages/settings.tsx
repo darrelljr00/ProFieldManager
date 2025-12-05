@@ -3030,13 +3030,13 @@ export default function Settings() {
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="profileType">Profile Type</Label>
+                              <Label htmlFor="profileType">Select Profile</Label>
                               <Select
                                 value={profileFormData.profileType}
                                 onValueChange={(value) => setProfileFormData((prev: any) => ({ ...prev, profileType: value }))}
                               >
                                 <SelectTrigger data-testid="select-profile-type">
-                                  <SelectValue />
+                                  <SelectValue placeholder="Choose profile type..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="user">User</SelectItem>
@@ -3044,7 +3044,6 @@ export default function Settings() {
                                   <SelectItem value="manager">Manager</SelectItem>
                                   <SelectItem value="admin">Admin</SelectItem>
                                   <SelectItem value="hr">HR</SelectItem>
-                                  <SelectItem value="custom">Custom</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -3066,7 +3065,7 @@ export default function Settings() {
                             <Label>Target Roles</Label>
                             <p className="text-xs text-muted-foreground">Select which roles will use this profile by default</p>
                             <div className="flex flex-wrap gap-2">
-                              {['admin', 'manager', 'technician', 'user'].map((role) => (
+                              {['user', 'technician', 'manager', 'admin', 'hr'].map((role) => (
                                 <label key={role} className="flex items-center gap-2 cursor-pointer">
                                   <input
                                     type="checkbox"
