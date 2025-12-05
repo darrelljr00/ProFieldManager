@@ -176,7 +176,7 @@ export default function AdminInventoryManagement() {
       return apiRequest("/api/admin/technician-inventory", "POST", {
         userId: parseInt(data.userId),
         partId: parseInt(data.partId),
-        vehicleId: data.vehicleId ? parseInt(data.vehicleId) : null,
+        vehicleId: data.vehicleId && data.vehicleId !== "none" ? parseInt(data.vehicleId) : null,
         assignedQuantity: data.assignedQuantity,
         minQuantity: data.minQuantity,
         location: data.location || null,
@@ -638,14 +638,14 @@ export default function AdminInventoryManagement() {
             <div className="space-y-2">
               <Label>Vehicle (Optional)</Label>
               <Select
-                value={formData.vehicleId}
+                value={formData.vehicleId || "none"}
                 onValueChange={(v) => setFormData({ ...formData, vehicleId: v })}
               >
                 <SelectTrigger data-testid="select-vehicle">
                   <SelectValue placeholder="Select vehicle" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Vehicle</SelectItem>
+                  <SelectItem value="none">No Vehicle</SelectItem>
                   {vehicles.map((vehicle) => (
                     <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
                       {vehicle.vehicleNumber} - {vehicle.make} {vehicle.model}
@@ -722,14 +722,14 @@ export default function AdminInventoryManagement() {
             <div className="space-y-2">
               <Label>Vehicle</Label>
               <Select
-                value={formData.vehicleId}
+                value={formData.vehicleId || "none"}
                 onValueChange={(v) => setFormData({ ...formData, vehicleId: v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select vehicle" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No Vehicle</SelectItem>
+                  <SelectItem value="none">No Vehicle</SelectItem>
                   {vehicles.map((vehicle) => (
                     <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
                       {vehicle.vehicleNumber} - {vehicle.make} {vehicle.model}
@@ -786,7 +786,7 @@ export default function AdminInventoryManagement() {
                       assignedQuantity: formData.assignedQuantity,
                       currentQuantity: selectedAssignment.currentQuantity,
                       minQuantity: formData.minQuantity,
-                      vehicleId: formData.vehicleId ? parseInt(formData.vehicleId) : null,
+                      vehicleId: formData.vehicleId && formData.vehicleId !== "none" ? parseInt(formData.vehicleId) : null,
                       location: formData.location || null,
                       notes: formData.notes || null,
                     } as any,
