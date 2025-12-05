@@ -121,7 +121,7 @@ export default function TechnicianDailyFlow() {
 
   const updateStepMutation = useMutation({
     mutationFn: async ({ stepName, completed, skipReason }: { stepName: string; completed: boolean; skipReason?: string }) => {
-      return apiRequest(`/api/technician-daily-flow/step/${stepName}`, "PATCH", { completed, skipReason });
+      return apiRequest("PATCH", `/api/technician-daily-flow/step/${stepName}`, { completed, skipReason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/technician-daily-flow"] });
@@ -144,7 +144,7 @@ export default function TechnicianDailyFlow() {
 
   const completeMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/technician-daily-flow/complete", "POST", {});
+      return apiRequest("POST", "/api/technician-daily-flow/complete", {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/technician-daily-flow"] });
@@ -157,7 +157,7 @@ export default function TechnicianDailyFlow() {
 
   const resetMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/technician-daily-flow/reset", "POST", {});
+      return apiRequest("POST", "/api/technician-daily-flow/reset", {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/technician-daily-flow"] });
