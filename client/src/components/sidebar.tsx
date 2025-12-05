@@ -306,7 +306,6 @@ const DEFAULT_NAVIGATION_ORDER = [
   "Image Gallery",
   "Talk/Text",
   "Live Tracking",
-  "Market Research",
   "Screen Sharing",
   "Human Resources",
   "User Management",
@@ -763,13 +762,6 @@ export function Sidebar() {
       ],
     },
     {
-      name: "Market Research",
-      href: "/market-research",
-      icon: BarChart3,
-      requiresAuth: true,
-      permission: "canAccessMarketResearch",
-    },
-    {
       name: "Screen Sharing",
       href: "/screen-sharing",
       icon: Monitor,
@@ -834,6 +826,10 @@ export function Sidebar() {
       icon: BarChart3,
       requiresAuth: true,
       permission: "canAccessReports",
+      subItems: [
+        { name: "All Reports", href: "/reports", icon: BarChart3 },
+        { name: "Market Research", href: "/market-research", icon: BarChart3 },
+      ],
     },
     {
       name: "Settings",
