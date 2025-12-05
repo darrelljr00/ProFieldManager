@@ -367,6 +367,12 @@ export function Sidebar() {
     refetchInterval: 30000, // Poll every 30 seconds
   });
 
+  // Fetch system settings for feature toggles
+  const { data: systemSettings } = useQuery<Record<string, any>>({
+    queryKey: ["/api/admin/system-settings"],
+    enabled: isAuthenticated,
+  });
+
   // Load custom navigation order
   const { data: savedOrder } = useQuery({
     queryKey: ["/api/navigation-order"],
@@ -540,12 +546,12 @@ export function Sidebar() {
           },
         ]
       : [
-          {
+          ...(systemSettings?.enableDailyFlow !== "false" ? [{
             name: "Daily Flow",
             href: "/daily-flow",
             icon: ClipboardCheck,
             requiresAuth: true,
-          },
+          }] : []),
           {
             name: "Training",
             href: "/technician-training",
@@ -557,12 +563,12 @@ export function Sidebar() {
             ],
           },
         ]),
-    {
+    ...(systemSettings?.enableTechInventory !== "false" ? [{
       name: "Tech Inventory",
       href: "/tech-inventory",
       icon: Package,
       requiresAuth: true,
-    },
+    }] : []),
     {
       name: "Calendar",
       href: "/calendar",

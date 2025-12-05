@@ -64,7 +64,8 @@ import {
   UserCheck,
   UserX,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  ClipboardCheck
 } from "lucide-react";
 
 // Inspection Management Component
@@ -1268,6 +1269,62 @@ export default function AdminSettingsPage() {
                     defaultValue={systemSettings?.maxFileSize || 10}
                     onBlur={(e) => 
                       handleSystemSettingChange("maxFileSize", e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Technician Features */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardCheck className="h-5 w-5" />
+                Technician Features
+              </CardTitle>
+              <CardDescription>
+                Configure technician workflow and productivity features
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="enableDailyFlow">Enable Technician Daily Flow</Label>
+                  <p className="text-sm text-muted-foreground">
+                    When enabled, technicians will see a daily checklist wizard prompting them to check-in, review jobs, verify inventory, and complete vehicle inspection each day.
+                  </p>
+                  <Switch
+                    id="enableDailyFlow"
+                    checked={systemSettings?.enableDailyFlow !== false}
+                    onCheckedChange={(checked) => 
+                      handleSystemSettingChange("enableDailyFlow", checked.toString())
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="requireDailyFlow">Require Daily Flow Completion</Label>
+                  <p className="text-sm text-muted-foreground">
+                    When enabled, technicians must complete the daily flow before accessing other features.
+                  </p>
+                  <Switch
+                    id="requireDailyFlow"
+                    checked={systemSettings?.requireDailyFlow || false}
+                    onCheckedChange={(checked) => 
+                      handleSystemSettingChange("requireDailyFlow", checked.toString())
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="enableTechInventory">Enable Tech Inventory</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Allow technicians to view and manage their assigned parts and tools.
+                  </p>
+                  <Switch
+                    id="enableTechInventory"
+                    checked={systemSettings?.enableTechInventory !== false}
+                    onCheckedChange={(checked) => 
+                      handleSystemSettingChange("enableTechInventory", checked.toString())
                     }
                   />
                 </div>

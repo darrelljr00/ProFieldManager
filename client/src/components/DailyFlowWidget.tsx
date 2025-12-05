@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ClipboardCheck, ArrowRight, CheckCircle, Clock } from "lucide-react";
+import { ClipboardCheck, ArrowRight, Clock } from "lucide-react";
 import { useState } from "react";
 
 interface DailyFlowSession {
@@ -29,10 +29,19 @@ export function DailyFlowWidget() {
   const [, navigate] = useLocation();
   const [dismissed, setDismissed] = useState(false);
 
-  const { data: session, isLoading } = useQuery<DailyFlowSession>({
-    queryKey: ["/api/technician-daily-flow"],
+  const { data: systemSettings } = useQuery<Record<string, any>>({
+    queryKey: ["/api/admin/system-settings"],
     enabled: !!user,
   });
+
+  const { data: session, isLoading } = useQuery<DailyFlowSession>({
+    queryKey: ["/api/technician-daily-flow"],
+    enabled: !!user && systemSettings?.enableDailyFlow !== "false",
+  });
+
+  if (systemSettings?.enableDailyFlow === "false") {
+    return null;
+  }
 
   if (isLoading || dismissed) {
     return null;
