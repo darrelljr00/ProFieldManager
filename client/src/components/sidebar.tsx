@@ -842,6 +842,7 @@ export function Sidebar() {
       href: "/settings",
       icon: Settings,
       requiresAuth: true,
+      permission: "canAccessSettings",
       subItems: [
         { name: "General", href: "/settings", icon: Settings },
         { name: "Dashboard", href: "/settings?tab=dashboard", icon: BarChart3 },
