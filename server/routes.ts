@@ -58,7 +58,7 @@ import {
   type InsertSmartCaptureList,
   type InsertSmartCaptureItem
 } from "@shared/schema";
-import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission, blockDemoAccountWrites } from "./auth";
+import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission, blockDemoAccountWrites, isSuperAdmin } from "./auth";
 import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
 import { nanoid } from "nanoid";
@@ -12855,6 +12855,97 @@ ${fromName || ''}
     } catch (error: any) {
       console.error("Error updating dashboard settings:", error);
       res.status(500).json({ message: "Failed to update dashboard settings" });
+    }
+  });
+
+  // =====================================================
+  // Navigation Permission Profile API Endpoints
+  // =====================================================
+  
+  // Get all navigation permission profiles
+  app.get("/api/navigation-permission-profiles", requireAuth, async (req, res) => {
+    try {
+      const profiles = await storage.getNavigationPermissionProfiles();
+      res.json(profiles);
+    } catch (error: any) {
+      console.error("Error fetching navigation permission profiles:", error);
+      res.status(500).json({ message: "Failed to fetch navigation permission profiles" });
+    }
+  });
+
+  // Get navigation permission profile by ID
+  app.get("/api/navigation-permission-profiles/:id", requireAuth, async (req, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      const profile = await storage.getNavigationPermissionProfile(profileId);
+      
+      if (!profile) {
+        return res.status(404).json({ message: "Navigation permission profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error fetching navigation permission profile:", error);
+      res.status(500).json({ message: "Failed to fetch navigation permission profile" });
+    }
+  });
+
+  // Get navigation permissions for current user's role
+  app.get("/api/navigation-permissions/my-permissions", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const permissions = await storage.getNavigationPermissionsForRole(user.role);
+      res.json(permissions);
+    } catch (error: any) {
+      console.error("Error fetching navigation permissions:", error);
+      res.status(500).json({ message: "Failed to fetch navigation permissions" });
+    }
+  });
+
+  // Create new navigation permission profile (super admin only)
+  app.post("/api/navigation-permission-profiles", requireAuth, isSuperAdmin, async (req, res) => {
+    try {
+      const profileData = {
+        ...req.body,
+        isSystem: false,
+      };
+
+      const profile = await storage.createNavigationPermissionProfile(profileData);
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error creating navigation permission profile:", error);
+      res.status(500).json({ message: "Failed to create navigation permission profile" });
+    }
+  });
+
+  // Update navigation permission profile (super admin only)
+  app.patch("/api/navigation-permission-profiles/:id", requireAuth, isSuperAdmin, async (req, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      const updates = req.body;
+
+      const profile = await storage.updateNavigationPermissionProfile(profileId, updates);
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error updating navigation permission profile:", error);
+      res.status(500).json({ message: "Failed to update navigation permission profile" });
+    }
+  });
+
+  // Delete navigation permission profile (super admin only, non-system profiles only)
+  app.delete("/api/navigation-permission-profiles/:id", requireAuth, isSuperAdmin, async (req, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      const deleted = await storage.deleteNavigationPermissionProfile(profileId);
+      
+      if (!deleted) {
+        return res.status(400).json({ message: "Cannot delete system profiles" });
+      }
+      
+      res.json({ message: "Navigation permission profile deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting navigation permission profile:", error);
+      res.status(500).json({ message: "Failed to delete navigation permission profile" });
     }
   });
 

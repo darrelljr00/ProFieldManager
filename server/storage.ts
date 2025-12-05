@@ -70,6 +70,7 @@ import {
   defaultPermissions,
   userDashboardSettings,
   dashboardProfiles,
+  navigationPermissionProfiles,
   vehicles,
   vehicleMaintenanceIntervals,
   vehicleMaintenanceRecords,
@@ -537,6 +538,15 @@ export interface IStorage {
     organizationId: number,
     profileType: string,
   ): Promise<any>;
+
+  // Navigation Permission Profile methods
+  getNavigationPermissionProfiles(): Promise<any[]>;
+  getNavigationPermissionProfile(id: number): Promise<any>;
+  getNavigationPermissionProfileByType(profileType: string): Promise<any>;
+  createNavigationPermissionProfile(profileData: any): Promise<any>;
+  updateNavigationPermissionProfile(id: number, updates: any): Promise<any>;
+  deleteNavigationPermissionProfile(id: number): Promise<boolean>;
+  getNavigationPermissionsForRole(role: string): Promise<any>;
 
   // Image methods
   createImage(imageData: any): Promise<any>;
@@ -9983,6 +9993,166 @@ export class DatabaseStorage implements IStorage {
       );
     } catch (error) {
       console.error("Error applying dashboard profile:", error);
+      throw error;
+    }
+  }
+
+  // Navigation Permission Profile methods
+  async getNavigationPermissionProfiles(): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(navigationPermissionProfiles)
+        .orderBy(asc(navigationPermissionProfiles.name));
+    } catch (error) {
+      console.error("Error getting navigation permission profiles:", error);
+      throw error;
+    }
+  }
+
+  async getNavigationPermissionProfile(id: number): Promise<any> {
+    try {
+      const [profile] = await db
+        .select()
+        .from(navigationPermissionProfiles)
+        .where(eq(navigationPermissionProfiles.id, id));
+      return profile;
+    } catch (error) {
+      console.error("Error getting navigation permission profile:", error);
+      throw error;
+    }
+  }
+
+  async getNavigationPermissionProfileByType(profileType: string): Promise<any> {
+    try {
+      const [profile] = await db
+        .select()
+        .from(navigationPermissionProfiles)
+        .where(eq(navigationPermissionProfiles.profileType, profileType));
+      return profile;
+    } catch (error) {
+      console.error("Error getting navigation permission profile by type:", error);
+      throw error;
+    }
+  }
+
+  async createNavigationPermissionProfile(profileData: any): Promise<any> {
+    try {
+      const [profile] = await db
+        .insert(navigationPermissionProfiles)
+        .values(profileData)
+        .returning();
+      return profile;
+    } catch (error) {
+      console.error("Error creating navigation permission profile:", error);
+      throw error;
+    }
+  }
+
+  async updateNavigationPermissionProfile(id: number, updates: any): Promise<any> {
+    try {
+      const [profile] = await db
+        .update(navigationPermissionProfiles)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(navigationPermissionProfiles.id, id))
+        .returning();
+      return profile;
+    } catch (error) {
+      console.error("Error updating navigation permission profile:", error);
+      throw error;
+    }
+  }
+
+  async deleteNavigationPermissionProfile(id: number): Promise<boolean> {
+    try {
+      const [profile] = await db
+        .select()
+        .from(navigationPermissionProfiles)
+        .where(eq(navigationPermissionProfiles.id, id));
+      
+      if (!profile || profile.isSystem) {
+        return false;
+      }
+      
+      await db.delete(navigationPermissionProfiles).where(eq(navigationPermissionProfiles.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting navigation permission profile:", error);
+      throw error;
+    }
+  }
+
+  async getNavigationPermissionsForRole(role: string): Promise<any> {
+    try {
+      // First, try to find a profile that has this role in targetRoles
+      const profiles = await db
+        .select()
+        .from(navigationPermissionProfiles);
+      
+      // Find a profile where targetRoles contains the user's role
+      let matchingProfile = profiles.find((p: any) => 
+        p.targetRoles && Array.isArray(p.targetRoles) && p.targetRoles.includes(role)
+      );
+      
+      // If no matching profile by target role, try to find one by profileType
+      if (!matchingProfile) {
+        matchingProfile = profiles.find((p: any) => p.profileType === role);
+      }
+      
+      // If still no match, return a default profile with basic permissions
+      if (!matchingProfile) {
+        return {
+          canAccessDashboard: true,
+          canAccessCalendar: true,
+          canAccessTimeClock: true,
+          canAccessJobs: true,
+          canAccessMyTasks: true,
+          canAccessLeads: false,
+          canAccessExpenses: false,
+          canAccessExpenseReports: false,
+          canAccessExpenseCategories: false,
+          canAccessTechnicianExpenses: false,
+          canAccessGasCards: false,
+          canAccessGasCardProviders: false,
+          canAccessQuotes: false,
+          canAccessInvoices: false,
+          canAccessCustomers: false,
+          canAccessPayments: false,
+          canAccessFileManager: false,
+          canAccessFormBuilder: false,
+          canAccessTeamMessages: true,
+          canAccessInternalMessages: true,
+          canAccessImageGallery: false,
+          canAccessSms: true,
+          canAccessGpsTracking: true,
+          canAccessWeather: true,
+          canAccessInspections: true,
+          canAccessMobileTest: false,
+          canAccessReviews: false,
+          canAccessMarketResearch: false,
+          canAccessPartsSupplies: true,
+          canAccessMySchedule: true,
+          canAccessTutorials: true,
+          canAccessFrontEnd: false,
+          canAccessLiveStream: false,
+          canAccessCallManager: false,
+          canAccessHr: false,
+          canAccessUsers: false,
+          canAccessSaasAdmin: false,
+          canAccessAdminSettings: false,
+          canAccessReports: false,
+          canAccessSettings: true,
+          canAccessProjects: false,
+          canAccessMessages: true,
+        };
+      }
+      
+      return matchingProfile;
+    } catch (error) {
+      console.error("Error getting navigation permissions for role:", error);
       throw error;
     }
   }

@@ -900,6 +900,76 @@ export const insertDashboardProfileSchema = createInsertSchema(dashboardProfiles
 export type InsertDashboardProfile = z.infer<typeof insertDashboardProfileSchema>;
 export type DashboardProfile = typeof dashboardProfiles.$inferSelect;
 
+// Navigation Permission Profiles - Controls which navigation tabs are accessible by role
+export const navigationPermissionProfiles = pgTable("navigation_permission_profiles", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id), // null for system profiles
+  name: text("name").notNull(), // "Admin Navigation", "Technician Navigation", etc.
+  profileType: text("profile_type").notNull(), // user, technician, manager, admin, hr, custom
+  description: text("description"),
+  isDefault: boolean("is_default").default(false),
+  isSystem: boolean("is_system").default(true), // System-defined profiles (no organizationId)
+  
+  // Target roles for this profile - which roles should use this profile by default
+  targetRoles: text("target_roles").array().default([]), // ["technician", "manager", etc.]
+  
+  // Navigation tab permissions
+  canAccessDashboard: boolean("can_access_dashboard").default(true),
+  canAccessCalendar: boolean("can_access_calendar").default(true),
+  canAccessTimeClock: boolean("can_access_time_clock").default(true),
+  canAccessJobs: boolean("can_access_jobs").default(true),
+  canAccessMyTasks: boolean("can_access_my_tasks").default(true),
+  canAccessLeads: boolean("can_access_leads").default(true),
+  canAccessExpenses: boolean("can_access_expenses").default(true),
+  canAccessExpenseReports: boolean("can_access_expense_reports").default(true),
+  canAccessExpenseCategories: boolean("can_access_expense_categories").default(false),
+  canAccessTechnicianExpenses: boolean("can_access_technician_expenses").default(false),
+  canAccessGasCards: boolean("can_access_gas_cards").default(false),
+  canAccessGasCardProviders: boolean("can_access_gas_card_providers").default(false),
+  canAccessQuotes: boolean("can_access_quotes").default(true),
+  canAccessInvoices: boolean("can_access_invoices").default(true),
+  canAccessCustomers: boolean("can_access_customers").default(true),
+  canAccessPayments: boolean("can_access_payments").default(true),
+  canAccessFileManager: boolean("can_access_file_manager").default(false),
+  canAccessFormBuilder: boolean("can_access_form_builder").default(false),
+  canAccessTeamMessages: boolean("can_access_team_messages").default(true),
+  canAccessInternalMessages: boolean("can_access_internal_messages").default(true),
+  canAccessImageGallery: boolean("can_access_image_gallery").default(false),
+  canAccessSMS: boolean("can_access_sms").default(true),
+  canAccessGpsTracking: boolean("can_access_gps_tracking").default(true),
+  canAccessWeather: boolean("can_access_weather").default(true),
+  canAccessInspections: boolean("can_access_inspections").default(true),
+  canAccessMobileTest: boolean("can_access_mobile_test").default(false),
+  canAccessReviews: boolean("can_access_reviews").default(true),
+  canAccessMarketResearch: boolean("can_access_market_research").default(true),
+  canAccessPartsSupplies: boolean("can_access_parts_supplies").default(true),
+  canAccessMySchedule: boolean("can_access_my_schedule").default(true),
+  canAccessTutorials: boolean("can_access_tutorials").default(true),
+  canAccessFrontEnd: boolean("can_access_front_end").default(false),
+  canAccessLiveStream: boolean("can_access_live_stream").default(true),
+  canAccessCallManager: boolean("can_access_call_manager").default(false),
+  canAccessHR: boolean("can_access_hr").default(false),
+  canAccessUsers: boolean("can_access_users").default(false),
+  canAccessSaasAdmin: boolean("can_access_saas_admin").default(false),
+  canAccessAdminSettings: boolean("can_access_admin_settings").default(false),
+  canAccessReports: boolean("can_access_reports").default(false),
+  canAccessSettings: boolean("can_access_settings").default(true),
+  canAccessProjects: boolean("can_access_projects").default(true),
+  canAccessMessages: boolean("can_access_messages").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schema for navigation permission profiles
+export const insertNavigationPermissionProfileSchema = createInsertSchema(navigationPermissionProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertNavigationPermissionProfile = z.infer<typeof insertNavigationPermissionProfileSchema>;
+export type NavigationPermissionProfile = typeof navigationPermissionProfiles.$inferSelect;
+
 // Expense tracking tables
 export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),
