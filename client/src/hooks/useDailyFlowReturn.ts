@@ -14,7 +14,7 @@ export function useDailyFlowReturn() {
 
   const completeStepMutation = useMutation({
     mutationFn: async (stepName: string) => {
-      return apiRequest(`/api/technician-daily-flow/step/${stepName}`, "PATCH", { completed: true });
+      return apiRequest("PATCH", `/api/technician-daily-flow/step/${stepName}`, { completed: true });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/technician-daily-flow"] });
