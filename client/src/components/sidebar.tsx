@@ -597,6 +597,18 @@ export function Sidebar() {
       permission: "canAccessTimeClock",
     },
     {
+      name: "Personal Profile",
+      href: "/personal-profile",
+      icon: User,
+      requiresAuth: true,
+    },
+    {
+      name: "My Reports",
+      href: "/my-reports",
+      icon: BarChart3,
+      requiresAuth: true,
+    },
+    {
       name: "Jobs",
       href: "/jobs",
       icon: Briefcase,
