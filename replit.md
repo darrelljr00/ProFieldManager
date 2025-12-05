@@ -63,11 +63,15 @@ Preferred communication style: Simple, everyday language.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
 ## Recent Updates (Dec 5, 2025)
-- **Admin Inventory Management System**:
-  - Created Admin Inventory Management page (`/admin-inventory-management`) for admins/managers
-  - Allows creating inventory items with images and assigning them to technicians or vehicles
-  - Added `daily_inventory_verification` database table for tracking daily submissions
-  - API endpoints in `server/routes/technicianInventory.ts` for inventory CRUD and daily verification
+- **Admin Inventory Management System Enhanced**:
+  - Created dedicated `inventory_items` database table separate from `parts_supplies`
+  - Admin Inventory Management page (`/admin-inventory-management`) with 3 tabs: Inventory, Assignments, Daily Verifications
+  - "Inventory" tab displays all created inventory items in a card grid with images
+  - Create Item dialog supports image upload via Cloudinary, item name, description, category, SKU, initial stock, and min stock level
+  - Delete functionality for inventory items
+  - Quick "Assign" button on each inventory item card to assign to technicians
+  - API endpoints: GET/POST/PUT/DELETE `/api/admin/inventory-items`
+  - Image upload uses existing `/api/files/upload` endpoint
   - Navigation: "Inventory Assignment" sub-item under "Parts & Supplies" (admin/manager only)
   - Integrates with Daily Flow system for required daily inventory verification
 - **Personal Profile & My Reports Pages**:

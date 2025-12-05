@@ -47,6 +47,9 @@ import {
   Calendar,
   RefreshCw,
   Eye,
+  Upload,
+  ImageIcon,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
@@ -112,10 +115,25 @@ interface DailyVerification {
   vehicle?: Vehicle;
 }
 
+interface InventoryItem {
+  id: number;
+  organizationId: number;
+  name: string;
+  description: string | null;
+  category: string;
+  sku: string | null;
+  initialStock: number;
+  minStockLevel: number;
+  imageUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
 export default function AdminInventoryManagement() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("assignments");
+  const [activeTab, setActiveTab] = useState("inventory");
   const [searchQuery, setSearchQuery] = useState("");
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -149,10 +167,10 @@ export default function AdminInventoryManagement() {
     sku: "",
     currentStock: 0,
     minStockLevel: 0,
-    unit: "each",
-    unitCost: "",
-    unitPrice: "",
   });
+  const [itemImageFile, setItemImageFile] = useState<File | null>(null);
+  const [itemImagePreview, setItemImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const { data: assignments = [], isLoading: assignmentsLoading } = useQuery<InventoryAssignment[]>({
     queryKey: ["/api/admin/technician-inventory"],
@@ -182,6 +200,10 @@ export default function AdminInventoryManagement() {
       return res.json();
     },
     enabled: activeTab === "verifications",
+  });
+
+  const { data: inventoryItems = [], isLoading: inventoryItemsLoading } = useQuery<InventoryItem[]>({
+    queryKey: ["/api/admin/inventory-items"],
   });
 
   const assignMutation = useMutation({
@@ -291,22 +313,65 @@ export default function AdminInventoryManagement() {
     },
   });
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setItemImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setItemImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("description", "Inventory item image");
+      formData.append("tags", "inventory");
+
+      const res = await fetch("/api/files/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to upload image");
+      }
+
+      const json = await res.json();
+      return json?.cloudinaryUrl || json?.file?.fileUrl || json?.file?.filePath || null;
+    } catch (error) {
+      console.error("Image upload error:", error);
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const createItemMutation = useMutation({
     mutationFn: async (data: typeof newItemData) => {
-      return apiRequest("/api/parts-supplies", "POST", {
+      let imageUrl: string | null = null;
+      
+      if (itemImageFile) {
+        imageUrl = await uploadImage(itemImageFile);
+      }
+
+      return apiRequest("/api/admin/inventory-items", "POST", {
         name: data.name,
         description: data.description || null,
         category: data.category,
         sku: data.sku || null,
-        currentStock: data.currentStock,
+        initialStock: data.currentStock,
         minStockLevel: data.minStockLevel,
-        unit: data.unit,
-        unitCost: data.unitCost ? parseFloat(data.unitCost) : null,
-        unitPrice: data.unitPrice ? parseFloat(data.unitPrice) : null,
+        imageUrl,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/parts-supplies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/inventory-items"] });
       setCreateItemDialogOpen(false);
       setNewItemData({
         name: "",
@@ -315,10 +380,9 @@ export default function AdminInventoryManagement() {
         sku: "",
         currentStock: 0,
         minStockLevel: 0,
-        unit: "each",
-        unitCost: "",
-        unitPrice: "",
       });
+      setItemImageFile(null);
+      setItemImagePreview(null);
       toast({
         title: "Item Created",
         description: "The inventory item has been created successfully.",
@@ -328,6 +392,26 @@ export default function AdminInventoryManagement() {
       toast({
         title: "Error",
         description: error.message || "Failed to create inventory item",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteItemMutation = useMutation({
+    mutationFn: async (itemId: number) => {
+      return apiRequest(`/api/admin/inventory-items/${itemId}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/inventory-items"] });
+      toast({
+        title: "Item Deleted",
+        description: "The inventory item has been deleted.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete inventory item",
         variant: "destructive",
       });
     },
@@ -406,8 +490,12 @@ export default function AdminInventoryManagement() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="assignments" data-testid="tab-assignments">
+          <TabsTrigger value="inventory" data-testid="tab-inventory">
             <Package className="h-4 w-4 mr-2" />
+            Inventory
+          </TabsTrigger>
+          <TabsTrigger value="assignments" data-testid="tab-assignments">
+            <Users className="h-4 w-4 mr-2" />
             Assignments
           </TabsTrigger>
           <TabsTrigger value="verifications" data-testid="tab-verifications">
@@ -415,6 +503,113 @@ export default function AdminInventoryManagement() {
             Daily Verifications
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="inventory" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <CardTitle>Inventory Items</CardTitle>
+                <div className="relative w-full md:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search items..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                    data-testid="input-search-inventory"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {inventoryItemsLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Loading...</div>
+              ) : inventoryItems.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No inventory items found. Click "Create Item" to add your first item.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {inventoryItems
+                    .filter((item) =>
+                      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (item.sku && item.sku.toLowerCase().includes(searchQuery.toLowerCase()))
+                    )
+                    .map((item) => (
+                      <Card key={item.id} className="overflow-hidden" data-testid={`card-inventory-item-${item.id}`}>
+                        <div className="aspect-video bg-muted relative">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                            </div>
+                          )}
+                          <Badge
+                            className="absolute top-2 right-2"
+                            variant={item.isActive ? "default" : "secondary"}
+                          >
+                            {item.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="font-semibold">{item.name}</h3>
+                              <p className="text-sm text-muted-foreground">{item.category}</p>
+                            </div>
+                          </div>
+                          {item.sku && (
+                            <p className="text-xs text-muted-foreground mt-1">SKU: {item.sku}</p>
+                          )}
+                          {item.description && (
+                            <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{item.description}</p>
+                          )}
+                          <div className="flex items-center justify-between mt-3 text-sm">
+                            <span>Initial: {item.initialStock}</span>
+                            <span>Min: {item.minStockLevel}</span>
+                          </div>
+                          <div className="flex gap-2 mt-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  partId: item.id.toString(),
+                                });
+                                setActiveTab("assignments");
+                                setAssignDialogOpen(true);
+                              }}
+                              data-testid={`button-assign-item-${item.id}`}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Assign
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteItemMutation.mutate(item.id)}
+                              disabled={deleteItemMutation.isPending}
+                              data-testid={`button-delete-item-${item.id}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="assignments" className="space-y-4">
           <Card>
@@ -1034,53 +1229,51 @@ export default function AdminInventoryManagement() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Unit</Label>
-              <Select
-                value={newItemData.unit}
-                onValueChange={(v) => setNewItemData({ ...newItemData, unit: v })}
-              >
-                <SelectTrigger data-testid="select-item-unit">
-                  <SelectValue placeholder="Select unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="each">Each</SelectItem>
-                  <SelectItem value="box">Box</SelectItem>
-                  <SelectItem value="case">Case</SelectItem>
-                  <SelectItem value="pack">Pack</SelectItem>
-                  <SelectItem value="gallon">Gallon</SelectItem>
-                  <SelectItem value="quart">Quart</SelectItem>
-                  <SelectItem value="liter">Liter</SelectItem>
-                  <SelectItem value="pound">Pound</SelectItem>
-                  <SelectItem value="roll">Roll</SelectItem>
-                  <SelectItem value="foot">Foot</SelectItem>
-                  <SelectItem value="set">Set</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Unit Cost ($)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  value={newItemData.unitCost}
-                  onChange={(e) => setNewItemData({ ...newItemData, unitCost: e.target.value })}
-                  placeholder="0.00"
-                  data-testid="input-item-cost"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Unit Price ($)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  value={newItemData.unitPrice}
-                  onChange={(e) => setNewItemData({ ...newItemData, unitPrice: e.target.value })}
-                  placeholder="0.00"
-                  data-testid="input-item-price"
-                />
+              <Label>Image</Label>
+              <div className="flex items-start gap-4">
+                {itemImagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={itemImagePreview}
+                      alt="Preview"
+                      className="w-24 h-24 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6"
+                      onClick={() => {
+                        setItemImageFile(null);
+                        setItemImagePreview(null);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted">
+                    <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <label className="cursor-pointer">
+                    <div className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-muted transition-colors">
+                      <Upload className="h-4 w-4" />
+                      <span>{itemImageFile ? "Change Image" : "Upload Image"}</span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      data-testid="input-item-image"
+                    />
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    JPG, PNG or GIF. Max 5MB.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1090,10 +1283,10 @@ export default function AdminInventoryManagement() {
             </Button>
             <Button
               onClick={() => createItemMutation.mutate(newItemData)}
-              disabled={!newItemData.name || !newItemData.category || createItemMutation.isPending}
+              disabled={!newItemData.name || !newItemData.category || createItemMutation.isPending || uploadingImage}
               data-testid="button-confirm-create-item"
             >
-              {createItemMutation.isPending ? "Creating..." : "Create Item"}
+              {uploadingImage ? "Uploading Image..." : createItemMutation.isPending ? "Creating..." : "Create Item"}
             </Button>
           </DialogFooter>
         </DialogContent>

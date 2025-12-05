@@ -20,6 +20,97 @@ function getTodayDate(): string {
 
 export function registerTechnicianInventoryRoutes(app: Express) {
   
+  // ========== ADMIN INVENTORY ITEMS CRUD ==========
+  
+  // Get all inventory items for the organization
+  app.get('/api/admin/inventory-items', requireAuth, requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      const items = await db.query.inventoryItems.findMany({
+        where: eq(inventoryItems.organizationId, user.organizationId),
+        orderBy: [desc(inventoryItems.createdAt)],
+      });
+      
+      res.json(items);
+    } catch (error) {
+      console.error('Error fetching inventory items:', error);
+      res.status(500).json({ message: 'Failed to fetch inventory items' });
+    }
+  });
+
+  // Create a new inventory item
+  app.post('/api/admin/inventory-items', requireAuth, requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { name, description, category, sku, initialStock, minStockLevel, imageUrl } = req.body;
+      
+      if (!name || !category) {
+        return res.status(400).json({ message: 'Name and category are required' });
+      }
+      
+      const [item] = await db.insert(inventoryItems).values({
+        organizationId: user.organizationId,
+        name,
+        description: description || null,
+        category,
+        sku: sku || null,
+        initialStock: initialStock || 0,
+        minStockLevel: minStockLevel || 0,
+        imageUrl: imageUrl || null,
+        isActive: true,
+      }).returning();
+      
+      res.status(201).json(item);
+    } catch (error) {
+      console.error('Error creating inventory item:', error);
+      res.status(500).json({ message: 'Failed to create inventory item' });
+    }
+  });
+
+  // Update an inventory item
+  app.put('/api/admin/inventory-items/:id', requireAuth, requireManagerOrAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name, description, category, sku, initialStock, minStockLevel, imageUrl, isActive } = req.body;
+      
+      const [updated] = await db.update(inventoryItems)
+        .set({
+          name,
+          description,
+          category,
+          sku,
+          initialStock,
+          minStockLevel,
+          imageUrl,
+          isActive,
+          updatedAt: new Date(),
+        })
+        .where(eq(inventoryItems.id, id))
+        .returning();
+      
+      res.json(updated);
+    } catch (error) {
+      console.error('Error updating inventory item:', error);
+      res.status(500).json({ message: 'Failed to update inventory item' });
+    }
+  });
+
+  // Delete an inventory item
+  app.delete('/api/admin/inventory-items/:id', requireAuth, requireManagerOrAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      await db.delete(inventoryItems)
+        .where(eq(inventoryItems.id, id));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting inventory item:', error);
+      res.status(500).json({ message: 'Failed to delete inventory item' });
+    }
+  });
+
   // ========== TECHNICIAN INVENTORY ROUTES ==========
   
   // Get technician's own inventory
