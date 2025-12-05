@@ -5,6 +5,7 @@ import {
   technicianInventory, 
   technicianInventoryTransactions,
   dailyInventoryVerifications,
+  inventoryItems,
   partsSupplies, 
   vehicles, 
   users,
