@@ -780,10 +780,12 @@ export default function TimeClock() {
               Task Triggers
             </TabsTrigger>
           )}
-          <TabsTrigger value="settings">
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="settings">
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="clock" className="space-y-4">
@@ -1812,7 +1814,8 @@ export default function TimeClock() {
           </TabsContent>
         )}
 
-        {/* Settings Tab */}
+        {/* Settings Tab - Admin Only */}
+        {isAdmin && (
         <TabsContent value="settings" className="space-y-4">
           <div className="grid gap-6 md:grid-cols-2">
             {/* General Settings */}
@@ -2143,6 +2146,7 @@ export default function TimeClock() {
             </Button>
           </div>
         </TabsContent>
+        )}
       </Tabs>
 
       {/* Location Map Modal */}

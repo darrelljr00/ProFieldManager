@@ -63,6 +63,10 @@ Preferred communication style: Simple, everyday language.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
 ## Recent Updates (Dec 5, 2025)
+- **Time Clock Settings Admin-Only Restriction**:
+  - Restricted Time Clock Settings tab to organization admins only
+  - Both the tab trigger and tab content are conditionally rendered based on `isAdmin` check
+  - Applies across all organizations as a platform-wide rule
 - **Dashboard Profile Matching Fix**: 
   - Fixed critical bug where `/api/settings/dashboard` was incorrectly marked as a public route
   - Profile-based widget visibility now correctly applies based on user role
