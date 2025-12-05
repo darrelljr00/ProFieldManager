@@ -358,6 +358,30 @@ export default function UsersPage() {
     },
   });
 
+  // Navigation Permission Profiles
+  const { data: navigationProfiles = [], isLoading: isLoadingNavProfiles } = useQuery<any[]>({
+    queryKey: ["/api/navigation-permission-profiles"],
+  });
+
+  const updateNavigationProfileMutation = useMutation({
+    mutationFn: ({ profileId, updates }: { profileId: number; updates: any }) =>
+      apiRequest("PATCH", `/api/navigation-permission-profiles/${profileId}`, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/navigation-permission-profiles"] });
+      toast({
+        title: "Success",
+        description: "Navigation profile updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update navigation profile",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateUser = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -1527,581 +1551,481 @@ export default function UsersPage() {
                 Navigation Tab Access Control
               </CardTitle>
               <CardDescription>
-                Control which navigation tabs users can access based on their web/mobile profiles
+                Control which navigation tabs each role can access. Changes apply to all users with that role.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* Tab Access Table */}
-                <div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Dashboard</TableHead>
-                        <TableHead>Calendar</TableHead>
-                        <TableHead>Time Clock</TableHead>
-                        <TableHead>Jobs</TableHead>
-                        <TableHead>My Tasks</TableHead>
-                        <TableHead>Leads</TableHead>
-                        <TableHead>Expenses</TableHead>
-                        <TableHead>Exp. Reports</TableHead>
-                        <TableHead>Exp. Categories</TableHead>
-                        <TableHead>Tech. Expenses</TableHead>
-                        <TableHead>Gas Cards</TableHead>
-                        <TableHead>Gas Providers</TableHead>
-                        <TableHead>Quotes</TableHead>
-                        <TableHead>Invoices</TableHead>
-                        <TableHead>Customers</TableHead>
-                        <TableHead>Payments</TableHead>
-                        <TableHead>File Manager</TableHead>
-                        <TableHead>Form Builder</TableHead>
-                        <TableHead>Team Messages</TableHead>
-                        <TableHead>Gallery</TableHead>
-                        <TableHead>SMS</TableHead>
-                        <TableHead>GPS Tracking</TableHead>
-                        <TableHead>Weather</TableHead>
-                        <TableHead>Inspections</TableHead>
-                        <TableHead>Mobile Test</TableHead>
-                        <TableHead>Reviews</TableHead>
-                        <TableHead>Market Research</TableHead>
-                        <TableHead>Parts & Supplies</TableHead>
-                        <TableHead>My Schedule</TableHead>
-                        <TableHead>Tutorials</TableHead>
-                        <TableHead>Front End</TableHead>
-                        <TableHead>Live Stream</TableHead>
-                        <TableHead>Call Manager</TableHead>
-                        <TableHead>HR</TableHead>
-                        <TableHead>User Mgmt</TableHead>
-                        <TableHead>SaaS Admin</TableHead>
-                        <TableHead>Admin Settings</TableHead>
-                        <TableHead>Reports</TableHead>
-                        <TableHead>Settings</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers?.map((user: any) => (
-                        <TableRow key={user.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{user.username}</div>
-                              <div className="text-sm text-muted-foreground">{user.email}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={
-                              user.userType === 'web' ? 'default' : 
-                              user.userType === 'mobile' ? 'secondary' : 
-                              'outline'
-                            }>
-                              {user.userType === 'web' ? 'Web' : 
-                               user.userType === 'mobile' ? 'Mobile' : 
-                               'Both'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={getUserPermissionValue(user, 'canAccessDashboard') === true}
-                              onCheckedChange={(checked) => 
-                                updatePendingPermission(user.id, 'canAccessDashboard', checked)
-                              }
-                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={getUserPermissionValue(user, 'canAccessCustomers') === true}
-                              onCheckedChange={(checked) => 
-                                updatePendingPermission(user.id, 'canAccessCustomers', checked)
-                              }
-                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={getUserPermissionValue(user, 'canAccessProjects') === true}
-                              onCheckedChange={(checked) => 
-                                updatePendingPermission(user.id, 'canAccessProjects', checked)
-                              }
-                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={getUserPermissionValue(user, 'canAccessInvoices') === true}
-                              onCheckedChange={(checked) => 
-                                updatePendingPermission(user.id, 'canAccessInvoices', checked)
-                              }
-                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={getUserPermissionValue(user, 'canAccessQuotes') === true}
-                              onCheckedChange={(checked) => 
-                                updatePendingPermission(user.id, 'canAccessQuotes', checked)
-                              }
-                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={getUserPermissionValue(user, 'canAccessExpenses') === true}
-                              onCheckedChange={(checked) => 
-                                updatePendingPermission(user.id, 'canAccessExpenses', checked)
-                              }
-                              disabled={user.role === 'admin' || batchSavePermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessExpenseReports === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessExpenseReports: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessExpenseCategories === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessExpenseCategories: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessTechnicianExpenses === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessTechnicianExpenses: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessGasCards === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessGasCards: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessGasCardProviders === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessGasCardProviders: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessPayments === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessPayments: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessFileManager === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessFileManager: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessFormBuilder === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessFormBuilder: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessInternalMessages === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessInternalMessages: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessImageGallery === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessImageGallery: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessSMS === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessSMS: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessGpsTracking === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessGpsTracking: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessWeather === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessWeather: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessMyTasks === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessMyTasks: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessInspections === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessInspections: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessMobileTest === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessMobileTest: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessReviews === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessReviews: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={(user as any).canAccessMarketResearch === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessMarketResearch: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* Parts & Supplies */}
-                          <TableCell>
-                            <Switch
-                              checked={(user as any).canAccessPartsSupplies === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessPartsSupplies: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* My Schedule */}
-                          <TableCell>
-                            <Switch
-                              checked={(user as any).canAccessMySchedule === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessMySchedule: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* Tutorials */}
-                          <TableCell>
-                            <Switch
-                              checked={(user as any).canAccessTutorials === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessTutorials: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* Front End */}
-                          <TableCell>
-                            <Switch
-                              checked={(user as any).canAccessFrontEnd === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessFrontEnd: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* Live Stream */}
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessLiveStream === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessLiveStream: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* Call Manager */}
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessCallManager === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessCallManager: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* HR */}
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessHR === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessHR: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* User Management */}
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessUsers === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessUsers: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* SaaS Admin */}
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessSaasAdmin === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessSaasAdmin: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* Admin Settings */}
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessAdminSettings === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessAdminSettings: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* Reports */}
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessReports === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessReports: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                          {/* Settings */}
-                          <TableCell>
-                            <Switch
-                              checked={user.canAccessSettings === true}
-                              onCheckedChange={(checked) => 
-                                updateUserPermissionsMutation.mutate({
-                                  userId: user.id,
-                                  permissions: { canAccessSettings: checked }
-                                })
-                              }
-                              disabled={user.role === 'admin' || updateUserPermissionsMutation.isPending}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                {/* Role Description Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                  <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">Admin</h4>
+                    <p className="text-xs text-purple-700 dark:text-purple-300">Full access to all tabs</p>
+                  </div>
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Manager</h4>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">Manage teams and operations</p>
+                  </div>
+                  <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                    <h4 className="font-semibold text-green-900 dark:text-green-100 mb-1">Technician</h4>
+                    <p className="text-xs text-green-700 dark:text-green-300">Field work access</p>
+                  </div>
+                  <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-1">User</h4>
+                    <p className="text-xs text-orange-700 dark:text-orange-300">Basic access</p>
+                  </div>
+                  <div className="p-4 bg-pink-50 dark:bg-pink-950 rounded-lg border border-pink-200 dark:border-pink-800">
+                    <h4 className="font-semibold text-pink-900 dark:text-pink-100 mb-1">HR</h4>
+                    <p className="text-xs text-pink-700 dark:text-pink-300">HR-related access</p>
+                  </div>
+                </div>
 
-                  {/* Save Changes Section */}
-                  {hasUnsavedChanges && (
-                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-blue-900 dark:text-blue-100">Unsaved Changes</h4>
-                          <p className="text-sm text-blue-700 dark:text-blue-300">
-                            You have {Object.keys(pendingPermissions).length} user(s) with pending permission changes
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleDiscardChanges}
-                            disabled={batchSavePermissionsMutation.isPending}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Discard
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={handleSaveAllChanges}
-                            disabled={batchSavePermissionsMutation.isPending}
-                          >
-                            <Save className="h-4 w-4 mr-2" />
-                            {batchSavePermissionsMutation.isPending ? "Saving..." : "Save All Changes"}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="mt-6 p-4 bg-muted rounded-lg">
-                    <h4 className="font-medium mb-2">Tab Access Control:</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                      <div><strong>Web Users:</strong> Access web-based navigation tabs and features</div>
-                      <div><strong>Mobile Users:</strong> Access mobile-optimized tabs and functionality</div>
-                      <div><strong>Both:</strong> Full access to all web and mobile navigation options</div>
-                      <div><strong>Admin Override:</strong> Admin users always have full access regardless of settings</div>
-                    </div>
-                    <div className="mt-4 p-3 bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800">
-                      <div className="flex justify-between items-start mb-2">
-                        <h5 className="font-medium text-green-800 dark:text-green-200">Complete Navigation Control</h5>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => pushNavigationUpdatesMutation.mutate()}
-                          disabled={pushNavigationUpdatesMutation.isPending}
-                          className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300 dark:bg-green-900 dark:hover:bg-green-800 dark:text-green-200 dark:border-green-700"
-                        >
-                          {pushNavigationUpdatesMutation.isPending ? "Pushing..." : "Push Updates"}
-                        </Button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-green-700 dark:text-green-300">
-                        <div>✓ Dashboard, Calendar, Time Clock</div>
-                        <div>✓ Jobs, Tasks, Leads, Expenses</div>
-                        <div>✓ Quotes, Invoices, Customers, Payments</div>
-                        <div>✓ File Manager, Form Builder, Team Messages</div>
-                        <div>✓ Image Gallery, SMS, GPS Tracking</div>
-                        <div>✓ Mobile Test, Reviews, Human Resources</div>
-                        <div>✓ User Management, SaaS Admin, Admin Settings</div>
-                        <div>✓ Reports, Settings</div>
-                      </div>
-                    </div>
-                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        <strong>Note:</strong> Tab access controls determine which navigation sections users can see and access. 
-                        Users without access to specific tabs will not see those menu items in their navigation.
-                      </p>
-                    </div>
+                {/* Profile-Based Tab Access Table */}
+                {isLoadingNavProfiles ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="sticky left-0 bg-background z-10 min-w-[120px]">Role Profile</TableHead>
+                          <TableHead>Dashboard</TableHead>
+                          <TableHead>Calendar</TableHead>
+                          <TableHead>Time Clock</TableHead>
+                          <TableHead>Jobs</TableHead>
+                          <TableHead>My Tasks</TableHead>
+                          <TableHead>Leads</TableHead>
+                          <TableHead>Expenses</TableHead>
+                          <TableHead>Quotes</TableHead>
+                          <TableHead>Invoices</TableHead>
+                          <TableHead>Customers</TableHead>
+                          <TableHead>Payments</TableHead>
+                          <TableHead>File Manager</TableHead>
+                          <TableHead>Parts/Supplies</TableHead>
+                          <TableHead>My Schedule</TableHead>
+                          <TableHead>Form Builder</TableHead>
+                          <TableHead>Inspections</TableHead>
+                          <TableHead>Team Messages</TableHead>
+                          <TableHead>Gallery</TableHead>
+                          <TableHead>SMS</TableHead>
+                          <TableHead>GPS Tracking</TableHead>
+                          <TableHead>Weather</TableHead>
+                          <TableHead>Reviews</TableHead>
+                          <TableHead>Market Research</TableHead>
+                          <TableHead>HR</TableHead>
+                          <TableHead>Users</TableHead>
+                          <TableHead>SaaS Admin</TableHead>
+                          <TableHead>Admin Settings</TableHead>
+                          <TableHead>Reports</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {navigationProfiles.map((profile: any) => (
+                          <TableRow key={profile.id}>
+                            <TableCell className="sticky left-0 bg-background z-10">
+                              <div className="flex items-center gap-2">
+                                <Badge variant={
+                                  profile.name.includes('Admin') ? 'default' :
+                                  profile.name.includes('Manager') ? 'secondary' :
+                                  profile.name.includes('Technician') ? 'outline' :
+                                  profile.name.includes('HR') ? 'destructive' :
+                                  'outline'
+                                }>
+                                  {profile.name.replace(' Navigation', '')}
+                                </Badge>
+                                {profile.isSystem && (
+                                  <span className="text-xs text-muted-foreground">(System)</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessDashboard === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessDashboard: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-dashboard-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessCalendar === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessCalendar: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-calendar-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessTimeClock === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessTimeClock: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-timeclock-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessJobs === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessJobs: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-jobs-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessMyTasks === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessMyTasks: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-mytasks-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessLeads === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessLeads: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-leads-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessExpenses === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessExpenses: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-expenses-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessQuotes === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessQuotes: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-quotes-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessInvoices === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessInvoices: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-invoices-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessCustomers === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessCustomers: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-customers-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessPayments === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessPayments: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-payments-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessFileManager === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessFileManager: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-filemanager-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessPartsSupplies === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessPartsSupplies: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-parts-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessMySchedule === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessMySchedule: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-schedule-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessFormBuilder === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessFormBuilder: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-formbuilder-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessInspections === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessInspections: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-inspections-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessTeamMessages === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessTeamMessages: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-messages-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessImageGallery === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessImageGallery: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-gallery-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessSMS === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessSMS: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-sms-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessGpsTracking === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessGpsTracking: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-gps-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessWeather === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessWeather: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-weather-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessReviews === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessReviews: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-reviews-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessMarketResearch === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessMarketResearch: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-market-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessHR === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessHR: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-hr-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessUsers === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessUsers: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-users-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessSaasAdmin === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessSaasAdmin: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-saas-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessAdminSettings === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessAdminSettings: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-adminsettings-${profile.id}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Switch
+                                checked={profile.canAccessReports === true}
+                                onCheckedChange={(checked) => 
+                                  updateNavigationProfileMutation.mutate({
+                                    profileId: profile.id,
+                                    updates: { canAccessReports: checked }
+                                  })
+                                }
+                                disabled={updateNavigationProfileMutation.isPending}
+                                data-testid={`switch-reports-${profile.id}`}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Info Section */}
+                <div className="mt-6 p-4 bg-muted rounded-lg">
+                  <h4 className="font-medium mb-2">Role-Based Tab Access:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                    <div><strong>Admin:</strong> Full access to all navigation tabs and admin functions</div>
+                    <div><strong>Manager:</strong> Team management and operations access</div>
+                    <div><strong>Technician:</strong> Field work focused - jobs, schedule, time clock</div>
+                    <div><strong>User:</strong> Basic access for regular team members</div>
+                    <div><strong>HR:</strong> Human resources focused access</div>
+                  </div>
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      <strong>Note:</strong> Changes to role profiles apply to all users with that role. 
+                      Users will see the navigation tabs enabled for their assigned role.
+                    </p>
                   </div>
                 </div>
               </div>
