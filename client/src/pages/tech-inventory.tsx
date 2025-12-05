@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -35,6 +36,8 @@ import {
   Truck,
   MapPin,
   RefreshCw,
+  CheckCircle,
+  ClipboardCheck,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -82,6 +85,22 @@ interface Transaction {
   createdAt: string;
 }
 
+interface VerificationDetail {
+  partId: number;
+  partName: string;
+  expectedQty: number;
+  actualQty: number;
+  confirmed: boolean;
+  notes?: string;
+}
+
+interface DailyVerificationStatus {
+  verification: any;
+  inventory: TechnicianInventoryItem[];
+  totalItems: number;
+  isComplete: boolean;
+}
+
 export default function TechInventory() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -90,13 +109,23 @@ export default function TechInventory() {
   const [useItemDialogOpen, setUseItemDialogOpen] = useState(false);
   const [restockDialogOpen, setRestockDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<TechnicianInventoryItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState("");
+  const [verificationDetails, setVerificationDetails] = useState<VerificationDetail[]>([]);
+  const [verificationNotes, setVerificationNotes] = useState("");
 
   const { data: inventory = [], isLoading } = useQuery<TechnicianInventoryItem[]>({
     queryKey: ["/api/technician-inventory"],
   });
+
+  const { data: verificationStatus, isLoading: isVerificationLoading } = useQuery<DailyVerificationStatus>({
+    queryKey: ["/api/daily-inventory-verification"],
+    staleTime: 5000,
+  });
+
+  const isVerifiedToday = verificationStatus?.isComplete === true;
 
   const { data: transactions = [] } = useQuery<Transaction[]>({
     queryKey: ["/api/technician-inventory", selectedItem?.id, "transactions"],
@@ -122,6 +151,31 @@ export default function TechInventory() {
       toast({
         title: "Error",
         description: error.message || "Failed to update inventory",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: async (data: { verificationDetails: VerificationDetail[]; notes: string }) => {
+      return apiRequest("/api/daily-inventory-verification", "POST", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/daily-inventory-verification"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/technician-inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/technician-daily-flow"] });
+      setConfirmDialogOpen(false);
+      setVerificationDetails([]);
+      setVerificationNotes("");
+      toast({
+        title: "Inventory Confirmed",
+        description: "Your daily inventory verification has been submitted.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit verification",
         variant: "destructive",
       });
     },
@@ -156,6 +210,68 @@ export default function TechInventory() {
   const handleViewHistory = (item: TechnicianInventoryItem) => {
     setSelectedItem(item);
     setHistoryDialogOpen(true);
+  };
+
+  const handleOpenConfirmDialog = () => {
+    if (isLoading || inventory.length === 0) {
+      toast({
+        title: "Not Ready",
+        description: "Please wait for inventory to load.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const details = inventory.map((item) => ({
+      partId: item.partId,
+      partName: item.part?.name || "Unknown Item",
+      expectedQty: item.currentQuantity,
+      actualQty: item.currentQuantity,
+      confirmed: true,
+      notes: "",
+    }));
+    setVerificationDetails(details);
+    setVerificationNotes("");
+    setConfirmDialogOpen(true);
+  };
+
+  const handleQuantityChange = (partId: number, newQty: number) => {
+    setVerificationDetails((prev) =>
+      prev.map((d) =>
+        d.partId === partId ? { ...d, actualQty: Math.max(0, newQty) } : d
+      )
+    );
+  };
+
+  const handleConfirmToggle = (partId: number, confirmed: boolean) => {
+    setVerificationDetails((prev) =>
+      prev.map((d) =>
+        d.partId === partId ? { ...d, confirmed } : d
+      )
+    );
+  };
+
+  const handleItemNoteChange = (partId: number, notes: string) => {
+    setVerificationDetails((prev) =>
+      prev.map((d) =>
+        d.partId === partId ? { ...d, notes } : d
+      )
+    );
+  };
+
+  const submitVerification = () => {
+    const allConfirmed = verificationDetails.every((d) => d.confirmed);
+    if (!allConfirmed) {
+      toast({
+        title: "Incomplete Verification",
+        description: "Please confirm all items before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+    verifyMutation.mutate({
+      verificationDetails,
+      notes: verificationNotes,
+    });
   };
 
   const confirmUseItem = () => {
@@ -209,10 +325,49 @@ export default function TechInventory() {
         <div>
           <h1 className="text-2xl font-bold" data-testid="text-page-title">Tech Inventory</h1>
           <p className="text-muted-foreground">
-            Manage your assigned parts and supplies
+            View and confirm your assigned parts and supplies
           </p>
         </div>
+        {inventory.length > 0 && (
+          <Button
+            onClick={handleOpenConfirmDialog}
+            disabled={isVerifiedToday || isVerificationLoading}
+            className="gap-2"
+            data-testid="button-confirm-inventory"
+          >
+            {isVerificationLoading ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : isVerifiedToday ? (
+              <>
+                <CheckCircle className="h-4 w-4" />
+                Confirmed Today
+              </>
+            ) : (
+              <>
+                <ClipboardCheck className="h-4 w-4" />
+                Confirm Inventory
+              </>
+            )}
+          </Button>
+        )}
       </div>
+
+      {isVerifiedToday && (
+        <Card className="border-green-500 bg-green-50 dark:bg-green-950/20">
+          <CardContent className="p-4 flex items-center gap-3">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <div>
+              <p className="font-medium text-green-800 dark:text-green-400">Daily Inventory Confirmed</p>
+              <p className="text-sm text-green-700 dark:text-green-500">
+                You have verified your inventory for today
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -585,6 +740,163 @@ export default function TechInventory() {
               </Table>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5" />
+              Daily Inventory Verification
+            </DialogTitle>
+            <DialogDescription>
+              Confirm your inventory counts. Check each item and adjust quantities if needed.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto py-4">
+            {verificationDetails.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No inventory items to verify.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {verificationDetails.map((detail) => (
+                  <div
+                    key={detail.partId}
+                    className={`p-4 border rounded-lg ${
+                      detail.confirmed
+                        ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20"
+                        : "border-border"
+                    }`}
+                    data-testid={`verification-item-${detail.partId}`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={detail.confirmed}
+                          onCheckedChange={(checked) =>
+                            handleConfirmToggle(detail.partId, checked as boolean)
+                          }
+                          data-testid={`checkbox-confirm-${detail.partId}`}
+                        />
+                        <div>
+                          <p className="font-medium">{detail.partName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Expected: {detail.expectedQty}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm text-muted-foreground">Actual:</Label>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() =>
+                              handleQuantityChange(detail.partId, detail.actualQty - 1)
+                            }
+                            data-testid={`button-decrease-${detail.partId}`}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={detail.actualQty}
+                            onChange={(e) =>
+                              handleQuantityChange(
+                                detail.partId,
+                                parseInt(e.target.value) || 0
+                              )
+                            }
+                            className="w-16 h-8 text-center"
+                            data-testid={`input-quantity-${detail.partId}`}
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() =>
+                              handleQuantityChange(detail.partId, detail.actualQty + 1)
+                            }
+                            data-testid={`button-increase-${detail.partId}`}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    {detail.expectedQty !== detail.actualQty && (
+                      <div className="mt-3 pl-7">
+                        <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 mb-2">
+                          <AlertTriangle className="h-4 w-4" />
+                          Quantity mismatch detected
+                        </div>
+                        <Input
+                          placeholder="Add note for this discrepancy..."
+                          value={detail.notes || ""}
+                          onChange={(e) =>
+                            handleItemNoteChange(detail.partId, e.target.value)
+                          }
+                          className="text-sm"
+                          data-testid={`input-note-${detail.partId}`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-4 space-y-2">
+              <Label>Additional Notes (optional)</Label>
+              <Textarea
+                placeholder="Add any additional notes about today's inventory check..."
+                value={verificationNotes}
+                onChange={(e) => setVerificationNotes(e.target.value)}
+                data-testid="input-verification-notes"
+              />
+            </div>
+          </div>
+          <DialogFooter className="border-t pt-4">
+            <div className="flex items-center justify-between w-full">
+              <div className="text-sm text-muted-foreground">
+                {verificationDetails.filter((d) => d.confirmed).length} of{" "}
+                {verificationDetails.length} items confirmed
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmDialogOpen(false)}
+                  data-testid="button-cancel-verification"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={submitVerification}
+                  disabled={
+                    verifyMutation.isPending ||
+                    !verificationDetails.every((d) => d.confirmed)
+                  }
+                  className="gap-2"
+                  data-testid="button-submit-verification"
+                >
+                  {verifyMutation.isPending ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4" />
+                      Submit Verification
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
