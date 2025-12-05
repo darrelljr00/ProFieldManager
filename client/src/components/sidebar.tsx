@@ -531,6 +531,12 @@ export function Sidebar() {
       requiresAuth: true,
       permission: "canAccessDashboard",
     },
+    ...(systemSettings?.enableDailyFlow !== "false" ? [{
+      name: "Daily Flow",
+      href: "/daily-flow",
+      icon: ClipboardCheck,
+      requiresAuth: true,
+    }] : []),
     ...(user?.role === "admin" || user?.role === "manager"
       ? [
           {
@@ -546,12 +552,6 @@ export function Sidebar() {
           },
         ]
       : [
-          ...(systemSettings?.enableDailyFlow !== "false" ? [{
-            name: "Daily Flow",
-            href: "/daily-flow",
-            icon: ClipboardCheck,
-            requiresAuth: true,
-          }] : []),
           {
             name: "Training",
             href: "/technician-training",
