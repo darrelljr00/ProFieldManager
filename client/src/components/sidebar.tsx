@@ -616,7 +616,9 @@ export function Sidebar() {
       subItems: [
         { name: "All Jobs", href: "/jobs", icon: Briefcase },
         { name: "Task Groups", href: "/task-groups", icon: Folder },
-        { name: "Services", href: "/services", icon: Wrench },
+        ...(user?.role !== "technician"
+          ? [{ name: "Services", href: "/services", icon: Wrench }]
+          : []),
       ],
     },
     {
