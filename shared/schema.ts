@@ -855,11 +855,15 @@ export const userDashboardSettings = pgTable("user_dashboard_settings", {
 // Dashboard Profile Templates
 export const dashboardProfiles = pgTable("dashboard_profiles", {
   id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").references(() => organizations.id), // null for system profiles
   name: text("name").notNull(), // "User Dashboard", "Manager Dashboard", etc.
-  profileType: text("profile_type").notNull(), // user, manager, admin, hr
+  profileType: text("profile_type").notNull(), // user, technician, manager, admin, hr, custom
   description: text("description"),
   isDefault: boolean("is_default").default(false),
-  isSystem: boolean("is_system").default(true), // System-defined profiles
+  isSystem: boolean("is_system").default(true), // System-defined profiles (no organizationId)
+  
+  // Target roles for this profile - which roles should use this profile by default
+  targetRoles: text("target_roles").array().default([]), // ["technician", "manager", etc.]
   
   // Default widget visibility for this profile
   showStatsCards: boolean("show_stats_cards").default(true),
@@ -874,6 +878,8 @@ export const dashboardProfiles = pgTable("dashboard_profiles", {
   showCalendarWidget: boolean("show_calendar_widget").default(false),
   showMessagesWidget: boolean("show_messages_widget").default(false),
   showTeamOverview: boolean("show_team_overview").default(false),
+  showDailyFlowWidget: boolean("show_daily_flow_widget").default(false),
+  showTrainingWidget: boolean("show_training_widget").default(false),
   
   // Default layout settings
   layoutType: text("layout_type").default("grid"),
@@ -884,6 +890,15 @@ export const dashboardProfiles = pgTable("dashboard_profiles", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Insert schema for dashboard profiles
+export const insertDashboardProfileSchema = createInsertSchema(dashboardProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDashboardProfile = z.infer<typeof insertDashboardProfileSchema>;
+export type DashboardProfile = typeof dashboardProfiles.$inferSelect;
 
 // Expense tracking tables
 export const expenses = pgTable("expenses", {
