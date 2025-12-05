@@ -6910,12 +6910,52 @@ export const insertTechnicianDailyFlowSessionSchema = createInsertSchema(technic
 export type TechnicianDailyFlowSession = typeof technicianDailyFlowSessions.$inferSelect;
 export type InsertTechnicianDailyFlowSession = z.infer<typeof insertTechnicianDailyFlowSessionSchema>;
 
+// Admin Inventory Items - Organization-scoped inventory items managed by admins
+export const inventoryItems = pgTable("inventory_items", {
+  id: serial("id").primaryKey(),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  
+  // Item details
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull(), // Tool, Part, Supply, Chemical, Equipment, Safety, Other
+  sku: text("sku"),
+  
+  // Stock info
+  initialStock: integer("initial_stock").default(0).notNull(),
+  minStockLevel: integer("min_stock_level").default(0),
+  
+  // Unit and pricing
+  unit: text("unit").default("each").notNull(), // each, box, case, pack, gallon, etc.
+  unitCost: decimal("unit_cost", { precision: 10, scale: 2 }),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
+  
+  // Image
+  imageUrl: text("image_url"),
+  
+  // Status
+  isActive: boolean("is_active").default(true).notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertInventoryItemSchema = createInsertSchema(inventoryItems).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InventoryItem = typeof inventoryItems.$inferSelect;
+export type InsertInventoryItem = z.infer<typeof insertInventoryItemSchema>;
+
 // Technician Inventory - Parts and supplies assigned to technicians
 export const technicianInventory = pgTable("technician_inventory", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   organizationId: integer("organization_id").notNull().references(() => organizations.id),
-  partId: integer("part_id").notNull().references(() => partsSupplies.id),
+  partId: integer("part_id").references(() => partsSupplies.id), // Legacy - nullable for migration
+  inventoryItemId: integer("inventory_item_id").references(() => inventoryItems.id), // New inventory items
   
   // Quantity tracking
   assignedQuantity: integer("assigned_quantity").default(0).notNull(),
@@ -6997,6 +7037,15 @@ export const technicianDailyFlowSessionsRelations = relations(technicianDailyFlo
   }),
 }));
 
+// Relations for Inventory Items
+export const inventoryItemsRelations = relations(inventoryItems, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [inventoryItems.organizationId],
+    references: [organizations.id],
+  }),
+  technicianAssignments: many(technicianInventory),
+}));
+
 // Relations for Technician Inventory
 export const technicianInventoryRelations = relations(technicianInventory, ({ one, many }) => ({
   user: one(users, {
@@ -7010,6 +7059,10 @@ export const technicianInventoryRelations = relations(technicianInventory, ({ on
   part: one(partsSupplies, {
     fields: [technicianInventory.partId],
     references: [partsSupplies.id],
+  }),
+  inventoryItem: one(inventoryItems, {
+    fields: [technicianInventory.inventoryItemId],
+    references: [inventoryItems.id],
   }),
   vehicle: one(vehicles, {
     fields: [technicianInventory.vehicleId],
