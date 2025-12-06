@@ -50,6 +50,7 @@ import {
   Upload,
   X,
   Image as ImageIcon,
+  Loader2,
 } from "lucide-react";
 import type { Expense } from "@shared/schema";
 
@@ -67,6 +68,7 @@ export default function TechnicianExpenses() {
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -229,7 +231,12 @@ export default function TechnicianExpenses() {
 
       // if user selected a new file, upload it and use returned Cloudinary url
       if (receiptImage) {
-        finalReceiptUrl = await uploadFileAndGetUrl(receiptImage);
+        setIsUploading(true);
+        try {
+          finalReceiptUrl = await uploadFileAndGetUrl(receiptImage);
+        } finally {
+          setIsUploading(false);
+        }
       }
 
       const formData = new FormData(form);
@@ -834,7 +841,7 @@ export default function TechnicianExpenses() {
                 placeholder="Additional notes"
                 rows={2}
                 data-testid="input-expense-notes"
-              />fix 
+              />
             </div>
 
             <div className="flex gap-2 pt-4">
@@ -842,6 +849,11 @@ export default function TechnicianExpenses() {
                 type="button"
                 variant="outline"
                 className="flex-1"
+                disabled={
+                  isUploading ||
+                  createExpenseMutation.isPending ||
+                  updateExpenseMutation.isPending
+                }
                 onClick={() => {
                   setIsDialogOpen(false);
                   resetForm();
@@ -854,17 +866,28 @@ export default function TechnicianExpenses() {
                 type="submit"
                 className="flex-1"
                 disabled={
+                  isUploading ||
                   createExpenseMutation.isPending ||
                   updateExpenseMutation.isPending
                 }
                 data-testid="button-submit-expense"
               >
-                {createExpenseMutation.isPending ||
-                updateExpenseMutation.isPending
-                  ? "Saving..."
-                  : editingExpense
-                    ? "Update Expense"
-                    : "Create Expense"}
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading Receipt...
+                  </>
+                ) : createExpenseMutation.isPending ||
+                  updateExpenseMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : editingExpense ? (
+                  "Update Expense"
+                ) : (
+                  "Create Expense"
+                )}
               </Button>
             </div>
           </form>
