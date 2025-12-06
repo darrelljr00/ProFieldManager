@@ -524,9 +524,9 @@ export default function TechnicianEndOfDay() {
               </div>
             </CardHeader>
             
-            {isClockedIn && (
-              <CardFooter className="pt-0 pb-4">
-                <div className="flex flex-col gap-3 w-full">
+            <CardFooter className="pt-0 pb-4">
+              <div className="flex flex-col gap-3 w-full">
+                {isClockedIn && (
                   <div className="space-y-2">
                     <Label htmlFor="clockOutNotes">Clock Out Notes (Optional)</Label>
                     <Textarea
@@ -539,33 +539,38 @@ export default function TechnicianEndOfDay() {
                       data-testid="input-clock-out-notes"
                     />
                   </div>
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={() => clockOutMutation.mutate()}
-                    disabled={clockOutMutation.isPending || percentComplete < 100 || currentClockEntry?.status === 'on_break'}
-                    data-testid="button-clock-out"
-                  >
-                    {clockOutMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Clocking Out...
-                      </>
-                    ) : (
-                      <>
-                        <LogOut className="h-5 w-5 mr-2" />
-                        Clock Out
-                      </>
-                    )}
-                  </Button>
-                  {percentComplete < 100 && (
-                    <p className="text-sm text-center text-muted-foreground">
-                      Complete all end-of-day tasks before clocking out
-                    </p>
+                )}
+                <Button
+                  className={`w-full ${!isClockedIn ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                  size="lg"
+                  onClick={() => isClockedIn ? clockOutMutation.mutate() : null}
+                  disabled={!isClockedIn || clockOutMutation.isPending || percentComplete < 100 || currentClockEntry?.status === 'on_break'}
+                  data-testid="button-clock-out"
+                >
+                  {clockOutMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      Clocking Out...
+                    </>
+                  ) : !isClockedIn ? (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 mr-2" />
+                      Clocked Out
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="h-5 w-5 mr-2" />
+                      Clock Out
+                    </>
                   )}
-                </div>
-              </CardFooter>
-            )}
+                </Button>
+                {isClockedIn && percentComplete < 100 && (
+                  <p className="text-sm text-center text-muted-foreground">
+                    Complete all end-of-day tasks before clocking out
+                  </p>
+                )}
+              </div>
+            </CardFooter>
           </Card>
 
           {percentComplete === 100 && !isComplete && !isClockedIn && (
