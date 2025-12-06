@@ -1,4 +1,6 @@
 import express, { type Express, Request } from "express";
+import { registerCaptchaRoutes } from './captchaRoutes';
+import * as crypto from "crypto";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import Stripe from "stripe";
@@ -56,7 +58,7 @@ import {
   type InsertSmartCaptureList,
   type InsertSmartCaptureItem
 } from "@shared/schema";
-import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission } from "./auth";
+import { AuthService, requireAuth, requireAdmin, requireManagerOrAdmin, requireTaskDelegationPermission, blockDemoAccountWrites, isSuperAdmin } from "./auth";
 import { ZodError } from "zod";
 import { seedDatabase } from "./seed-data";
 import { nanoid } from "nanoid";
@@ -66,7 +68,7 @@ import {
   expenses, expenseCategories, expenseReports, gasCards, 
   gasCardAssignments, gasCardUsage, leads, leadSettings, messages, internalMessages,
   recurringJobSeries, recurringJobOccurrences,
-  images, settings, organizations, userSessions, vendors, vehicles,
+  images, projectFiles, settings, organizations, userSessions, vendors, vehicles,
   vehicleMaintenanceRecords, vehicleMaintenanceIntervals,
   soundSettings, userDashboardSettings, dashboardProfiles,
   schedules, scheduleAssignments, scheduleComments, timeClock,
@@ -74,10 +76,17 @@ import {
   partsSupplies, inventoryTransactions, stockAlerts,
   partsCategories, meetings, meetingParticipants, meetingMessages, meetingRecordings,
   jobSiteGeofences, jobSiteEvents, gpsTrackingData,
-  obdLocationData, obdDiagnosticData, obdTrips, savedRouteReplays, services,
-  inspectionRecords, jobTravelSegments, projectUsers, employees
+  obdLocationData, obdDiagnosticData, obdTrips, savedRouteReplays, services, jobsServices,
+  inspectionRecords, jobTravelSegments, projectUsers, employees,
+  syncConfigurations, syncHistory, syncConflicts,
+  insertSyncConfigurationSchema,
+  plannedRoutes, routeWaypoints, routeDeviations, routeStops,
+  insertPlannedRouteSchema, insertRouteWaypointSchema, insertRouteDeviationSchema, insertRouteStopSchema,
+  InsertRouteWaypoint,
+  cacheSettings, insertCacheSettingsSchema, customerEtaSettings, customerEtaNotifications,
+  vehicleInspectionAlertSettings, vehicleInspectionAlerts, blurSettings, promotions, couponCodes, promotionRedemptions, insertPromotionSchema, insertCouponCodeSchema, promotionWheelConfigs, promotionWheelSegments, promotionWheelSpins
 } from "@shared/schema";
-import { eq, and, desc, asc, like, or, sql, gt, gte, lte, inArray, isNotNull, isNull } from "drizzle-orm";
+import { eq, and, desc, asc, like, or, sql, gt, gte, lt, lte, inArray, isNotNull, isNull } from "drizzle-orm";
 import { DocuSignService, getDocuSignConfig } from "./docusign";
 import { ensureOrganizationFolders, createOrganizationFolders } from "./folderCreation";
 import { Client } from '@googlemaps/google-maps-services-js';
@@ -90,7 +99,11 @@ import archiver from 'archiver';
 // Using global fetch API available in Node.js 18+
 // Removed fileUploadRouter import - using direct route instead
 // Object storage imports already imported at top - removed duplicates
-import { NotificationService, setBroadcastFunction } from "./notificationService";
+import { NotificationService, setBroadcastFunction, notifyUserCreation, notifyPasswordReset } from "./notificationService";
+import { VehicleInspectionAlertService } from "./vehicleInspectionAlertService";
+import { getCachedNotificationUnreadCount, getCachedInternalMessages, invalidateNotificationCache, invalidateMessageCache, clearAllQueryCaches, clearOrganizationCaches } from './cache/queryCache';
+import { routeMonitoringService } from "./routeMonitoring";
+import { cacheConfigService } from "./cache/CacheConfigService";
 import { calculateSpeed } from "./utils/gps";
 
 // Extend Express Request type to include user
@@ -104,6 +117,8 @@ declare global {
         role?: string;
         firstName?: string;
         lastName?: string;
+        isDemoAccount?: boolean;
+        demoExpiresAt?: Date;
         organizationId: number;
       };
     }
@@ -687,6 +702,9 @@ const invoiceUpload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🚀🚀🚀 REGISTER ROUTES CALLED - SERVER STARTING UP 🚀🚀🚀");
+  
+  // Register captcha routes (public)
+  registerCaptchaRoutes(app);
   console.log("🚀 Timestamp:", new Date().toISOString());
   
   // Health check endpoint - no auth required
@@ -698,6 +716,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       version: "1.0.0"
     });
   });
+  // Block write operations for demo accounts - applies globally to all routes
+  app.use(blockDemoAccountWrites);
 
   // Live Streaming API Routes
   // Get active streams for the organization
@@ -1432,7 +1452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = getAuthenticatedUser(req);
       
-      const count = await NotificationService.getUnreadCount(
+      const count = await getCachedNotificationUnreadCount(
         user.id, 
         user.organizationId
       );
@@ -1452,6 +1472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await NotificationService.markAsRead(notificationId, user.id);
       
+      invalidateNotificationCache(user.id, user.organizationId);
       res.json({ message: 'Notification marked as read' });
     } catch (error: any) {
       console.error('Error marking notification as read:', error);
@@ -1467,6 +1488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await NotificationService.markAllAsRead(user.id, user.organizationId);
       
       res.json({ message: 'All notifications marked as read' });
+      invalidateNotificationCache(user.id, user.organizationId);
     } catch (error: any) {
       console.error('Error marking all notifications as read:', error);
       res.status(500).json({ message: 'Failed to mark all notifications as read' });
@@ -1798,9 +1820,1306 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Job settings routes
+  app.get('/api/settings/jobs/timestamp-visibility', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const settingKey = `jobs_org_${user.organizationId}_showTimestampOptions`;
+      
+      const setting = await db.query.settings.findFirst({
+        where: and(
+          eq(settings.category, 'jobs'),
+          eq(settings.key, settingKey)
+        )
+      });
+      
+      const showTimestampOptions = setting?.value === 'false' ? false : true;
+      
+      res.json({ showTimestampOptions });
+    } catch (error: any) {
+      console.error('Error fetching job timestamp visibility settings:', error);
+      res.status(500).json({ message: 'Failed to fetch job settings' });
+    }
+  });
+
+  app.post('/api/settings/jobs/timestamp-visibility', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { showTimestampOptions } = req.body;
+      
+      if (typeof showTimestampOptions !== 'boolean') {
+        return res.status(400).json({ message: 'showTimestampOptions must be a boolean' });
+      }
+      
+      const settingKey = `jobs_org_${user.organizationId}_showTimestampOptions`;
+      await storage.updateSetting('jobs', settingKey, String(showTimestampOptions));
+      
+      res.json({ message: 'Job timestamp visibility setting updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating job timestamp visibility settings:', error);
+      res.status(500).json({ message: 'Failed to update job settings' });
+    }
+  });
+
+  // Customer ETA notification settings
+  app.get('/api/settings/customer-eta', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const [etaSettings] = await db
+        .select()
+        .from(customerEtaSettings)
+        .where(eq(customerEtaSettings.organizationId, user.organizationId))
+        .limit(1);
+      
+      // Return default settings if none exist
+      res.json(etaSettings || {
+        enabled: false,
+        notifyMinutesBeforeArrival: 15,
+        trackingEnabled: true,
+        smsTemplate: "Hi {customerName}, {technicianName} from {companyName} is about {estimatedMinutes} minutes away from your location at {address}. Track their arrival: {trackingLink}"
+      });
+    } catch (error: any) {
+      console.error('Error fetching customer ETA settings:', error);
+      res.status(500).json({ message: 'Failed to fetch customer ETA settings' });
+    }
+  });
+
+  app.put('/api/settings/customer-eta', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { enabled, notifyMinutesBeforeArrival, trackingEnabled, smsTemplate } = req.body;
+
+      // Check if settings exist
+      const [existing] = await db
+        .select()
+        .from(customerEtaSettings)
+        .where(eq(customerEtaSettings.organizationId, user.organizationId))
+        .limit(1);
+
+      if (existing) {
+        // Update existing settings
+        await db
+          .update(customerEtaSettings)
+          .set({
+            enabled,
+            notifyMinutesBeforeArrival,
+            trackingEnabled,
+            smsTemplate,
+            updatedAt: new Date(),
+          })
+          .where(eq(customerEtaSettings.organizationId, user.organizationId));
+      } else {
+        // Create new settings
+        await db.insert(customerEtaSettings).values({
+          organizationId: user.organizationId,
+          enabled,
+          notifyMinutesBeforeArrival,
+          trackingEnabled,
+          smsTemplate,
+        });
+      }
+
+      res.json({ message: 'Customer ETA settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating customer ETA settings:', error);
+      res.status(500).json({ message: 'Failed to update customer ETA settings' });
+    }
+  });
+
+  // Vehicle Inspection Alert Settings endpoints
+  app.get('/api/settings/vehicle-inspection-alerts', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const [alertSettings] = await db
+        .select()
+        .from(vehicleInspectionAlertSettings)
+        .where(eq(vehicleInspectionAlertSettings.organizationId, user.organizationId))
+        .limit(1);
+      
+      res.json(alertSettings || {
+        enabled: true,
+        alertDelayMinutes: 15,
+        alertMessage: "Reminder: Please complete your vehicle inspection. You clocked in {minutes} minutes ago and haven't submitted an inspection yet.",
+        sendReminderNotifications: true,
+        notifyManagers: false
+      });
+    } catch (error: any) {
+      console.error('Error fetching vehicle inspection alert settings:', error);
+      res.status(500).json({ message: 'Failed to fetch vehicle inspection alert settings' });
+    }
+  });
+
+  app.put('/api/settings/vehicle-inspection-alerts', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { enabled, alertDelayMinutes, alertMessage, sendReminderNotifications, notifyManagers } = req.body;
+
+      const [existing] = await db
+        .select()
+        .from(vehicleInspectionAlertSettings)
+        .where(eq(vehicleInspectionAlertSettings.organizationId, user.organizationId))
+        .limit(1);
+
+      if (existing) {
+        await db
+          .update(vehicleInspectionAlertSettings)
+          .set({
+            enabled,
+            alertDelayMinutes,
+            alertMessage,
+            sendReminderNotifications,
+            notifyManagers,
+            updatedAt: new Date(),
+          })
+          .where(eq(vehicleInspectionAlertSettings.organizationId, user.organizationId));
+      } else {
+        await db.insert(vehicleInspectionAlertSettings).values({
+          organizationId: user.organizationId,
+          enabled,
+          alertDelayMinutes,
+          alertMessage,
+          sendReminderNotifications,
+          notifyManagers,
+        });
+      }
+
+      res.json({ message: 'Vehicle inspection alert settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating vehicle inspection alert settings:', error);
+      res.status(500).json({ message: 'Failed to update vehicle inspection alert settings' });
+    }
+  });
+
+  // Get vehicle inspection alerts history
+  app.get('/api/vehicle-inspection-alerts/history', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const alerts = await db
+        .select({
+          id: vehicleInspectionAlerts.id,
+          userId: vehicleInspectionAlerts.userId,
+          userName: users.name,
+          clockInTime: vehicleInspectionAlerts.clockInTime,
+          alertSentAt: vehicleInspectionAlerts.alertSentAt,
+          minutesAfterClockIn: vehicleInspectionAlerts.minutesAfterClockIn,
+          alertMessage: vehicleInspectionAlerts.alertMessage,
+          inspectionCompletedAt: vehicleInspectionAlerts.inspectionCompletedAt,
+        })
+        .from(vehicleInspectionAlerts)
+        .innerJoin(users, eq(vehicleInspectionAlerts.userId, users.id))
+        .where(eq(vehicleInspectionAlerts.organizationId, user.organizationId))
+        .orderBy(desc(vehicleInspectionAlerts.alertSentAt))
+        .limit(100);
+
+      res.json(alerts);
+    } catch (error: any) {
+      console.error('Error fetching vehicle inspection alert history:', error);
+      res.status(500).json({ message: 'Failed to fetch alert history' });
+    }
+  });
   // Authentication routes (public)
+
+  // Blur Settings API routes - Control which settings sections are blurred per organization
+  // Get blur settings for current organization
+  app.get('/api/settings/blur', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const [settings] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, user.organizationId))
+        .limit(1);
+      
+      // Return defaults if no settings exist (all sections blurred by default)
+      res.json(settings || {
+        organizationId: user.organizationId,
+        blurEmailSettings: true,
+        blurTwilioSettings: true,
+        blurOcrSettings: true,
+        blurStripeSettings: true,
+        blurApiSettings: true,
+        blurBackupSettings: true,
+        blurDeploySettings: true,
+        blurAnalyticsSettings: true,
+        blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.'
+      });
+    } catch (error: any) {
+      console.error('Error fetching blur settings:', error);
+      res.status(500).json({ message: 'Failed to fetch blur settings' });
+    }
+  });
+
+  // Update blur settings (SaaS admin only - can update any organization)
+  app.put('/api/settings/blur/:organizationId', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const targetOrgId = parseInt(req.params.organizationId);
+      
+      // Only allow if user is from profieldmanager organization (SaaS admin)
+      const [userOrg] = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, user.organizationId))
+        .limit(1);
+      
+      if (!userOrg || userOrg.slug !== 'profieldmanager') {
+        return res.status(403).json({ message: 'Only SaaS administrators can modify blur settings' });
+      }
+      
+      const {
+        blurEmailSettings,
+        blurTwilioSettings,
+        blurOcrSettings,
+        blurStripeSettings,
+        blurApiSettings,
+        blurBackupSettings,
+        blurDeploySettings,
+        blurAnalyticsSettings,
+        blurMessage
+      } = req.body;
+
+      const [existing] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, targetOrgId))
+        .limit(1);
+
+      if (existing) {
+        await db
+          .update(blurSettings)
+          .set({
+            blurEmailSettings,
+            blurTwilioSettings,
+            blurOcrSettings,
+            blurStripeSettings,
+            blurApiSettings,
+            blurBackupSettings,
+            blurDeploySettings,
+            blurAnalyticsSettings,
+            blurMessage,
+            updatedAt: new Date(),
+          })
+          .where(eq(blurSettings.organizationId, targetOrgId));
+      } else {
+        await db.insert(blurSettings).values({
+          organizationId: targetOrgId,
+          blurEmailSettings,
+          blurTwilioSettings,
+          blurOcrSettings,
+          blurStripeSettings,
+          blurApiSettings,
+          blurBackupSettings,
+          blurDeploySettings,
+          blurAnalyticsSettings,
+          blurMessage,
+        });
+      }
+
+      res.json({ message: 'Blur settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating blur settings:', error);
+      res.status(500).json({ message: 'Failed to update blur settings' });
+    }
+  });
+
+  // Get blur settings for a specific organization (SaaS admin only)
+  app.get('/api/settings/blur/:organizationId', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const targetOrgId = parseInt(req.params.organizationId);
+      
+      // Only allow if user is from profieldmanager organization (SaaS admin)
+      const [userOrg] = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, user.organizationId))
+        .limit(1);
+      
+      if (!userOrg || userOrg.slug !== 'profieldmanager') {
+        return res.status(403).json({ message: 'Only SaaS administrators can view blur settings for other organizations' });
+      }
+      
+      const [settings] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, targetOrgId))
+        .limit(1);
+      
+      // Return defaults if no settings exist
+      res.json(settings || {
+        organizationId: targetOrgId,
+        blurEmailSettings: true,
+        blurTwilioSettings: true,
+        blurOcrSettings: true,
+        blurStripeSettings: true,
+        blurApiSettings: true,
+        blurBackupSettings: true,
+        blurDeploySettings: true,
+        blurAnalyticsSettings: true,
+        blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.'
+      });
+    } catch (error: any) {
+      console.error('Error fetching blur settings for organization:', error);
+      res.status(500).json({ message: 'Failed to fetch blur settings' });
+    }
+  });
+
   
   // COMPLETELY STEALTH AUTH ENDPOINT - Looks like regular data validation
+
+  // ============================================
+  // PROMOTIONS & COUPON CODES API ROUTES
+  // ============================================
+
+  // Get all promotions for an organization (Admin only)
+  app.get('/api/promotions', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      if (!user.organizationId || isNaN(user.organizationId)) {
+        return res.status(400).json({ message: 'Invalid organization' });
+      }
+      
+      const promos = await db
+        .select()
+        .from(promotions)
+        .where(eq(promotions.organizationId, user.organizationId))
+        .orderBy(desc(promotions.createdAt));
+      
+      res.json(promos);
+    } catch (error: any) {
+      console.error('Error fetching promotions:', error);
+      res.status(500).json({ message: 'Failed to fetch promotions' });
+    }
+  });
+
+  // Get single promotion with coupon codes
+  app.get('/api/promotions/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      const codes = await db
+        .select()
+        .from(couponCodes)
+        .where(eq(couponCodes.promotionId, promoId))
+        .orderBy(desc(couponCodes.createdAt));
+      
+      res.json({ ...promo, couponCodes: codes });
+    } catch (error: any) {
+      console.error('Error fetching promotion:', error);
+      res.status(500).json({ message: 'Failed to fetch promotion' });
+    }
+  });
+
+  // Create new promotion
+  app.post('/api/promotions', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const [newPromo] = await db
+        .insert(promotions)
+        .values({
+          ...req.body,
+          organizationId: user.organizationId,
+          currentRedemptions: 0
+        })
+        .returning();
+      
+      res.status(201).json(newPromo);
+    } catch (error: any) {
+      console.error('Error creating promotion:', error);
+      res.status(500).json({ message: 'Failed to create promotion' });
+    }
+  });
+
+  // Update promotion
+  app.put('/api/promotions/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [existing] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!existing) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      const [updated] = await db
+        .update(promotions)
+        .set({
+          ...req.body,
+          updatedAt: new Date()
+        })
+        .where(eq(promotions.id, promoId))
+        .returning();
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error updating promotion:', error);
+      res.status(500).json({ message: 'Failed to update promotion' });
+    }
+  });
+
+  // Delete promotion
+  app.delete('/api/promotions/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [existing] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!existing) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      await db.delete(promotions).where(eq(promotions.id, promoId));
+      
+      res.json({ message: 'Promotion deleted successfully' });
+    } catch (error: any) {
+      console.error('Error deleting promotion:', error);
+      res.status(500).json({ message: 'Failed to delete promotion' });
+    }
+  });
+
+  // Get coupon codes for a promotion
+  app.get('/api/promotions/:id/codes', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      const codes = await db
+        .select()
+        .from(couponCodes)
+        .where(eq(couponCodes.promotionId, promoId))
+        .orderBy(desc(couponCodes.createdAt));
+      
+      res.json(codes);
+    } catch (error: any) {
+      console.error('Error fetching coupon codes:', error);
+      res.status(500).json({ message: 'Failed to fetch coupon codes' });
+    }
+  });
+
+  // Create coupon code
+  app.post('/api/promotions/:id/codes', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      const [newCode] = await db
+        .insert(couponCodes)
+        .values({
+          promotionId: promoId,
+          code: req.body.code.toUpperCase(),
+          maxRedemptions: req.body.maxRedemptions,
+          expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : null,
+          isActive: true,
+          currentRedemptions: 0
+        })
+        .returning();
+      
+      res.status(201).json(newCode);
+    } catch (error: any) {
+      console.error('Error creating coupon code:', error);
+      res.status(500).json({ message: 'Failed to create coupon code' });
+    }
+  });
+
+  // Toggle coupon code active status
+  app.patch('/api/promotions/codes/:id/toggle', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const codeId = parseInt(req.params.id);
+      
+      const [code] = await db
+        .select({
+          id: couponCodes.id,
+          isActive: couponCodes.isActive,
+          promotionId: couponCodes.promotionId
+        })
+        .from(couponCodes)
+        .where(eq(couponCodes.id, codeId))
+        .limit(1);
+      
+      if (!code) {
+        return res.status(404).json({ message: 'Coupon code not found' });
+      }
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, code.promotionId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      const [updated] = await db
+        .update(couponCodes)
+        .set({ isActive: !code.isActive })
+        .where(eq(couponCodes.id, codeId))
+        .returning();
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error toggling coupon code:', error);
+      res.status(500).json({ message: 'Failed to toggle coupon code' });
+    }
+  });
+
+  // Delete coupon code
+  app.delete('/api/promotions/codes/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const codeId = parseInt(req.params.id);
+      
+      const [code] = await db
+        .select({
+          id: couponCodes.id,
+          promotionId: couponCodes.promotionId
+        })
+        .from(couponCodes)
+        .where(eq(couponCodes.id, codeId))
+        .limit(1);
+      
+      if (!code) {
+        return res.status(404).json({ message: 'Coupon code not found' });
+      }
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, code.promotionId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      
+      await db.delete(couponCodes).where(eq(couponCodes.id, codeId));
+      
+      res.json({ message: 'Coupon code deleted successfully' });
+    } catch (error: any) {
+      console.error('Error deleting coupon code:', error);
+      res.status(500).json({ message: 'Failed to delete coupon code' });
+    }
+  });
+
+  // Get promotion redemptions
+  app.get('/api/promotions/:id/redemptions', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const promoId = parseInt(req.params.id);
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, promoId),
+          eq(promotions.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.status(404).json({ message: 'Promotion not found' });
+      }
+      
+      const redemptions = await db
+        .select()
+        .from(promotionRedemptions)
+        .where(eq(promotionRedemptions.promotionId, promoId))
+        .orderBy(desc(promotionRedemptions.redeemedAt));
+      
+      res.json(redemptions);
+    } catch (error: any) {
+      console.error('Error fetching redemptions:', error);
+      res.status(500).json({ message: 'Failed to fetch redemptions' });
+    }
+  });
+
+  // Validate coupon code (public endpoint for checkout)
+  app.post('/api/promotions/validate-code', async (req, res) => {
+    try {
+      const { code, organizationId } = req.body;
+      
+      if (!code || !organizationId) {
+        return res.status(400).json({ valid: false, message: 'Code and organization ID required' });
+      }
+      
+      const [couponCode] = await db
+        .select({
+          id: couponCodes.id,
+          code: couponCodes.code,
+          isActive: couponCodes.isActive,
+          maxRedemptions: couponCodes.maxRedemptions,
+          currentRedemptions: couponCodes.currentRedemptions,
+          expiresAt: couponCodes.expiresAt,
+          promotionId: couponCodes.promotionId
+        })
+        .from(couponCodes)
+        .where(eq(couponCodes.code, code.toUpperCase()))
+        .limit(1);
+      
+      if (!couponCode) {
+        return res.json({ valid: false, message: 'Invalid coupon code' });
+      }
+      
+      if (!couponCode.isActive) {
+        return res.json({ valid: false, message: 'This coupon code is no longer active' });
+      }
+      
+      if (couponCode.expiresAt && new Date(couponCode.expiresAt) < new Date()) {
+        return res.json({ valid: false, message: 'This coupon code has expired' });
+      }
+      
+      if (couponCode.maxRedemptions && couponCode.currentRedemptions >= couponCode.maxRedemptions) {
+        return res.json({ valid: false, message: 'This coupon code has reached its usage limit' });
+      }
+      
+      const [promo] = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.id, couponCode.promotionId),
+          eq(promotions.organizationId, organizationId),
+          eq(promotions.status, 'active')
+        ))
+        .limit(1);
+      
+      if (!promo) {
+        return res.json({ valid: false, message: 'This promotion is not available' });
+      }
+      
+      if (promo.startDate && new Date(promo.startDate) > new Date()) {
+        return res.json({ valid: false, message: 'This promotion has not started yet' });
+      }
+      
+      if (promo.endDate && new Date(promo.endDate) < new Date()) {
+        return res.json({ valid: false, message: 'This promotion has expired' });
+      }
+      
+      if (promo.maxRedemptions && promo.currentRedemptions >= promo.maxRedemptions) {
+        return res.json({ valid: false, message: 'This promotion has reached its usage limit' });
+      }
+      
+      res.json({
+        valid: true,
+        promotion: {
+          id: promo.id,
+          name: promo.name,
+          discountType: promo.discountType,
+          discountValue: promo.discountValue,
+          minimumPurchase: promo.minimumPurchase
+        },
+        couponCodeId: couponCode.id
+      });
+    } catch (error: any) {
+      console.error('Error validating coupon code:', error);
+      res.status(500).json({ valid: false, message: 'Failed to validate coupon code' });
+    }
+  });
+  // Public: Get auto-apply promotions for an organization
+  app.post("/api/promotions/auto-apply", async (req, res) => {
+    try {
+      const { organizationId, customerType } = req.body;
+      
+      if (!organizationId) {
+        return res.status(400).json({ success: false, message: "Organization ID required" });
+      }
+      
+      const now = new Date();
+      
+      const autoApplyPromos = await db
+        .select()
+        .from(promotions)
+        .where(and(
+          eq(promotions.organizationId, organizationId),
+          eq(promotions.status, "active"),
+          eq(promotions.autoApply, true),
+          or(isNull(promotions.startDate), lte(promotions.startDate, now)),
+          or(isNull(promotions.endDate), gte(promotions.endDate, now)),
+          or(
+            isNull(promotions.maxRedemptions),
+            lt(promotions.currentRedemptions, promotions.maxRedemptions)
+          )
+        ));
+      
+      // Filter by customer type if specified
+      const filteredPromos = autoApplyPromos.filter(promo => {
+        if (promo.appliesTo === "all") return true;
+        if (promo.appliesTo === "new_customers" && customerType === "new") return true;
+        if (promo.appliesTo === "existing_customers" && customerType === "existing") return true;
+        return false;
+      });
+      
+      res.json({
+        success: true,
+        promotions: filteredPromos.map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          discountType: p.discountType,
+          discountValue: p.discountValue,
+          minimumPurchase: p.minimumPurchase
+        }))
+      });
+    } catch (error: any) {
+      console.error("Error fetching auto-apply promotions:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch promotions" });
+    }
+  });
+
+  // SaaS Admin: Get all promotions across all organizations
+
+  // ============================================
+  // Promotion Wheel Routes
+  // ============================================
+
+  // Get all wheel configs for organization
+  app.get('/api/promotions/wheels', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      if (!user.organizationId || isNaN(user.organizationId)) {
+        return res.status(400).json({ message: 'Invalid organization' });
+      }
+      
+      const wheels = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(eq(promotionWheelConfigs.organizationId, user.organizationId))
+        .orderBy(desc(promotionWheelConfigs.createdAt));
+      
+      res.json(wheels);
+    } catch (error: any) {
+      console.error('Error fetching wheel configs:', error);
+      res.status(500).json({ message: 'Failed to fetch wheel configs' });
+    }
+  });
+  app.get('/api/promotions/wheels/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const wheelId = parseInt(req.params.id);
+      
+      const [wheel] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!wheel) {
+        return res.status(404).json({ message: 'Wheel not found' });
+      }
+      
+      const segments = await db
+        .select({
+          id: promotionWheelSegments.id,
+          wheelId: promotionWheelSegments.wheelId,
+          couponCodeId: promotionWheelSegments.couponCodeId,
+          label: promotionWheelSegments.label,
+          color: promotionWheelSegments.color,
+          probabilityWeight: promotionWheelSegments.probabilityWeight,
+          isWinner: promotionWheelSegments.isWinner,
+          displayOrder: promotionWheelSegments.displayOrder,
+          couponCode: couponCodes.code
+        })
+        .from(promotionWheelSegments)
+        .leftJoin(couponCodes, eq(promotionWheelSegments.couponCodeId, couponCodes.id))
+        .where(eq(promotionWheelSegments.wheelId, wheelId))
+        .orderBy(asc(promotionWheelSegments.displayOrder));
+      
+      res.json({ ...wheel, segments });
+    } catch (error: any) {
+      console.error('Error fetching wheel:', error);
+      res.status(500).json({ message: 'Failed to fetch wheel' });
+    }
+  });
+
+  // Create wheel config
+  app.post('/api/promotions/wheels', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { name, description, backgroundColor, pointerColor, spinDuration, requireEmail, segments } = req.body;
+      
+      const [wheel] = await db.insert(promotionWheelConfigs).values({
+        organizationId: user.organizationId,
+        name,
+        description,
+        backgroundColor: backgroundColor || '#ffffff',
+        pointerColor: pointerColor || '#ff6b6b',
+        spinDuration: spinDuration || 5000,
+        requireEmail: requireEmail || false,
+        isActive: true
+      }).returning();
+      
+      // Add segments if provided
+      if (segments && segments.length > 0) {
+        for (let i = 0; i < segments.length; i++) {
+          const seg = segments[i];
+          await db.insert(promotionWheelSegments).values({
+            wheelId: wheel.id,
+            couponCodeId: seg.couponCodeId || null,
+            label: seg.label,
+            color: seg.color,
+            probabilityWeight: seg.probabilityWeight || 1,
+            isWinner: seg.isWinner !== false,
+            displayOrder: i
+          });
+        }
+      }
+      
+      res.json(wheel);
+    } catch (error: any) {
+      console.error('Error creating wheel:', error);
+      res.status(500).json({ message: 'Failed to create wheel' });
+    }
+  });
+
+  // Update wheel config
+  app.put('/api/promotions/wheels/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const wheelId = parseInt(req.params.id);
+      const { name, description, backgroundColor, pointerColor, spinDuration, requireEmail, isActive, segments } = req.body;
+      
+      const [existing] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!existing) {
+        return res.status(404).json({ message: 'Wheel not found' });
+      }
+      
+      const [wheel] = await db
+        .update(promotionWheelConfigs)
+        .set({
+          name,
+          description,
+          backgroundColor,
+          pointerColor,
+          spinDuration,
+          requireEmail,
+          isActive,
+          updatedAt: new Date()
+        })
+        .where(eq(promotionWheelConfigs.id, wheelId))
+        .returning();
+      
+      // Update segments if provided
+      if (segments) {
+        // Delete existing segments
+        await db.delete(promotionWheelSegments).where(eq(promotionWheelSegments.wheelId, wheelId));
+        
+        // Add new segments
+        for (let i = 0; i < segments.length; i++) {
+          const seg = segments[i];
+          await db.insert(promotionWheelSegments).values({
+            wheelId: wheel.id,
+            couponCodeId: seg.couponCodeId || null,
+            label: seg.label,
+            color: seg.color,
+            probabilityWeight: seg.probabilityWeight || 1,
+            isWinner: seg.isWinner !== false,
+            displayOrder: i
+          });
+        }
+      }
+      
+      res.json(wheel);
+    } catch (error: any) {
+      console.error('Error updating wheel:', error);
+      res.status(500).json({ message: 'Failed to update wheel' });
+    }
+  });
+
+  // Delete wheel config
+  app.delete('/api/promotions/wheels/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const wheelId = parseInt(req.params.id);
+      
+      const [existing] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!existing) {
+        return res.status(404).json({ message: 'Wheel not found' });
+      }
+      
+      await db.delete(promotionWheelConfigs).where(eq(promotionWheelConfigs.id, wheelId));
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error('Error deleting wheel:', error);
+      res.status(500).json({ message: 'Failed to delete wheel' });
+    }
+  });
+
+  // Public: Get wheel for spinning (no auth required)
+  app.get('/api/promotions/wheel/:id/public', async (req, res) => {
+    try {
+      const wheelId = parseInt(req.params.id);
+      
+      const [wheel] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.isActive, true)
+        ))
+        .limit(1);
+      
+      if (!wheel) {
+        return res.status(404).json({ message: 'Wheel not found or inactive' });
+      }
+      
+      const segments = await db
+        .select({
+          id: promotionWheelSegments.id,
+          label: promotionWheelSegments.label,
+          color: promotionWheelSegments.color,
+          displayOrder: promotionWheelSegments.displayOrder
+        })
+        .from(promotionWheelSegments)
+        .where(eq(promotionWheelSegments.wheelId, wheelId))
+        .orderBy(asc(promotionWheelSegments.displayOrder));
+      
+      res.json({
+        id: wheel.id,
+        name: wheel.name,
+        description: wheel.description,
+        backgroundColor: wheel.backgroundColor,
+        pointerColor: wheel.pointerColor,
+        spinDuration: wheel.spinDuration,
+        requireEmail: wheel.requireEmail,
+        segments: segments
+      });
+    } catch (error: any) {
+      console.error('Error fetching public wheel:', error);
+      res.status(500).json({ message: 'Failed to fetch wheel' });
+    }
+  });
+
+  // Public: Spin the wheel
+
+  app.get('/api/promotions/wheels/active', async (req, res) => {
+    try {
+      const wheels = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(eq(promotionWheelConfigs.isActive, true));
+
+      res.json(wheels);
+    } catch (error) {
+      console.error('Error fetching active wheels:', error);
+      res.status(500).json({ message: 'Failed to fetch wheels' });
+    }
+  });
+  app.post('/api/promotions/wheel/:id/spin', async (req, res) => {
+    try {
+      const wheelId = parseInt(req.params.id);
+      const { userIdentifier, email } = req.body;
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+      
+      if (!userIdentifier) {
+        return res.status(400).json({ success: false, message: 'User identifier required' });
+      }
+      
+      const [wheel] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.isActive, true)
+        ))
+        .limit(1);
+      
+      if (!wheel) {
+        return res.status(404).json({ success: false, message: 'Wheel not found or inactive' });
+      }
+      
+      // Check if user already spun
+      const [existingSpin] = await db
+        .select()
+        .from(promotionWheelSpins)
+        .where(and(
+          eq(promotionWheelSpins.wheelId, wheelId),
+          eq(promotionWheelSpins.userIdentifier, userIdentifier)
+        ))
+        .limit(1);
+      
+      if (existingSpin) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'You have already spun this wheel',
+          alreadySpun: true 
+        });
+      }
+      
+      // Get segments with their weights
+      const segments = await db
+        .select({
+          id: promotionWheelSegments.id,
+          couponCodeId: promotionWheelSegments.couponCodeId,
+          label: promotionWheelSegments.label,
+          color: promotionWheelSegments.color,
+          probabilityWeight: promotionWheelSegments.probabilityWeight,
+          isWinner: promotionWheelSegments.isWinner,
+          displayOrder: promotionWheelSegments.displayOrder,
+          couponCode: couponCodes.code
+        })
+        .from(promotionWheelSegments)
+        .leftJoin(couponCodes, eq(promotionWheelSegments.couponCodeId, couponCodes.id))
+        .where(eq(promotionWheelSegments.wheelId, wheelId))
+        .orderBy(asc(promotionWheelSegments.displayOrder));
+      
+      if (segments.length === 0) {
+        return res.status(400).json({ success: false, message: 'Wheel has no segments' });
+      }
+      
+      // Weighted random selection
+      const totalWeight = segments.reduce((sum, seg) => sum + (seg.probabilityWeight || 1), 0);
+      let random = Math.random() * totalWeight;
+      let selectedSegment = segments[0];
+      
+      for (const segment of segments) {
+        random -= (segment.probabilityWeight || 1);
+        if (random <= 0) {
+          selectedSegment = segment;
+          break;
+        }
+      }
+      
+      // Record the spin
+      await db.insert(promotionWheelSpins).values({
+        wheelId,
+        segmentId: selectedSegment.id,
+        couponCodeId: selectedSegment.couponCodeId,
+        userIdentifier,
+        email: email || null,
+        ipAddress: typeof ipAddress === 'string' ? ipAddress : String(ipAddress),
+        wonPrize: selectedSegment.isWinner
+      });
+      
+      // Calculate landing angle (segment index for frontend animation)
+      const segmentIndex = segments.findIndex(s => s.id === selectedSegment.id);
+      
+      res.json({
+        success: true,
+        segmentIndex,
+        segment: {
+          id: selectedSegment.id,
+          label: selectedSegment.label,
+          color: selectedSegment.color,
+          isWinner: selectedSegment.isWinner,
+          couponCode: selectedSegment.couponCode || null
+        }
+      });
+    } catch (error: any) {
+      console.error('Error spinning wheel:', error);
+      res.status(500).json({ success: false, message: 'Failed to spin wheel' });
+    }
+  });
+
+  // Check if user has already spun
+  app.post('/api/promotions/wheel/:id/check-spin', async (req, res) => {
+    try {
+      const wheelId = parseInt(req.params.id);
+      const { userIdentifier } = req.body;
+      
+      if (!userIdentifier) {
+        return res.json({ hasSpun: false });
+      }
+      
+      const [existingSpin] = await db
+        .select({
+          id: promotionWheelSpins.id,
+          segmentLabel: promotionWheelSegments.label,
+          couponCode: couponCodes.code,
+          wonPrize: promotionWheelSpins.wonPrize
+        })
+        .from(promotionWheelSpins)
+        .leftJoin(promotionWheelSegments, eq(promotionWheelSpins.segmentId, promotionWheelSegments.id))
+        .leftJoin(couponCodes, eq(promotionWheelSpins.couponCodeId, couponCodes.id))
+        .where(and(
+          eq(promotionWheelSpins.wheelId, wheelId),
+          eq(promotionWheelSpins.userIdentifier, userIdentifier)
+        ))
+        .limit(1);
+      
+      if (existingSpin) {
+        res.json({
+          hasSpun: true,
+          previousResult: {
+            label: existingSpin.segmentLabel,
+            couponCode: existingSpin.couponCode,
+            wonPrize: existingSpin.wonPrize
+          }
+        });
+      } else {
+        res.json({ hasSpun: false });
+      }
+    } catch (error: any) {
+      console.error('Error checking spin:', error);
+      res.status(500).json({ hasSpun: false });
+    }
+  });
+
+  // Get spin history for a wheel (admin)
+  app.get('/api/promotions/wheels/:id/spins', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const wheelId = parseInt(req.params.id);
+      
+      // Verify wheel belongs to org
+      const [wheel] = await db
+        .select()
+        .from(promotionWheelConfigs)
+        .where(and(
+          eq(promotionWheelConfigs.id, wheelId),
+          eq(promotionWheelConfigs.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!wheel) {
+        return res.status(404).json({ message: 'Wheel not found' });
+      }
+      
+      const spins = await db
+        .select({
+          id: promotionWheelSpins.id,
+          userIdentifier: promotionWheelSpins.userIdentifier,
+          email: promotionWheelSpins.email,
+          segmentLabel: promotionWheelSegments.label,
+          couponCode: couponCodes.code,
+          wonPrize: promotionWheelSpins.wonPrize,
+          spunAt: promotionWheelSpins.spunAt
+        })
+        .from(promotionWheelSpins)
+        .leftJoin(promotionWheelSegments, eq(promotionWheelSpins.segmentId, promotionWheelSegments.id))
+        .leftJoin(couponCodes, eq(promotionWheelSpins.couponCodeId, couponCodes.id))
+        .where(eq(promotionWheelSpins.wheelId, wheelId))
+        .orderBy(desc(promotionWheelSpins.spunAt))
+        .limit(100);
+      
+      res.json(spins);
+    } catch (error: any) {
+      console.error('Error fetching spins:', error);
+      res.status(500).json({ message: 'Failed to fetch spins' });
+    }
+  });
+
+  app.get('/api/admin/promotions', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      const [userOrg] = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, user.organizationId))
+        .limit(1);
+      
+      if (!userOrg || userOrg.slug !== 'profieldmanager') {
+        return res.status(403).json({ message: 'Only SaaS administrators can access this endpoint' });
+      }
+      
+      const allPromos = await db
+        .select({
+          id: promotions.id,
+          organizationId: promotions.organizationId,
+          name: promotions.name,
+          status: promotions.status,
+          discountType: promotions.discountType,
+          discountValue: promotions.discountValue,
+          currentRedemptions: promotions.currentRedemptions,
+          maxRedemptions: promotions.maxRedemptions,
+          createdAt: promotions.createdAt
+        })
+        .from(promotions)
+        .orderBy(desc(promotions.createdAt));
+      
+      res.json(allPromos);
+    } catch (error: any) {
+      console.error('Error fetching all promotions:', error);
+      res.status(500).json({ message: 'Failed to fetch promotions' });
+    }
+  });
+
   app.post("/api/data/validate-credentials", async (req, res) => {
     console.log('🎯🎯🎯 ULTIMATE STEALTH ENDPOINT HIT - TOTAL BYPASS! 🎯🎯🎯');
     console.log('🔐 Processing data validation request:', {
@@ -1853,6 +3172,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: user.lastName,
           organizationId: user.organizationId,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         },
         token,
       });
@@ -1866,6 +3187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/register", async (req, res) => {
     try {
       const validatedData = registerSchema.parse(req.body);
+      const isDemo = req.body.isDemo === true || req.query.demo === 'true';
       
       // Check if user already exists
       const existingUser = await storage.getUserByUsername(validatedData.username);
@@ -1878,17 +3200,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email already exists" });
       }
 
-      // Hash password and create user
+      // Hash password
       const hashedPassword = await AuthService.hashPassword(validatedData.password);
+      // Create organization with business details (if provided)
+      let organizationId;
+      const orgName = validatedData.organizationName || validatedData.companyName || `${validatedData.username}'s Organization`;
+      const slug = orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      
+      // Build full address from components if provided
+      let fullAddress = validatedData.address || '';
+      if (validatedData.city || validatedData.state || validatedData.zipCode) {
+        const addressParts = [fullAddress, validatedData.city, validatedData.state, validatedData.zipCode].filter(Boolean);
+        fullAddress = addressParts.join(', ');
+      }
+      
+      const organization = await storage.createOrganization({
+        name: orgName,
+        slug,
+        phone: validatedData.phone || null,
+        address: fullAddress || null,
+        email: validatedData.email,
+        subscriptionStatus: isDemo ? "trial" : "trial",
+        subscriptionPlan: "starter",
+      });
+      
+      organizationId = organization.id;
+      
+      // For demo accounts, set expiration to 30 days from now
+      const demoExpiresAt = isDemo ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
       const userData = {
         ...validatedData,
+        organizationId,
         password: hashedPassword,
-        role: "user",
+        role: isDemo ? "admin" : "user",
         isActive: true,
         emailVerified: false,
+        isDemoAccount: isDemo,
+        demoExpiresAt: demoExpiresAt,
       };
 
       const user = await storage.createUser(userData);
+      
+      // For demo accounts, seed sample data
+      if (isDemo) {
+        try {
+          const { seedDemoAccountData } = await import("./seed-demo-data");
+          await seedDemoAccountData(user.id, user.organizationId);
+          console.log(`✅ Demo account created for user ${user.id} with sample data`);
+        } catch (seedError) {
+          console.error("❌ Failed to seed demo data:", seedError);
+        }
+      }
       
       // Create session
       const session = await AuthService.createSession(
@@ -1913,8 +3275,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         },
         token: session.token,
+        isDemo: isDemo,
       });
     } catch (error) {
       if (error instanceof ZodError) {
@@ -2168,6 +3533,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.cookie('auth_token', session.token, cookieConfig);
 
+      // Check if user needs to complete onboarding
+      let needsOnboarding = false;
+      if (user.role === 'admin') {
+        try {
+          const { onboardingProgress } = await import('@shared/schema');
+          const progress = await db
+            .select()
+            .from(onboardingProgress)
+            .where(eq(onboardingProgress.organizationId, user.organizationId))
+            .limit(1);
+          
+          if (progress.length > 0 && !progress[0].isComplete) {
+            needsOnboarding = true;
+          }
+        } catch (e) {
+          console.log('Could not check onboarding status:', e);
+        }
+      }
+
       const response = {
         user: {
           id: user.id,
@@ -2176,8 +3560,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         },
         token: session.token, // Always include token for custom domain localStorage
+        needsOnboarding, // Flag to indicate if user needs to complete onboarding
       };
 
       console.log('✅ Login successful response prepared for user:', user.username);
@@ -2425,6 +3812,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         organizationId: user.organizationId,
         userType: user.userType
       };
@@ -2460,6 +3849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         user: userData,
         token: session.token,
+        isDemo: isDemo,
         isCustomDomain: isFromCustomDomain // Tell frontend it came from custom domain
       });
 
@@ -2573,6 +3963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role
         },
         token: session.token,
+        isDemo: isDemo,
         debug: {
           isCustomDomain,
           cookieDomain: isCustomDomain ? '.profieldmanager.com' : 'default',
@@ -3158,65 +4549,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       tokenSource: authHeader ? 'header' : cookieToken ? 'cookie' : 'none'
     });
     
-    console.log('🔍 BEFORE FALLBACK CHECK - Token value:', token, 'Is falsy:', !token);
-    console.log('🌐 REQUEST SOURCE:', {
-      origin: req.headers.origin,
-      isCustomDomain: req.headers.origin?.includes('profieldmanager.com'),
-      host: req.headers.host
-    });
-    
-    // ENHANCED FALLBACK: Try to get user from latest session (DEVELOPMENT ONLY for security)
-    if (!token && process.env.NODE_ENV === 'development') {
-      console.log('🔄 ENHANCED FALLBACK: No token found, trying session fallback (DEVELOPMENT MODE ONLY)');
-      try {
-        // Get the most recent session for the test user as fallback
-        const recentSessions = await db
-          .select({
-            session: userSessions,
-            user: users,
-          })
-          .from(userSessions)
-          .innerJoin(users, eq(userSessions.userId, users.id))
-          .where(
-            and(
-              eq(users.email, 'sales@texaspowerwash.net'),
-              gt(userSessions.expiresAt, sql`now()`),
-              eq(users.isActive, true)
-            )
-          )
-          .orderBy(desc(userSessions.createdAt))
-          .limit(1);
-
-        console.log('🔍 DATABASE QUERY RESULT: Found', recentSessions.length, 'sessions');
-        
-        if (recentSessions.length > 0) {
-          console.log('✅ ENHANCED FALLBACK: Found valid session fallback');
-          const sessionData = recentSessions[0];
-          const user = sessionData.user;
-
-          const transformedUser = {
-            ...user,
-            hasInvoiceAccess: user?.canAccessInvoices,
-            hasExpenseAccess: user?.canAccessExpenses,
-            hasPartsAccess: user?.canAccessPartsSupplies,
-            hasScheduleAccess: user?.canAccessMySchedule
-          };
-
-          console.log('🎯 ENHANCED FALLBACK SUCCESS: Returning user', user.username);
-          
-          // CRITICAL FIX: Always include the session token for ALL domains to enable proper authentication
-          console.log('🔐 AUTHENTICATION FIX: Including token for localStorage storage on ALL domains');
-          return res.json({ 
-            user: transformedUser, 
-            token: sessionData.session.token 
-          });
-        } else {
-          console.log('❌ ENHANCED FALLBACK: No valid sessions found for user');
-        }
-      } catch (fallbackError) {
-        console.error('❌ ENHANCED FALLBACK ERROR:', fallbackError);
-      }
-    }
     
     if (!token) {
       console.log('❌ AUTH/ME: No token found');
@@ -3240,6 +4572,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       canAccessMySchedule: user.canAccessMySchedule,
       canAccessSaasAdmin: user.canAccessSaasAdmin,
       role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
       organizationId: user.organizationId
     });
     
@@ -3347,9 +4681,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password: userPassword,
           firstName: "Jane",
           lastName: "User",
-          role: "user",
+          role: isDemo ? "admin" : "user",
           isActive: true,
           emailVerified: false,
+        isDemoAccount: isDemo,
+        demoExpiresAt: demoExpiresAt,
         });
 
         console.log("✅ Created sample user accounts");
@@ -3665,7 +5001,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', (req, res, next) => {
     console.log(`🔍 API MIDDLEWARE - ${req.method} ${req.path}`);
     // Skip auth for these routes
-    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/'];
+    const publicRoutes = ['/auth/', '/seed', '/settings/', '/twilio-test-update/', '/shared/', '/debug/', '/user/', '/data/', '/quotes/response/', '/quotes/availability/', '/frontend/sliders', '/captcha/', '/public/', '/analytics/', '/promotions/validate-code', '/promotions/auto-apply', '/promotions/wheel/', '/promotions/wheels/active'];
     // Add special handling for debug routes
     const debugRoutes = ['/debug/custom-domain-test'];
     const sharedPhotoRoute = req.path.match(/^\/shared\/[^\/]+$/); // Match /shared/{token}
@@ -3673,7 +5009,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const isDebugRoute = debugRoutes.some(route => req.path === route);
     // Allow specific quote actions without auth (old system compatibility)
     const isQuoteAcceptDecline = req.path.match(/^\/quotes\/\d+\/(accept|decline)$/);
-    const isPublic = publicRoutes.some(route => req.path.startsWith(route) || req.path === route) || sharedPhotoRoute || isSharedRoute || isDebugRoute || isQuoteAcceptDecline;
+    // Routes that require auth even if they match publicRoutes patterns
+    const protectedOverrides = ['/settings/dashboard'];
+    const matchesPublicRoute = publicRoutes.some(route => req.path.startsWith(route) || req.path === route);
+    const isProtectedOverride = protectedOverrides.some(route => req.path === route || req.path.startsWith(route + '/'));
+    const isPublic = (matchesPublicRoute && !isProtectedOverride) || sharedPhotoRoute || isSharedRoute || isDebugRoute || isQuoteAcceptDecline;
     
     console.log(`🔍 AUTH DEBUG - Path: ${req.path}, QuoteAcceptDecline: ${!!isQuoteAcceptDecline}, SharedPhotoRoute: ${!!sharedPhotoRoute}, IsSharedRoute: ${isSharedRoute}, IsPublic: ${isPublic}`);
     
@@ -7119,6 +8459,8 @@ ${fromName || ''}
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         }));
       res.json(safeUsers);
     } catch (error: any) {
@@ -7140,6 +8482,8 @@ ${fromName || ''}
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          isDemoAccount: user.isDemoAccount || false,
+          demoExpiresAt: user.demoExpiresAt,
         }));
       res.json(safeUsers);
     } catch (error: any) {
@@ -7240,6 +8584,118 @@ ${fromName || ''}
   // User Management endpoints (Admin only)
   
   // Get all users
+
+  // Admin cache management endpoint
+  app.post("/api/admin/cache/clear", requireAdmin, async (req, res) => {
+    try {
+      clearAllQueryCaches();
+      console.log('🗑️  Admin cleared all query caches');
+      res.json({ 
+        success: true, 
+        message: 'All query caches cleared successfully' 
+      });
+    } catch (error: any) {
+      console.error('Error clearing caches:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to clear caches: ' + error.message 
+      });
+    }
+  });
+
+  // Cache settings management endpoints
+  app.get("/api/admin/cache/settings", requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Get effective settings using COALESCE to fall back to global defaults
+      const [effectiveSettings] = await db.execute(sql`
+        SELECT 
+          COALESCE(org_settings.notification_cache_ttl, global_settings.notification_cache_ttl) as notification_cache_ttl,
+          COALESCE(org_settings.message_cache_ttl, global_settings.message_cache_ttl) as message_cache_ttl,
+          COALESCE(org_settings.sidebar_polling_interval, global_settings.sidebar_polling_interval) as sidebar_polling_interval,
+          COALESCE(org_settings.notification_cache_enabled, global_settings.notification_cache_enabled) as notification_cache_enabled,
+          COALESCE(org_settings.message_cache_enabled, global_settings.message_cache_enabled) as message_cache_enabled,
+          org_settings.organization_id as has_override
+        FROM (SELECT * FROM cache_settings WHERE organization_id IS NULL) as global_settings
+        LEFT JOIN (SELECT * FROM cache_settings WHERE organization_id = ${user.organizationId}) as org_settings
+        ON true
+      `);
+      
+      res.json(effectiveSettings || {
+        notification_cache_ttl: 30000,
+        message_cache_ttl: 30000,
+        sidebar_polling_interval: 30000,
+        notification_cache_enabled: true,
+        message_cache_enabled: true,
+        has_override: null
+      });
+    } catch (error: any) {
+      console.error('Error fetching cache settings:', error);
+      res.status(500).json({ message: 'Failed to fetch cache settings' });
+    }
+  });
+
+  app.put("/api/admin/cache/settings", requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const validated = insertCacheSettingsSchema.parse(req.body);
+      
+      // Upsert organization-specific settings
+      const [updated] = await db
+        .insert(cacheSettings)
+        .values({
+          organizationId: user.organizationId,
+          ...validated
+        })
+        .onConflictDoUpdate({
+          target: cacheSettings.organizationId,
+          set: {
+            notificationCacheTtl: validated.notificationCacheTtl,
+            messageCacheTtl: validated.messageCacheTtl,
+            sidebarPollingInterval: validated.sidebarPollingInterval,
+            notificationCacheEnabled: validated.notificationCacheEnabled,
+            messageCacheEnabled: validated.messageCacheEnabled,
+            updatedAt: sql`NOW()`,
+          }
+        })
+        .returning();
+      
+      console.log('🔧 Cache settings updated for org', user.organizationId);
+      
+      // Reload config and clear caches
+      await cacheConfigService.reloadConfig(user.organizationId);
+      clearOrganizationCaches(user.organizationId);
+      console.log('🔄 Reloaded config and cleared caches for org', user.organizationId);
+      res.json(updated);
+    } catch (error: any) {
+      console.error('Error updating cache settings:', error);
+      res.status(500).json({ message: 'Failed to update cache settings: ' + error.message });
+    }
+  });
+
+  app.delete("/api/admin/cache/settings", requireAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Delete organization override to fall back to global defaults
+      await db
+        .delete(cacheSettings)
+        .where(eq(cacheSettings.organizationId, user.organizationId));
+      
+      console.log('🗑️  Deleted cache settings override for org', user.organizationId);
+      
+      // Reload config and clear caches
+      await cacheConfigService.reloadConfig(user.organizationId);
+      clearOrganizationCaches(user.organizationId);
+      console.log('🔄 Reloaded config and cleared caches for org', user.organizationId);
+      res.json({ success: true, message: 'Reset to global defaults' });
+    } catch (error: any) {
+      console.error('Error deleting cache settings:', error);
+      res.status(500).json({ message: 'Failed to reset cache settings' });
+    }
+  });
+
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
@@ -7404,6 +8860,12 @@ ${fromName || ''}
       // Hash password and create user
       const hashedPassword = await AuthService.hashPassword(validatedData.password);
       
+      // Check if this is a demo account
+      const isDemo = req.body.isDemoAccount === true;
+      
+      // For demo accounts, set expiration to 30 days from now
+      const demoExpiresAt = isDemo ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null;
+      
       // Get the admin's organization ID for automatic assignment
       const adminUser = getAuthenticatedUser(req);
       
@@ -7415,10 +8877,49 @@ ${fromName || ''}
         userType: req.body.userType || "both",
         isActive: req.body.isActive !== false,
         emailVerified: false,
+        isDemoAccount: isDemo,
+        demoExpiresAt: demoExpiresAt,
       };
 
       const user = await storage.createUser(userData);
       
+      // For demo accounts, seed sample data
+      if (isDemo) {
+        try {
+          const { seedDemoAccountData } = await import("./seed-demo-data");
+          await seedDemoAccountData(user.id, user.organizationId);
+          console.log(`✅ Demo account created for user ${user.id} with sample data`);
+        } catch (seedError) {
+          console.error("❌ Failed to seed demo data:", seedError);
+        }
+      }
+      
+
+      // Generate setup token for password setup
+      const setupToken = crypto.randomBytes(32).toString('hex');
+      const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      await storage.updateUser(user.id, {
+        passwordResetToken: setupToken,
+        passwordResetExpires: tokenExpires
+      });
+      
+      // Get admins and managers for notifications
+      const adminUsers = await storage.getOrganizationAdminsAndManagers(adminUser.organizationId);
+      
+      // Send welcome email and notifications to user and admins
+      await notifyUserCreation(
+        {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email
+        },
+        adminUser.organizationId,
+        adminUser.id,
+        setupToken,
+        adminUsers
+      );
       // Ensure organization folders exist for multi-tenant isolation
       // ensureOrganizationFolders already imported
       if (user.organizationId) {
@@ -7442,6 +8943,56 @@ ${fromName || ''}
       }
       console.error("User creation error:", error);
       res.status(500).json({ message: "User creation failed" });
+    }
+  });
+
+  // Batch update user permissions (must be before /:id route to avoid route collision)
+  app.put("/api/admin/users/batch-permissions", requireAdmin, async (req, res) => {
+    try {
+      const { changes } = req.body;
+      
+      if (!changes || typeof changes !== 'object') {
+        return res.status(400).json({ message: "Invalid changes data provided" });
+      }
+
+      const updates = [];
+      for (const [userIdStr, permissions] of Object.entries(changes)) {
+        const userId = parseInt(userIdStr);
+        if (isNaN(userId)) {
+          return res.status(400).json({ message: `Invalid user ID: ${userIdStr}` });
+        }
+        
+        try {
+          const updatedUser = await storage.updateUser(userId, permissions);
+          updates.push({
+            userId,
+            success: true,
+            user: {
+              ...updatedUser,
+              password: undefined, // Don't return password
+            }
+          });
+        } catch (error) {
+          console.error(`Failed to update user ${userId}:`, error);
+          updates.push({
+            userId,
+            success: false,
+            error: error.message || 'Update failed'
+          });
+        }
+      }
+
+      const successCount = updates.filter(u => u.success).length;
+      const totalCount = updates.length;
+
+      res.json({
+        message: `Updated ${successCount} of ${totalCount} users successfully`,
+        updates,
+        success: successCount === totalCount
+      });
+    } catch (error) {
+      console.error("Batch permissions update error:", error);
+      res.status(500).json({ message: "Failed to update user permissions" });
     }
   });
 
@@ -7592,40 +9143,165 @@ ${fromName || ''}
   app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
+      const adminUser = getAuthenticatedUser(req);
       
-      // Don't allow deleting self
-      if (userId === req.user?.id) {
+      if (userId === adminUser?.id) {
         return res.status(400).json({ message: "Cannot delete your own account" });
       }
 
-      // Get user data before deletion for broadcasting
       const userToDelete = await storage.getUser(userId);
       if (!userToDelete) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Get current admin user for organization filtering
-      const adminUser = getAuthenticatedUser(req);
-
-      await AuthService.invalidateAllUserSessions(userId);
-      const deleted = await storage.deleteUser(userId);
-      
-      if (!deleted) {
-        return res.status(404).json({ message: "User not found" });
+      if (userToDelete.organizationId !== adminUser.organizationId) {
+        return res.status(403).json({ message: "Cannot delete users from other organizations" });
       }
 
-      // Broadcast employee deletion for real-time analytics
-      broadcastToWebUsers(adminUser.organizationId, 'employee_deleted', {
-        user: { ...userToDelete, password: undefined },
-        deletedBy: req.user!.username,
-        action: 'deleted'
+      // Check if user is already inactive (soft deleted)
+      if (!userToDelete.isActive) {
+        // Perform hard delete for inactive users
+        const result = await storage.hardDeleteUser(userId, adminUser.id);
+        
+        if (!result.success) {
+          return res.status(400).json({ message: result.message });
+        }
+        
+        broadcastToWebUsers(userToDelete.organizationId, {
+          type: 'user_hard_deleted',
+          userId: userId,
+          organizationId: userToDelete.organizationId
+        });
+
+        return res.json({ message: "User permanently deleted", hardDelete: true });
+      }
+
+      // Perform soft delete for active users
+      await storage.deleteUser(userId, adminUser.id);
+      
+      broadcastToWebUsers(userToDelete.organizationId, {
+        type: 'user_deleted',
+        userId: userId,
+        organizationId: userToDelete.organizationId
       });
 
-      res.json({ message: "User deleted successfully" });
-    } catch (error: any) {
-      res.status(500).json({ message: "Error deleting user: " + error.message });
+      res.json({ message: "User deactivated successfully", hardDelete: false });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: `Error deleting user: ${error}` });
     }
   });
+
+  // Password reset request endpoint
+  app.post("/api/auth/reset-password-request", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // For security, always return success even if user doesn't exist
+        return res.json({ success: true, message: "If a user with that email exists, a password reset link has been sent." });
+      }
+
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      await storage.updateUser(user.id, {
+        passwordResetToken: resetToken,
+        passwordResetExpires: tokenExpires
+      });
+
+      // Get admins and managers for notifications
+      const adminUsers = await storage.getOrganizationAdminsAndManagers(user.organizationId);
+      
+      // Send password reset email and notifications
+      await notifyPasswordReset(
+        {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email
+        },
+        user.organizationId,
+        user.id, // Requester is the user themselves
+        resetToken,
+        adminUsers
+      );
+
+      res.json({ success: true, message: "If a user with that email exists, a password reset link has been sent." });
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      res.status(500).json({ error: "Failed to process password reset request" });
+    }
+  });
+
+  // Verify reset token endpoint
+  app.get("/api/auth/verify-token/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      const user = await storage.getUserByResetToken(token);
+      
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired token" });
+      }
+
+      res.json({ 
+        valid: true, 
+        user: { 
+          id: user.id, 
+          firstName: user.firstName, 
+          lastName: user.lastName, 
+          email: user.email 
+        } 
+      });
+    } catch (error) {
+      console.error("Token verification error:", error);
+      res.status(500).json({ error: "Failed to verify token" });
+    }
+  });
+
+  // Complete password reset/setup endpoint
+  app.post("/api/auth/complete-password-reset", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+      
+      if (!token || !password) {
+        return res.status(400).json({ error: "Token and password are required" });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+
+      const user = await storage.getUserByResetToken(token);
+      
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired token" });
+      }
+
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Update user with new password and clear reset token
+      await storage.updateUser(user.id, {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetExpires: null
+      });
+
+      res.json({ success: true, message: "Password has been set successfully. You can now log in." });
+    } catch (error) {
+      console.error("Password reset completion error:", error);
+      res.status(500).json({ error: "Failed to complete password reset" });
+    }
+  });
+
 
   // Change password (authenticated users)
   app.post("/api/auth/change-password", requireAuth, async (req, res) => {
@@ -7701,7 +9377,35 @@ ${fromName || ''}
       const projects = await storage.getProjects(user.organizationId, user.id, user.role, status);
       console.log('📍 PROJECTS STEP 6: Projects retrieved, count:', projects.length);
       
-      res.json(projects);
+      // Add total service hours to each project
+      const projectsWithServiceHours = await Promise.all(
+        projects.map(async (project: any) => {
+          try {
+            const projectServices = await db
+              .select({
+                estimatedTimeSnapshot: jobsServices.estimatedTimeSnapshot,
+                quantity: jobsServices.quantity,
+              })
+              .from(jobsServices)
+              .where(eq(jobsServices.jobId, project.id));
+            
+            const totalServiceMinutes = projectServices.reduce((sum, service) => {
+              const time = service.estimatedTimeSnapshot || 0;
+              const qty = service.quantity || 1;
+              return sum + (time * qty);
+            }, 0);
+            
+            return {
+              ...project,
+              totalServiceMinutes,
+            };
+          } catch (err) {
+            return { ...project, totalServiceMinutes: 0 };
+          }
+        })
+      );
+      
+      res.json(projectsWithServiceHours);
     } catch (error: any) {
       console.error("❌ ERROR IN GET PROJECTS:", error);
       console.error("❌ Error stack:", error.stack);
@@ -7852,6 +9556,29 @@ ${fromName || ''}
       };
       
       const project = await storage.createProject(projectData);
+      
+      // Handle service associations
+      const { services } = req.body;
+      if (services && Array.isArray(services) && services.length > 0) {
+        try {
+          const user = getAuthenticatedUser(req);
+          for (const service of services) {
+            await db.insert(jobsServices).values({
+              jobId: project.id,
+              serviceId: service.serviceId,
+              priceSnapshot: service.priceSnapshot,
+              materialsCostSnapshot: service.materialsCostSnapshot || "0",
+              estimatedTimeSnapshot: service.estimatedTimeSnapshot || 0,
+              quantity: service.quantity || 1,
+              organizationId: user.organizationId,
+            });
+          }
+          console.log(`✅ Associated ${services.length} service(s) with project ${project.id}`);
+        } catch (servicesError) {
+          console.error("❌ Error associating services with project:", servicesError);
+          // Continue with project creation even if service association fails
+        }
+      }
       
       // Automatically create draft invoice for Smart Capture enabled projects
       if (enableSmartCapture) {
@@ -8092,7 +9819,16 @@ ${fromName || ''}
         return res.status(404).json({ message: "Project not found or access denied" });
       }
 
-      const updatedProject = await storage.updateProject(projectId, req.body);
+      // Convert timestamp strings to Date objects for Drizzle
+      const updateData = { ...req.body };
+      const timestampFields = ['departed_at', 'auto_started_at', 'auto_completed_at', 'startDate', 'endDate', 'invoiceDate'];
+      for (const field of timestampFields) {
+        if (updateData[field] && typeof updateData[field] === 'string') {
+          updateData[field] = new Date(updateData[field]);
+        }
+      }
+
+      const updatedProject = await storage.updateProject(projectId, updateData);
       
       if (!updatedProject) {
         return res.status(404).json({ message: "Project not found or access denied" });
@@ -8249,7 +9985,22 @@ ${fromName || ''}
         }
       }
       
-      res.json(updatedProject);
+      // Add totalServiceMinutes to response
+      const projectServices = await db
+        .select({
+          estimatedTimeSnapshot: jobsServices.estimatedTimeSnapshot,
+          quantity: jobsServices.quantity,
+        })
+        .from(jobsServices)
+        .where(eq(jobsServices.jobId, projectId));
+      
+      const totalServiceMinutes = projectServices.reduce((sum: number, service: any) => {
+        const time = service.estimatedTimeSnapshot || 0;
+        const qty = service.quantity || 1;
+        return sum + (time * qty);
+      }, 0);
+      
+      res.json({ ...updatedProject, totalServiceMinutes });
     } catch (error: any) {
       console.error("Error updating project:", error);
       res.status(500).json({ message: "Failed to update project" });
@@ -8350,7 +10101,22 @@ ${fromName || ''}
         }
       }
 
-      res.json(updatedProject);
+      // Add totalServiceMinutes to response
+      const projectServices = await db
+        .select({
+          estimatedTimeSnapshot: jobsServices.estimatedTimeSnapshot,
+          quantity: jobsServices.quantity,
+        })
+        .from(jobsServices)
+        .where(eq(jobsServices.jobId, projectId));
+      
+      const totalServiceMinutes = projectServices.reduce((sum: number, service: any) => {
+        const time = service.estimatedTimeSnapshot || 0;
+        const qty = service.quantity || 1;
+        return sum + (time * qty);
+      }, 0);
+      
+      res.json({ ...updatedProject, totalServiceMinutes });
     } catch (error: any) {
       console.error("Error starting job:", error);
       res.status(500).json({ message: "Failed to start job" });
@@ -8580,6 +10346,39 @@ ${fromName || ''}
   });
 
   // Tasks
+
+  // Get job services
+  app.get("/api/projects/:id/services", requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const organizationId = req.user!.organizationId;
+      
+      const jobServices = await db
+        .select({
+          id: jobsServices.id,
+          serviceId: jobsServices.serviceId,
+          serviceName: services.name,
+          priceSnapshot: jobsServices.priceSnapshot,
+          materialsCostSnapshot: jobsServices.materialsCostSnapshot,
+          estimatedTimeSnapshot: jobsServices.estimatedTimeSnapshot,
+          quantity: jobsServices.quantity,
+        })
+        .from(jobsServices)
+        .innerJoin(services, eq(jobsServices.serviceId, services.id))
+        .where(
+          and(
+            eq(jobsServices.jobId, projectId),
+            eq(jobsServices.organizationId, organizationId)
+          )
+        );
+      
+      res.json(jobServices);
+    } catch (error: any) {
+      console.error("Error fetching job services:", error);
+      res.status(500).json({ message: "Failed to fetch job services" });
+    }
+  });
+
   app.get("/api/projects/:id/tasks", requireAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
@@ -9654,7 +11453,7 @@ ${fromName || ''}
             content: "You are an expert at reading receipts and extracting structured data. Analyze the receipt image and extract the vendor/merchant name, total amount, date, and suggest an expense category. For gas/fuel receipts, also extract gallons (fuel quantity) and price per gallon. Return the data in JSON format with keys: vendor, amount (as number), date (in ISO format YYYY-MM-DD), category (one of: fuel, materials, equipment, labor, vehicle_maintenance, tools, supplies, travel, meals, permits, insurance, utilities, rent, professional_services, office_supplies, marketing, technology, general), gallons (as number, for fuel receipts only), pricePerGallon (as number, for fuel receipts only). If you cannot find a field, use null for that field."
           },
           {
-            role: "user",
+            role: isDemo ? "admin" : "user",
             content: [
               {
                 type: "text",
@@ -10785,6 +12584,67 @@ ${fromName || ''}
         }
       });
       
+      // Apply dashboard profile settings based on user's role
+      try {
+        const userRole = user?.role || 'user';
+        const profiles = await storage.getDashboardProfiles();
+        
+        // Find a profile that targets this user's role
+        let matchingProfile = profiles.find((p: any) => 
+          p.targetRoles && Array.isArray(p.targetRoles) && p.targetRoles.includes(userRole)
+        );
+        
+        // If no matching profile by target role, try to find one by profile type matching the role
+        if (!matchingProfile) {
+          matchingProfile = profiles.find((p: any) => p.profileType === userRole);
+        }
+        
+        // Apply profile widget visibility settings if found
+        if (matchingProfile) {
+          mergedSettings.showStatsCards = matchingProfile.showStatsCards ?? mergedSettings.showStatsCards;
+          mergedSettings.showRevenueChart = matchingProfile.showRevenueChart ?? mergedSettings.showRevenueChart;
+          mergedSettings.showRecentActivity = matchingProfile.showRecentActivity ?? mergedSettings.showRecentActivity;
+          mergedSettings.showRecentInvoices = matchingProfile.showRecentInvoices ?? mergedSettings.showRecentInvoices;
+          mergedSettings.showNotifications = matchingProfile.showNotifications ?? mergedSettings.showNotifications;
+          mergedSettings.showQuickActions = matchingProfile.showQuickActions ?? mergedSettings.showQuickActions;
+          mergedSettings.showProjectsOverview = matchingProfile.showProjectsOverview ?? mergedSettings.showProjectsOverview;
+          mergedSettings.showWeatherWidget = matchingProfile.showWeatherWidget ?? mergedSettings.showWeatherWidget;
+          mergedSettings.showTasksWidget = matchingProfile.showTasksWidget ?? mergedSettings.showTasksWidget;
+          mergedSettings.showCalendarWidget = matchingProfile.showCalendarWidget ?? mergedSettings.showCalendarWidget;
+          mergedSettings.showMessagesWidget = matchingProfile.showMessagesWidget ?? mergedSettings.showMessagesWidget;
+          mergedSettings.showTeamOverview = matchingProfile.showTeamOverview ?? mergedSettings.showTeamOverview;
+          mergedSettings.showDailyFlowWidget = matchingProfile.showDailyFlowWidget ?? mergedSettings.showDailyFlowWidget;
+          mergedSettings.showTrainingWidget = matchingProfile.showTrainingWidget ?? mergedSettings.showTrainingWidget;
+          
+          // Apply layout settings from profile if present
+          if (matchingProfile.layoutType) mergedSettings.layoutType = matchingProfile.layoutType;
+          if (matchingProfile.gridColumns) mergedSettings.gridColumns = matchingProfile.gridColumns;
+          if (matchingProfile.widgetSize) mergedSettings.widgetSize = matchingProfile.widgetSize;
+          if (matchingProfile.colorTheme) mergedSettings.colorTheme = matchingProfile.colorTheme;
+          
+          mergedSettings.appliedProfile = matchingProfile.name;
+          mergedSettings.appliedProfileType = matchingProfile.profileType;
+        }
+      } catch (profileError) {
+        console.error("Error applying dashboard profile:", profileError);
+      }
+      
+      // Ensure all boolean settings are actual booleans (not strings)
+      const booleanKeys = [
+        'showStatsCards', 'showRevenueChart', 'showRecentActivity', 'showRecentInvoices',
+        'showNotifications', 'showQuickActions', 'showProjectsOverview', 'showWeatherWidget',
+        'showTasksWidget', 'showCalendarWidget', 'showMessagesWidget', 'showTeamOverview',
+        'showDailyFlowWidget', 'showTrainingWidget', 'animationsEnabled', 'showWelcomeMessage', 'compactMode'
+      ];
+      console.log("🔧 Before boolean conversion - showRevenueChart:", mergedSettings.showRevenueChart, typeof mergedSettings.showRevenueChart);
+      booleanKeys.forEach(key => {
+        if (mergedSettings[key] !== undefined) {
+          mergedSettings[key] = mergedSettings[key] === true || mergedSettings[key] === 'true';
+        }
+      });
+      
+      console.log("🔧 After boolean conversion - showRevenueChart:", mergedSettings.showRevenueChart, typeof mergedSettings.showRevenueChart);
+      
       // Include available tabs metadata for frontend
       mergedSettings.availableWidgetTabs = availableWidgetTabs;
       
@@ -10794,7 +12654,6 @@ ${fromName || ''}
       res.status(500).json({ message: "Failed to fetch dashboard settings" });
     }
   });
-
   app.put("/api/settings/dashboard", requireAuth, async (req, res) => {
     try {
       const settingsData = req.body;
@@ -10901,6 +12760,70 @@ ${fromName || ''}
     }
   });
 
+
+  // Create new dashboard profile (admin only)
+  app.post("/api/dashboard/profiles", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can create dashboard profiles" });
+      }
+
+      const profileData = {
+        ...req.body,
+        organizationId: user.organizationId,
+        isSystem: false,
+      };
+
+      const profile = await storage.createDashboardProfile(profileData);
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error creating dashboard profile:", error);
+      res.status(500).json({ message: "Failed to create dashboard profile" });
+    }
+  });
+
+  // Update dashboard profile (admin only)
+  app.patch("/api/dashboard/profiles/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can update dashboard profiles" });
+      }
+
+      const profileId = parseInt(req.params.id);
+      const updates = req.body;
+
+      const profile = await storage.updateDashboardProfile(profileId, updates);
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error updating dashboard profile:", error);
+      res.status(500).json({ message: "Failed to update dashboard profile" });
+    }
+  });
+
+  // Delete dashboard profile (admin only, non-system profiles only)
+  app.delete("/api/dashboard/profiles/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: "Only admins can delete dashboard profiles" });
+      }
+
+      const profileId = parseInt(req.params.id);
+      const deleted = await storage.deleteDashboardProfile(profileId);
+      
+      if (!deleted) {
+        return res.status(400).json({ message: "Cannot delete system profiles" });
+      }
+      
+      res.json({ message: "Dashboard profile deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting dashboard profile:", error);
+      res.status(500).json({ message: "Failed to delete dashboard profile" });
+    }
+  });
+
   app.post("/api/dashboard/apply-profile", requireAuth, async (req, res) => {
     try {
       const user = req.user!;
@@ -10934,6 +12857,97 @@ ${fromName || ''}
     } catch (error: any) {
       console.error("Error updating dashboard settings:", error);
       res.status(500).json({ message: "Failed to update dashboard settings" });
+    }
+  });
+
+  // =====================================================
+  // Navigation Permission Profile API Endpoints
+  // =====================================================
+  
+  // Get all navigation permission profiles
+  app.get("/api/navigation-permission-profiles", requireAuth, async (req, res) => {
+    try {
+      const profiles = await storage.getNavigationPermissionProfiles();
+      res.json(profiles);
+    } catch (error: any) {
+      console.error("Error fetching navigation permission profiles:", error);
+      res.status(500).json({ message: "Failed to fetch navigation permission profiles" });
+    }
+  });
+
+  // Get navigation permission profile by ID
+  app.get("/api/navigation-permission-profiles/:id", requireAuth, async (req, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      const profile = await storage.getNavigationPermissionProfile(profileId);
+      
+      if (!profile) {
+        return res.status(404).json({ message: "Navigation permission profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error fetching navigation permission profile:", error);
+      res.status(500).json({ message: "Failed to fetch navigation permission profile" });
+    }
+  });
+
+  // Get navigation permissions for current user's role
+  app.get("/api/navigation-permissions/my-permissions", requireAuth, async (req, res) => {
+    try {
+      const user = req.user!;
+      const permissions = await storage.getNavigationPermissionsForRole(user.role);
+      res.json(permissions);
+    } catch (error: any) {
+      console.error("Error fetching navigation permissions:", error);
+      res.status(500).json({ message: "Failed to fetch navigation permissions" });
+    }
+  });
+
+  // Create new navigation permission profile (super admin only)
+  app.post("/api/navigation-permission-profiles", requireAuth, isSuperAdmin, async (req, res) => {
+    try {
+      const profileData = {
+        ...req.body,
+        isSystem: false,
+      };
+
+      const profile = await storage.createNavigationPermissionProfile(profileData);
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error creating navigation permission profile:", error);
+      res.status(500).json({ message: "Failed to create navigation permission profile" });
+    }
+  });
+
+  // Update navigation permission profile (super admin only)
+  app.patch("/api/navigation-permission-profiles/:id", requireAuth, isSuperAdmin, async (req, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      const updates = req.body;
+
+      const profile = await storage.updateNavigationPermissionProfile(profileId, updates);
+      res.json(profile);
+    } catch (error: any) {
+      console.error("Error updating navigation permission profile:", error);
+      res.status(500).json({ message: "Failed to update navigation permission profile" });
+    }
+  });
+
+  // Delete navigation permission profile (super admin only, non-system profiles only)
+  app.delete("/api/navigation-permission-profiles/:id", requireAuth, isSuperAdmin, async (req, res) => {
+    try {
+      const profileId = parseInt(req.params.id);
+      const deleted = await storage.deleteNavigationPermissionProfile(profileId);
+      
+      if (!deleted) {
+        return res.status(400).json({ message: "Cannot delete system profiles" });
+      }
+      
+      res.json({ message: "Navigation permission profile deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting navigation permission profile:", error);
+      res.status(500).json({ message: "Failed to delete navigation permission profile" });
     }
   });
 
@@ -11296,6 +13310,107 @@ ${fromName || ''}
     }
   });
 
+  // Vibration Settings API
+  app.get("/api/settings/vibration", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      
+      const vibrationSettingsResult = await db.select()
+        .from(vibrationSettings)
+        .where(
+          and(
+            eq(vibrationSettings.userId, userId),
+            eq(vibrationSettings.organizationId, organizationId)
+          )
+        )
+        .limit(1);
+        
+      if (vibrationSettingsResult.length === 0) {
+        // Return default settings if none exist
+        const defaultSettings = {
+          enabled: true,
+          notificationPattern: "notification",
+          successPattern: "success",
+          warningPattern: "warning",
+          errorPattern: "error",
+          arrivalPattern: "arrival",
+          alertPattern: "alert"
+        };
+        res.json(defaultSettings);
+      } else {
+        const settings = vibrationSettingsResult[0];
+        res.json({
+          enabled: settings.enabled,
+          notificationPattern: settings.notificationPattern,
+          successPattern: settings.successPattern,
+          warningPattern: settings.warningPattern,
+          errorPattern: settings.errorPattern,
+          arrivalPattern: settings.arrivalPattern,
+          alertPattern: settings.alertPattern
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching vibration settings:", error);
+      res.status(500).json({ message: "Failed to fetch vibration settings" });
+    }
+  });
+
+  app.put("/api/settings/vibration", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const organizationId = req.user!.organizationId;
+      const { enabled, notificationPattern, successPattern, warningPattern, errorPattern, arrivalPattern, alertPattern } = req.body;
+      
+      // Check if settings exist
+      const existingSettings = await db.select()
+        .from(vibrationSettings)
+        .where(
+          and(
+            eq(vibrationSettings.userId, userId),
+            eq(vibrationSettings.organizationId, organizationId)
+          )
+        )
+        .limit(1);
+        
+      const settingsData = {
+        enabled: enabled !== undefined ? enabled : true,
+        notificationPattern: notificationPattern || "notification",
+        successPattern: successPattern || "success",
+        warningPattern: warningPattern || "warning",
+        errorPattern: errorPattern || "error",
+        arrivalPattern: arrivalPattern || "arrival",
+        alertPattern: alertPattern || "alert",
+        updatedAt: new Date()
+      };
+      
+      if (existingSettings.length === 0) {
+        // Insert new settings
+        await db.insert(vibrationSettings).values({
+          userId,
+          organizationId,
+          ...settingsData
+        });
+      } else {
+        // Update existing settings
+        await db.update(vibrationSettings)
+          .set(settingsData)
+          .where(
+            and(
+              eq(vibrationSettings.userId, userId),
+              eq(vibrationSettings.organizationId, organizationId)
+            )
+          );
+      }
+      
+      res.json({ message: "Vibration settings updated successfully" });
+    } catch (error: any) {
+      console.error("Error updating vibration settings:", error);
+      res.status(500).json({ message: "Failed to update vibration settings" });
+    }
+  });
+
+
   // Backup API endpoints
   app.get("/api/backup/settings", requireAuth, async (req, res) => {
     try {
@@ -11657,7 +13772,7 @@ ${fromName || ''}
           id: 2,
           name: "Julissa Martinez",
           email: "julissa@texaspowerwash.net",
-          role: "user",
+          role: isDemo ? "admin" : "user",
           jobsAssigned: 3,
           tasksTotal: 8,
           tasksCompleted: 6,
@@ -11879,7 +13994,7 @@ ${fromName || ''}
               onsiteLaborCost += onsiteHours * hourlyRate;
             }
           });
-        } else if (project.startDate && !project.endDate) {
+        } else if (project.startDate && !project.endDate && project.status !== 'completed' && project.status !== 'cancelled') {
           // In-progress job - calculate current elapsed time from active time clock entries
           isActiveJob = true;
           const now = new Date().getTime();
@@ -12238,7 +14353,7 @@ ${fromName || ''}
         
         if (!vehicle.fuelEconomyMpg || !trip.distanceMiles) return;
         
-        const tripDate = new Date(trip.startTime);
+        const tripDate = new Date(trip.endTime || trip.startTime);
         const key = view === 'job' ? `gps-trip-${trip.id}` : getGroupKey(tripDate, view as string);
         const miles = parseFloat(trip.distanceMiles.toString());
         const mpg = parseFloat(vehicle.fuelEconomyMpg.toString());
@@ -12581,7 +14696,7 @@ ${fromName || ''}
       }
 
       // Fetch projects (jobs), related data, and GPS tracking events
-      const [allProjects, allTasks, timeClockEntries, jobSiteEventsData] = await Promise.all([
+      const [allProjects, allTasks, timeClockEntries, jobSiteEventsData, jobsServicesData, projectUsersData] = await Promise.all([
         db.select()
           .from(projects)
           .where(
@@ -12659,6 +14774,41 @@ ${fromName || ''}
             )
           )
           .orderBy(desc(jobSiteEvents.eventTime))
+,
+
+        // Fetch job-service relationships for estimated completion times
+        db.select({
+          jobId: jobsServices.jobId,
+          serviceId: jobsServices.serviceId,
+          estimatedCompletionTimeSnapshot: jobsServices.estimatedCompletionTimeSnapshot
+        })
+          .from(jobsServices)
+          .innerJoin(projects, eq(jobsServices.jobId, projects.id))
+          .where(
+            and(
+              eq(jobsServices.organizationId, organizationId),
+              gte(projects.createdAt, startDate),
+              lte(projects.createdAt, endDate)
+            )
+          )
+,
+
+        // Fetch assigned team members for jobs
+        db.select({
+          projectId: projectUsers.projectId,
+          userId: projectUsers.userId,
+          userName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`.as('userName')
+        })
+          .from(projectUsers)
+          .innerJoin(users, eq(projectUsers.userId, users.id))
+          .innerJoin(projects, eq(projectUsers.projectId, projects.id))
+          .where(
+            and(
+              eq(projects.organizationId, organizationId),
+              gte(projects.createdAt, startDate),
+              lte(projects.createdAt, endDate)
+            )
+          )
       ]);
 
       // Calculate job analytics
@@ -12719,7 +14869,60 @@ ${fromName || ''}
         const totalJobTime = job.startDate && job.endDate ? 
           (new Date(job.endDate).getTime() - new Date(job.startDate).getTime()) / (1000 * 60 * 60) : 0;
 
+        // Calculate estimated hours from services
+        const jobServices = jobsServicesData.filter(js => js.jobId === job.id);
+        const totalEstimatedMinutes = jobServices.reduce((sum, js) => 
+          sum + (parseInt(js.estimatedCompletionTimeSnapshot || "0") || 0), 0
+        );
+        const estimatedHours = totalEstimatedMinutes / 60;
+
+        // Collect unique technician names who worked on this job from multiple sources
+        const technicianNamesSet = new Set<string>();
+        
+        // 1. From GPS tracking events
+        jobEvents
+          .filter(event => event.userName)
+          .forEach(event => technicianNamesSet.add(event.userName!));
+        
+        // 2. From time clock entries related to this job
+        timeClockEntries
+          .filter(entry => {
+            // Match by job location or time range overlap
+            const entryDate = new Date(entry.clockInTime);
+            const jobStart = job.startDate ? new Date(job.startDate) : null;
+            const jobEnd = job.endDate ? new Date(job.endDate) : null;
+            
+            if (jobStart && jobEnd) {
+              return entryDate >= jobStart && entryDate <= jobEnd;
+            }
+            return false;
+          })
+          .forEach(entry => {
+            if (entry.userName) technicianNamesSet.add(entry.userName);
+          });
+        
+        // 3. From tasks assigned to this job
+        jobTasks
+          .filter(task => task.assignedToId)
+          .forEach(task => {
+            const assignedUser = timeClockEntries.find(tc => tc.userId === task.assignedToId);
+            if (assignedUser?.userName) technicianNamesSet.add(assignedUser.userName);
+          });
+        
+        
+        // 4. From assigned team members (project_users)
+        projectUsersData
+          .filter(pu => pu.projectId === job.id)
+          .forEach(pu => {
+            if (pu.userName) technicianNamesSet.add(pu.userName);
+          });
+        const technicianNames = Array.from(technicianNamesSet);
+        const techniciansText = technicianNames.length > 0 
+          ? technicianNames.join(', ') : 'No technicians assigned';
+
+
         return {
+          estimatedHours: Math.round(estimatedHours * 10) / 10,
           jobName: job.name || `Job ${job.id}`,
           onsiteDuration: Math.round(totalActualOnsiteHours * 10) / 10,
           totalJobTime: Math.round(totalJobTime * 10) / 10,
@@ -13236,7 +15439,7 @@ ${fromName || ''}
   // Internal Messages routes
   app.get("/api/internal-messages", requireAuth, async (req, res) => {
     try {
-      const messages = await storage.getInternalMessages(req.user!.id);
+      const messages = await getCachedInternalMessages(req.user!.id, storage, req.user!.organizationId);
       res.json(messages);
     } catch (error: any) {
       console.error("Error fetching internal messages:", error);
@@ -13323,6 +15526,11 @@ ${fromName || ''}
 
       console.log('Message created successfully:', message.id);
 
+      // Invalidate cache for all recipients
+      finalRecipientIds.forEach(recipientId => {
+        invalidateMessageCache(recipientId, req.user!.organizationId);
+      });
+
       // Broadcast message to recipients via WebSocket for instant delivery
       if (finalRecipientIds && finalRecipientIds.length > 0) {
         finalRecipientIds.forEach(recipientId => {
@@ -13354,6 +15562,7 @@ ${fromName || ''}
         return res.status(404).json({ message: "Message not found or already read" });
       }
       res.json({ success: true });
+      invalidateMessageCache(req.user!.id, req.user!.organizationId);
     } catch (error: any) {
       console.error("Error marking message as read:", error);
       res.status(500).json({ message: "Failed to mark message as read" });
@@ -13467,75 +15676,8 @@ ${fromName || ''}
   });
 
   // Update user permissions
-  app.put('/api/admin/users/:id/permissions', requireAdmin, async (req, res) => {
-    try {
-      const userId = parseInt(req.params.id);
-      const permissions = req.body;
-      
-      const user = await storage.updateUser(userId, permissions);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      res.json({
-        ...user,
-        password: undefined, // Don't return password
-      });
-    } catch (error: any) {
-      console.error('Error updating user permissions:', error);
-      res.status(500).json({ message: 'Failed to update user permissions' });
-    }
-  });
 
   // Batch update user permissions
-  app.put("/api/admin/users/batch-permissions", requireAdmin, async (req, res) => {
-    try {
-      const { changes } = req.body;
-      
-      if (!changes || typeof changes !== 'object') {
-        return res.status(400).json({ message: "Invalid changes data provided" });
-      }
-
-      const updates = [];
-      for (const [userIdStr, permissions] of Object.entries(changes)) {
-        const userId = parseInt(userIdStr);
-        if (isNaN(userId)) {
-          return res.status(400).json({ message: `Invalid user ID: ${userIdStr}` });
-        }
-        
-        try {
-          const updatedUser = await storage.updateUser(userId, permissions);
-          updates.push({
-            userId,
-            success: true,
-            user: {
-              ...updatedUser,
-              password: undefined, // Don't return password
-            }
-          });
-        } catch (error) {
-          console.error(`Failed to update user ${userId}:`, error);
-          updates.push({
-            userId,
-            success: false,
-            error: error.message || 'Update failed'
-          });
-        }
-      }
-
-      const successCount = updates.filter(u => u.success).length;
-      const totalCount = updates.length;
-
-      res.json({
-        message: `Updated ${successCount} of ${totalCount} users successfully`,
-        updates,
-        success: successCount === totalCount
-      });
-    } catch (error) {
-      console.error("Batch permissions update error:", error);
-      res.status(500).json({ message: "Failed to update user permissions" });
-    }
-  });
 
   // Profile picture upload for users (Manager/Admin only)
   app.post('/api/admin/users/:id/profile-picture', requireManagerOrAdmin, profilePictureUpload.single('profilePicture'), async (req, res) => {
@@ -15730,7 +17872,7 @@ ${fromName || ''}
       const aggregated = new Map<string, any>();
 
       trips.forEach(trip => {
-        const tripDate = new Date(trip.startTime);
+        const tripDate = new Date(trip.endTime || trip.startTime);
         let key: string;
         let period: string;
 
@@ -17031,6 +19173,106 @@ ${fromName || ''}
     }
   });
 
+
+  // ============================================
+  // Personal Profile & Reports API Routes
+  // (For technicians to view their own HR data)
+  // ============================================
+
+  // Get current user's time off requests
+  app.get("/api/my-time-off-requests", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const requests = await storage.getTimeOffRequests(user.organizationId, user.id);
+      res.json(requests);
+    } catch (error: any) {
+      console.error("Error fetching personal time off requests:", error);
+      res.status(500).json({ message: "Failed to fetch time off requests" });
+    }
+  });
+
+  // Get current user's performance reviews
+  app.get("/api/my-performance-reviews", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const reviews = await storage.getPerformanceReviews(user.organizationId, user.id);
+      res.json(reviews);
+    } catch (error: any) {
+      console.error("Error fetching personal performance reviews:", error);
+      res.status(500).json({ message: "Failed to fetch performance reviews" });
+    }
+  });
+
+  // Get current user's disciplinary actions
+  app.get("/api/my-disciplinary-actions", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const actions = await storage.getDisciplinaryActions(user.organizationId, user.id);
+      res.json(actions);
+    } catch (error: any) {
+      console.error("Error fetching personal disciplinary actions:", error);
+      res.status(500).json({ message: "Failed to fetch disciplinary actions" });
+    }
+  });
+
+  // Get current user's personal report stats
+  app.get("/api/my-reports/summary", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { startDate, endDate } = req.query;
+      
+      // Get task completion stats
+      const tasks = await storage.getTasksAssignedToUser(user.id);
+      const completedTasks = tasks.filter((t: any) => t.status === 'completed');
+      const taskCompletionRate = tasks.length > 0 
+        ? Math.round((completedTasks.length / tasks.length) * 100) 
+        : 0;
+      
+      // Get time clock entries for job activity
+      const timeEntries = await storage.getTimeClockEntries(user.id);
+      const totalClockIns = timeEntries.length;
+      const avgHoursPerDay = timeEntries.length > 0
+        ? timeEntries.reduce((sum: number, entry: any) => {
+            if (entry.clockOutTime) {
+              const hours = (new Date(entry.clockOutTime).getTime() - new Date(entry.clockInTime).getTime()) / (1000 * 60 * 60);
+              return sum + hours;
+            }
+            return sum;
+          }, 0) / timeEntries.length
+        : 0;
+      
+      // Get images uploaded (documentation compliance)
+      const images = await storage.getImages(user.id);
+      const imagesThisMonth = images.filter((img: any) => {
+        const imgDate = new Date(img.createdAt);
+        const now = new Date();
+        return imgDate.getMonth() === now.getMonth() && imgDate.getFullYear() === now.getFullYear();
+      });
+      
+      res.json({
+        taskStats: {
+          total: tasks.length,
+          completed: completedTasks.length,
+          pending: tasks.filter((t: any) => t.status === 'pending').length,
+          inProgress: tasks.filter((t: any) => t.status === 'in_progress').length,
+          completionRate: taskCompletionRate
+        },
+        jobActivity: {
+          totalClockIns,
+          avgHoursPerDay: Math.round(avgHoursPerDay * 10) / 10,
+          recentEntries: timeEntries.slice(0, 10)
+        },
+        documentation: {
+          totalImages: images.length,
+          imagesThisMonth: imagesThisMonth.length
+        }
+      });
+    } catch (error: any) {
+      console.error("Error fetching personal report summary:", error);
+      res.status(500).json({ message: "Failed to fetch report summary" });
+    }
+  });
+
   // Time Off Request API Routes
   
   // Get time off requests
@@ -17354,6 +19596,116 @@ ${fromName || ''}
     }
   });
 
+
+  // Get blur settings for a specific organization (admin only)
+  app.get("/api/admin/blur-settings/:organizationId", requireAdmin, async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      if (isNaN(organizationId)) {
+        return res.status(400).json({ message: "Invalid organization ID" });
+      }
+
+      const [settings] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, organizationId))
+        .limit(1);
+
+      if (!settings) {
+        // Return default settings if none exist
+        return res.json({
+          organizationId,
+          blurEmailSettings: true,
+          blurTwilioSettings: true,
+          blurOcrSettings: true,
+          blurStripeSettings: true,
+          blurApiSettings: true,
+          blurBackupSettings: true,
+          blurDeploySettings: true,
+          blurAnalyticsSettings: true,
+          blurMessage: "This feature is restricted for your organization. Contact your administrator for access."
+        });
+      }
+
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error fetching blur settings for organization:", error);
+      res.status(500).json({ message: "Failed to fetch blur settings" });
+    }
+  });
+
+  // Update blur settings for a specific organization (admin only)
+  app.put("/api/admin/blur-settings/:organizationId", requireAdmin, async (req, res) => {
+    try {
+      const organizationId = parseInt(req.params.organizationId);
+      if (isNaN(organizationId)) {
+        return res.status(400).json({ message: "Invalid organization ID" });
+      }
+
+      const {
+        blurEmailSettings,
+        blurTwilioSettings,
+        blurOcrSettings,
+        blurStripeSettings,
+        blurApiSettings,
+        blurBackupSettings,
+        blurDeploySettings,
+        blurAnalyticsSettings,
+        blurMessage
+      } = req.body;
+
+      // Check if settings exist
+      const [existing] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, organizationId))
+        .limit(1);
+
+      if (existing) {
+        // Update existing settings
+        await db
+          .update(blurSettings)
+          .set({
+            blurEmailSettings: blurEmailSettings ?? existing.blurEmailSettings,
+            blurTwilioSettings: blurTwilioSettings ?? existing.blurTwilioSettings,
+            blurOcrSettings: blurOcrSettings ?? existing.blurOcrSettings,
+            blurStripeSettings: blurStripeSettings ?? existing.blurStripeSettings,
+            blurApiSettings: blurApiSettings ?? existing.blurApiSettings,
+            blurBackupSettings: blurBackupSettings ?? existing.blurBackupSettings,
+            blurDeploySettings: blurDeploySettings ?? existing.blurDeploySettings,
+            blurAnalyticsSettings: blurAnalyticsSettings ?? existing.blurAnalyticsSettings,
+            blurMessage: blurMessage ?? existing.blurMessage
+          })
+          .where(eq(blurSettings.organizationId, organizationId));
+      } else {
+        // Insert new settings
+        await db.insert(blurSettings).values({
+          organizationId,
+          blurEmailSettings: blurEmailSettings ?? true,
+          blurTwilioSettings: blurTwilioSettings ?? true,
+          blurOcrSettings: blurOcrSettings ?? true,
+          blurStripeSettings: blurStripeSettings ?? true,
+          blurApiSettings: blurApiSettings ?? true,
+          blurBackupSettings: blurBackupSettings ?? true,
+          blurDeploySettings: blurDeploySettings ?? true,
+          blurAnalyticsSettings: blurAnalyticsSettings ?? true,
+          blurMessage: blurMessage ?? "This feature is restricted for your organization. Contact your administrator for access."
+        });
+      }
+
+      // Fetch updated settings
+      const [updated] = await db
+        .select()
+        .from(blurSettings)
+        .where(eq(blurSettings.organizationId, organizationId))
+        .limit(1);
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating blur settings for organization:", error);
+      res.status(500).json({ message: "Failed to update blur settings" });
+    }
+  });
   // Get billing and revenue data
   app.get("/api/admin/saas/billing", requireAdmin, async (req, res) => {
     try {
@@ -18854,6 +21206,41 @@ ${fromName || ''}
         role: "admin",
         isActive: true,
       });
+
+      // Initialize onboarding progress for the new organization
+      try {
+        const { onboardingProgress } = await import('@shared/schema');
+        const { sendWelcomeEmail } = await import('./services/onboardingEmails');
+        
+        // Create onboarding progress record
+        await db.insert(onboardingProgress).values({
+          organizationId: organization.id,
+          currentStep: 1,
+          startedAt: new Date(),
+        });
+        console.log(`✅ Created onboarding progress for org ${organization.id}`);
+        
+        // Send welcome email with onboarding link
+        const baseUrl = process.env.APP_URL || 'https://profieldmanager.com';
+        const onboardingLink = `${baseUrl}/onboarding`;
+        
+        const emailSent = await sendWelcomeEmail(
+          email,
+          organizationName,
+          onboardingLink,
+          organization.id
+        );
+        
+        if (emailSent) {
+          // Update welcomeEmailSentAt
+          await db.update(onboardingProgress)
+            .set({ welcomeEmailSentAt: new Date() })
+            .where(eq(onboardingProgress.organizationId, organization.id));
+        }
+      } catch (onboardingError) {
+        console.error('Failed to initialize onboarding:', onboardingError);
+        // Don't fail the signup if onboarding init fails
+      }
 
       res.status(201).json({
         message: "Organization created successfully",
@@ -21014,10 +23401,10 @@ ${fromName || ''}
             }
 
 
-            // Calculate speed from last 2 GPS pings for each device
+            // Calculate speed from last 5 GPS pings for each device (rolling average)
             for (const location of locations) {
               try {
-                // Query last 2 pings for this device ordered by timestamp DESC
+                // Query last 5 pings for this device ordered by timestamp DESC
                 const recentPings = await db
                   .select()
                   .from(obdLocationData)
@@ -21028,26 +23415,56 @@ ${fromName || ''}
                     )
                   )
                   .orderBy(desc(obdLocationData.timestamp))
-                  .limit(2);
+                  .limit(5);
 
                 // If we have at least 2 pings, calculate speed from them
                 if (recentPings.length >= 2) {
-                  const ping1 = recentPings[1]; // Older ping
-                  const ping2 = recentPings[0]; // Newer ping
+                  const individualSpeeds: number[] = [];
                   
-                  const calculatedSpeed = calculateSpeed(
-                    parseFloat(ping1.latitude),
-                    parseFloat(ping1.longitude),
-                    new Date(ping1.timestamp),
-                    parseFloat(ping2.latitude),
-                    parseFloat(ping2.longitude),
-                    new Date(ping2.timestamp)
-                  );
+                  // Calculate speed between each consecutive pair of pings
+                  for (let i = 0; i < recentPings.length - 1; i++) {
+                    const olderPing = recentPings[i + 1];
+                    const newerPing = recentPings[i];
+                    
+                    const speed = calculateSpeed(
+                      parseFloat(olderPing.latitude),
+                      parseFloat(olderPing.longitude),
+                      new Date(olderPing.timestamp),
+                      parseFloat(newerPing.latitude),
+                      parseFloat(newerPing.longitude),
+                      new Date(newerPing.timestamp)
+                    );
+                    
+                    // Filter out unrealistic speeds (likely GPS drift)
+                    if (speed < 120) {
+                      individualSpeeds.push(speed);
+                    }
+                  }
                   
-                  // Update the location speed with the calculated value
-                  location.speed = calculatedSpeed;
+                  // Calculate weighted average (more recent speeds get higher weight using exponential weighting: 2^i where i=0 is most recent)
+                  let weightedSum = 0;
+                  let totalWeight = 0;
+                  const numSpeeds = individualSpeeds.length;
                   
-                  console.log(`📊 Calculated speed for device ${location.deviceId}: ${calculatedSpeed.toFixed(1)} mph`);
+                  // Handle case where all speeds were filtered out as unrealistic
+                  if (numSpeeds === 0) {
+                    location.speed = 0;
+                    console.log(`⚠️  All speed readings filtered out for device ${location.deviceId} (likely GPS errors), defaulting to 0 mph`);
+                  } else {
+                    for (let i = 0; i < numSpeeds; i++) {
+                      const weight = Math.pow(2, numSpeeds - 1 - i); // i=0 (most recent) gets highest weight
+                      weightedSum += individualSpeeds[i] * weight;
+                      totalWeight += weight;
+                    }
+                    
+                    const averageSpeed = weightedSum / totalWeight;
+                    
+                    // Cap at reasonable maximum speed
+                    const cappedSpeed = Math.min(averageSpeed, 100);
+                    location.speed = cappedSpeed;
+                    
+                    console.log(`📊 Calculated speed for device ${location.deviceId}: ${cappedSpeed.toFixed(1)} mph (average of ${individualSpeeds.map(s => s.toFixed(1)).join(", ")} mph)${cappedSpeed < averageSpeed ? ' [capped at 100 mph]' : ''}`);
+                  }
                 } else {
                   console.log(`⚠️  Not enough pings to calculate speed for device ${location.deviceId} (found ${recentPings.length})`);
                 }
@@ -21756,6 +24173,33 @@ ${fromName || ''}
       res.status(500).json({ message: "Error cleaning up data: " + error.message });
     }
   });
+
+  // Phone Sensor Productivity Tracking
+  const { registerPhoneSensorRoutes } = await import("./routes/phoneSensors");
+  registerPhoneSensorRoutes(app);
+
+  // Onboarding Wizard Routes
+  const { registerOnboardingRoutes } = await import("./routes/onboarding");
+  registerOnboardingRoutes(app);
+
+  // Technician Onboarding Routes
+  const { registerTechnicianOnboardingRoutes } = await import("./routes/technicianOnboarding");
+  registerTechnicianOnboardingRoutes(app);
+
+
+  // Technician Daily Flow Routes
+  const { registerTechnicianDailyFlowRoutes } = await import("./routes/technicianDailyFlow");
+  registerTechnicianDailyFlowRoutes(app);
+
+  // Technician Inventory Routes
+  const { registerTechnicianInventoryRoutes } = await import("./routes/technicianInventory");
+  registerTechnicianInventoryRoutes(app);
+  // Stripe Connect Routes
+  const { registerStripeConnectRoutes } = await import("./routes/stripeConnect");
+  registerStripeConnectRoutes(app);
+  // Website Layout CMS
+  const { setupWebsiteLayoutRoutes } = await import("./website-layout-routes");
+  setupWebsiteLayoutRoutes(app, storage, requireAuth, requireManagerOrAdmin, getAuthenticatedUser);
 
   // One Step GPS Integration - Fetch devices from One Step GPS API
   app.get("/api/onestep/devices", requireAuth, async (req, res) => {
@@ -22529,6 +24973,9 @@ ${fromName || ''}
         hasFailures: failedItems.length > 0
       });
       
+      // Mark vehicle inspection alert as completed
+      await VehicleInspectionAlertService.markInspectionCompleted(user.id, user.organizationId, record.id);
+
       res.json(record);
     } catch (error: any) {
       console.error("Error submitting inspection:", error);
@@ -24141,6 +26588,19 @@ ${fromName || ''}
         console.error('Error sending clock-in notifications:', notificationError);
       }
       
+      // Trigger vehicle inspection alert check
+      try {
+        const { VehicleInspectionAlertService } = await import('./vehicleInspectionAlertService');
+        VehicleInspectionAlertService.checkOnClockIn(
+          user.id,
+          user.organizationId,
+          entry.id,
+          new Date(entry.clockInTime)
+        );
+      } catch (inspectionError) {
+        console.error('Error triggering vehicle inspection check:', inspectionError);
+      }
+      
       res.json({ entry, message: "Successfully clocked in" });
     } catch (error: any) {
       console.error("Error clocking in:", error);
@@ -24155,6 +26615,14 @@ ${fromName || ''}
       const { notes } = req.body;
       
       const entry = await storage.clockOut(user.id, notes);
+      
+      // Cancel any scheduled vehicle inspection alert for this clock-in
+      try {
+        const { VehicleInspectionAlertService } = await import('./vehicleInspectionAlertService');
+        VehicleInspectionAlertService.cancelAlert(entry.id);
+      } catch (cancelError) {
+        console.error('Error canceling vehicle inspection alert:', cancelError);
+      }
       
       // Broadcast to organization for real-time updates
       broadcastToWebUsers(user.organizationId, 'time_clock_update', {
@@ -24508,6 +26976,44 @@ ${fromName || ''}
 
   // Frontend Management API routes
   
+
+  // Public Frontend Pages (no auth required)
+  app.get('/api/public/pages/:orgSlug/:pageSlug', async (req, res) => {
+    try {
+      const { orgSlug, pageSlug } = req.params;
+      const page = await storage.getPublishedFrontendPageBySlug(orgSlug, pageSlug);
+      
+      if (!page) {
+        return res.status(404).json({ message: 'Page not found' });
+      }
+      
+      res.json(page);
+    } catch (error: any) {
+      console.error('Error fetching public frontend page:', error);
+      res.status(500).json({ message: 'Failed to fetch page' });
+    }
+  });
+
+  // Save Frontend Page Components
+  app.post('/api/frontend/pages/:id/components', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const pageId = Number(req.params.id);
+      const { components } = req.body;
+      
+      const success = await storage.saveFrontendPageComponents(pageId, user.organizationId, components);
+      
+      if (!success) {
+        return res.status(500).json({ message: 'Failed to save components' });
+      }
+      
+      res.json({ message: 'Components saved successfully' });
+    } catch (error: any) {
+      console.error('Error saving frontend page components:', error);
+      res.status(500).json({ message: 'Failed to save components' });
+    }
+  });
+
   // Frontend Categories
   app.get('/api/frontend/categories', requireAuth, async (req, res) => {
     try {
@@ -24654,11 +27160,29 @@ ${fromName || ''}
     }
   });
 
-  // Frontend Sliders
-  app.get('/api/frontend/sliders', requireAuth, async (req, res) => {
+  // Frontend Sliders - Public endpoint for home page
+  app.get('/api/frontend/sliders', async (req, res) => {
     try {
-      const user = getAuthenticatedUser(req);
-      const sliders = await storage.getFrontendSliders(user.organizationId);
+      // Check if user is authenticated
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+      
+      let organizationId = 1; // Default to organization 1 (profieldmanager)
+      
+      // If authenticated, use user's organization
+      if (token) {
+        try {
+          const user = await storage.getUserFromSessionToken(token);
+          if (user) {
+            organizationId = user.organizationId;
+          }
+        } catch (err) {
+          // If token is invalid, continue with default organization
+          console.log('Invalid token, using default organization');
+        }
+      }
+      
+      const sliders = await storage.getFrontendSliders(organizationId);
       res.json(sliders);
     } catch (error: any) {
       console.error('Error fetching frontend sliders:', error);
@@ -24666,7 +27190,7 @@ ${fromName || ''}
     }
   });
 
-  app.post('/api/frontend/sliders', requireManagerOrAdmin, async (req, res) => {
+  app.post('/frontend/sliders', requireManagerOrAdmin, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
       const sliderData = {
@@ -24701,6 +27225,15 @@ ${fromName || ''}
   app.delete('/api/frontend/sliders/:id', requireManagerOrAdmin, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
+      const sliders = await storage.getFrontendSliders(user.organizationId);
+      const sliderToDelete = sliders.find((s: any) => s.id === Number(req.params.id));
+      
+      // Delete Cloudinary image if it exists
+      if (sliderToDelete?.imagePublicId) {
+        console.log('🗑️ Deleting Cloudinary image:', sliderToDelete.imagePublicId);
+        await CloudinaryService.deleteImage(sliderToDelete.imagePublicId);
+      }
+      
       const success = await storage.deleteFrontendSlider(Number(req.params.id), user.organizationId);
       if (!success) {
         return res.status(404).json({ message: 'Frontend slider not found' });
@@ -24713,6 +27246,395 @@ ${fromName || ''}
     }
   });
 
+  // Slider Image Upload
+  app.post('/api/frontend/sliders/upload', requireManagerOrAdmin, upload.single('image'), async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      if (!req.file) {
+        return res.status(400).json({ message: 'No image file provided' });
+      }
+
+      // Validate file type
+      const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedMimeTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ 
+          message: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed' 
+        });
+      }
+
+      // Validate file size (5MB max)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (req.file.size > maxSize) {
+        return res.status(400).json({ 
+          message: 'File too large. Maximum size is 5MB' 
+        });
+      }
+
+      console.log('📤 Uploading slider image to Cloudinary...', {
+        filename: req.file.originalname,
+        size: req.file.size,
+        organizationId: user.organizationId
+      });
+
+      // Read file buffer
+      const fs = await import('fs/promises');
+      const buffer = await fs.readFile(req.file.path);
+
+      // Upload to Cloudinary
+      const uploadResult = await CloudinaryService.uploadImage(buffer, {
+        folder: 'hero_slides',
+        filename: req.file.originalname,
+        organizationId: user.organizationId,
+        quality: 90,
+        maxWidth: 2000,
+        maxHeight: 1200
+      });
+
+      // Clean up temp file
+      await fs.unlink(req.file.path);
+
+      if (!uploadResult.success) {
+        return res.status(500).json({ 
+          message: 'Failed to upload image to Cloudinary',
+          error: uploadResult.error
+        });
+      }
+
+      console.log('✅ Slider image uploaded successfully:', uploadResult.secureUrl);
+
+      res.json({
+        success: true,
+        imageUrl: uploadResult.secureUrl,
+        publicId: uploadResult.publicId,
+        width: uploadResult.width,
+        height: uploadResult.height
+      });
+    } catch (error: any) {
+      console.error('Error uploading slider image:', error);
+      res.status(500).json({ message: 'Failed to upload slider image' });
+    }
+  });
+
+  // ========== Website Pop-ups Management ==========
+  
+  // Admin: Get all pop-ups for organization
+  app.get('/api/frontend/popups', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const popups = await storage.getWebsitePopups(user.organizationId);
+      res.json(popups);
+    } catch (error: any) {
+      console.error('Error fetching popups:', error);
+      res.status(500).json({ message: 'Failed to fetch popups' });
+    }
+  });
+
+  // Admin: Create new pop-up
+  app.post('/api/frontend/popups', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const popup = await storage.createWebsitePopup(user.organizationId, req.body);
+      res.status(201).json(popup);
+    } catch (error: any) {
+      console.error('Error creating popup:', error);
+      res.status(500).json({ message: 'Failed to create popup' });
+    }
+  });
+
+  // Admin: Update pop-up
+  app.put('/api/frontend/popups/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const popup = await storage.updateWebsitePopup(Number(req.params.id), user.organizationId, req.body);
+      if (!popup) {
+        return res.status(404).json({ message: 'Popup not found' });
+      }
+      res.json(popup);
+    } catch (error: any) {
+      console.error('Error updating popup:', error);
+      res.status(500).json({ message: 'Failed to update popup' });
+    }
+  });
+
+  // Admin: Delete pop-up
+  app.delete('/api/frontend/popups/:id', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      await storage.deleteWebsitePopup(Number(req.params.id), user.organizationId);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error('Error deleting popup:', error);
+      res.status(500).json({ message: 'Failed to delete popup' });
+    }
+  });
+
+  // Admin: Toggle pop-up active status
+  app.patch('/api/frontend/popups/:id/toggle', requireManagerOrAdmin, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { isActive } = req.body;
+      const popup = await storage.updateWebsitePopup(Number(req.params.id), user.organizationId, { isActive });
+      if (!popup) {
+        return res.status(404).json({ message: 'Popup not found' });
+      }
+      res.json(popup);
+    } catch (error: any) {
+      console.error('Error toggling popup:', error);
+      res.status(500).json({ message: 'Failed to toggle popup' });
+    }
+  });
+
+  // Public: Get active pop-ups for a page
+  app.get('/api/web/popups', async (req, res) => {
+    try {
+      const orgId = Number(req.query.orgId) || 2;
+      const page = req.query.page as string || '/';
+      const popups = await storage.getActivePopupsForPage(orgId, page);
+      res.json(popups);
+    } catch (error: any) {
+      console.error('Error fetching active popups:', error);
+      res.status(500).json({ message: 'Failed to fetch popups' });
+    }
+  });
+
+  // Public: Record pop-up impression
+  app.post('/api/web/popups/:id/impression', async (req, res) => {
+    try {
+      await storage.recordPopupImpression(Number(req.params.id), req.body.clicked || false);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error('Error recording impression:', error);
+      res.status(500).json({ message: 'Failed to record impression' });
+    }
+  });
+
+  // ========== Live Chat Management ==========
+  
+  // Public: Get organization ID by slug (for frontend tenant detection)
+  app.get('/api/web/organizations/by-slug', async (req, res) => {
+    try {
+      const slug = req.query.slug as string;
+      
+      if (!slug) {
+        return res.status(400).json({ message: 'Slug parameter is required' });
+      }
+      
+      const organization = await storage.getOrganizationBySlug(slug);
+      
+      if (!organization) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      
+      // Return only essential public info
+      res.json({
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug
+      });
+    } catch (error: any) {
+      console.error('Error fetching organization by slug:', error);
+      res.status(500).json({ message: 'Failed to fetch organization' });
+    }
+  });
+
+  // Admin: Get all chat sessions for organization
+  
+  // Admin: Get all chat sessions for organization
+  app.get('/api/live-chat/sessions', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const sessions = await storage.getLiveChatSessions(user.organizationId);
+      res.json(sessions);
+    } catch (error: any) {
+      console.error('Error fetching chat sessions:', error);
+      res.status(500).json({ message: 'Failed to fetch chat sessions' });
+    }
+  });
+
+  // Public: Create new chat session
+  app.post('/api/live-chat/sessions', async (req, res) => {
+    try {
+      const { organizationId, visitorName, visitorEmail } = req.body;
+      const session = await storage.createLiveChatSession(organizationId || 2, visitorName, visitorEmail);
+      res.status(201).json(session);
+    } catch (error: any) {
+      console.error('Error creating chat session:', error);
+      res.status(500).json({ message: 'Failed to create chat session' });
+    }
+  });
+
+  // Admin: Get single chat session
+  app.get('/api/live-chat/sessions/:id', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const session = await storage.getLiveChatSession(Number(req.params.id), user.organizationId);
+      if (!session) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+      res.json(session);
+    } catch (error: any) {
+      console.error('Error fetching chat session:', error);
+      res.status(500).json({ message: 'Failed to fetch session' });
+    }
+  });
+
+  // Admin: Assign chat to current user
+  app.post('/api/live-chat/sessions/:id/assign', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const session = await storage.assignLiveChatAgent(Number(req.params.id), user.organizationId, user.id);
+      if (!session) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+      res.json(session);
+    } catch (error: any) {
+      console.error('Error assigning chat:', error);
+      res.status(500).json({ message: 'Failed to assign chat' });
+    }
+  });
+
+  // Admin: Close chat session
+  app.post('/api/live-chat/sessions/:id/close', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const session = await storage.closeLiveChatSession(Number(req.params.id), user.organizationId);
+      if (!session) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+      res.json(session);
+    } catch (error: any) {
+      console.error('Error closing chat:', error);
+      res.status(500).json({ message: 'Failed to close chat' });
+    }
+  });
+
+  // Admin/Public: Get messages for a session
+  app.get('/api/live-chat/messages/:sessionId', async (req, res) => {
+    try {
+      const messages = await storage.getLiveChatMessages(Number(req.params.sessionId));
+      res.json(messages);
+    } catch (error: any) {
+      console.error('Error fetching messages:', error);
+      res.status(500).json({ message: 'Failed to fetch messages' });
+    }
+  });
+
+  // Admin/Public: Send a message in a session
+  app.post('/api/live-chat/sessions/:sessionId/messages', async (req, res) => {
+    try {
+      const { message, senderRole, senderName } = req.body;
+      const chatMessage = await storage.createLiveChatMessage(
+        Number(req.params.sessionId),
+        senderRole,
+        message,
+        senderName
+      );
+      
+      // Broadcast new message via WebSocket
+      if (broadcastToOrganization) {
+        // Get session to find organization
+        const session = await storage.getLiveChatSession(Number(req.params.sessionId), 2);
+        if (session) {
+          broadcastToOrganization(session.organizationId, {
+            eventType: 'live_chat_message',
+            sessionId: session.id,
+            message: chatMessage
+          });
+        }
+      }
+      
+      res.status(201).json(chatMessage);
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      res.status(500).json({ message: 'Failed to send message' });
+    }
+  
+  // Live Chat Departments
+  app.get('/api/live-chat/departments', requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const departments = await storage.getLiveChatDepartments(user.organizationId);
+      res.json({ departments });
+    } catch (error: any) {
+      console.error('Error fetching departments:', error);
+      res.status(500).json({ message: 'Failed to fetch departments' });
+    }
+  });
+
+  app.post('/api/live-chat/departments', requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const department = await storage.createLiveChatDepartment({
+        ...req.body,
+        organizationId: user.organizationId,
+      });
+      res.status(201).json(department);
+    } catch (error: any) {
+      console.error('Error creating department:', error);
+      res.status(500).json({ message: 'Failed to create department' });
+    }
+  });
+
+  app.patch('/api/live-chat/departments/:id', requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const department = await storage.updateLiveChatDepartment(
+        Number(req.params.id),
+        user.organizationId,
+        req.body
+      );
+      res.json(department);
+    } catch (error: any) {
+      console.error('Error updating department:', error);
+      res.status(500).json({ message: 'Failed to update department' });
+    }
+  });
+
+  app.delete('/api/live-chat/departments/:id', requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const success = await storage.deleteLiveChatDepartment(
+        Number(req.params.id),
+        user.organizationId
+      );
+      res.json({ success });
+    } catch (error: any) {
+      console.error('Error deleting department:', error);
+      res.status(500).json({ message: 'Failed to delete department' });
+    }
+  });
+  });
+
+  // Live Chat Settings
+  app.get("/api/live-chat/settings", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const settings = await storage.getLiveChatSettings(user.organizationId);
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error fetching live chat settings:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.patch("/api/live-chat/settings", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      
+      // Validate and sanitize input - strip out protected fields
+      const { id, organizationId, createdAt, updatedAt, ...updates } = req.body;
+      
+      const updatedSettings = await storage.updateLiveChatSettings(
+        user.organizationId,
+        updates
+      );
+      res.json(updatedSettings);
+    } catch (error: any) {
+      console.error("Error updating live chat settings:", error);
+      res.status(500).json({ message: "Failed to update settings" });
+    }
+  });
   // Frontend Components
   app.get('/api/frontend/components', requireAuth, async (req, res) => {
     try {
@@ -25565,6 +28487,19 @@ ${fromName || ''}
         console.log(`📢 Clock-in notifications sent to ${adminUsers.length} admins/managers`);
       } catch (notificationError) {
         console.error('Error sending clock-in notifications:', notificationError);
+      }
+      
+      // Trigger vehicle inspection alert check
+      try {
+        const { VehicleInspectionAlertService } = await import('./vehicleInspectionAlertService');
+        VehicleInspectionAlertService.checkOnClockIn(
+          user.id,
+          user.organizationId,
+          timeClockEntry.id,
+          new Date(timeClockEntry.clockInTime)
+        );
+      } catch (inspectionError) {
+        console.error('Error triggering vehicle inspection check:', inspectionError);
       }
       
       res.json({ 
@@ -27534,6 +30469,1258 @@ ${fromName || ''}
   console.log("📅 Starting quote follow-up reminder scheduler...");
   checkQuoteFollowUps();
 
+  // Set up onboarding reminder scheduler (runs every hour)
+  const checkOnboardingReminders = async () => {
+    try {
+      const { onboardingProgress } = await import('@shared/schema');
+      const { sendOnboardingReminderEmail } = await import('./services/onboardingEmails');
+      
+      const twentyFourHoursAgo = new Date();
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+      
+      // Find organizations that:
+      // 1. Started onboarding more than 24 hours ago
+      // 2. Haven't completed onboarding
+      // 3. Haven't received a reminder email yet
+      const incompleteOnboarding = await db
+        .select({
+          progress: onboardingProgress,
+          org: organizations,
+        })
+        .from(onboardingProgress)
+        .leftJoin(organizations, eq(onboardingProgress.organizationId, organizations.id))
+        .where(
+          and(
+            eq(onboardingProgress.isComplete, false),
+            lte(onboardingProgress.startedAt, twentyFourHoursAgo),
+            isNull(onboardingProgress.reminderEmailSentAt)
+          )
+        );
+
+      for (const { progress, org } of incompleteOnboarding) {
+        if (!org) continue;
+        
+        // Get the admin user for this organization
+        const adminUser = await db
+          .select()
+          .from(users)
+          .where(
+            and(
+              eq(users.organizationId, org.id),
+              eq(users.role, 'admin')
+            )
+          )
+          .limit(1);
+        
+        if (adminUser.length > 0) {
+          const emailSent = await sendOnboardingReminderEmail(
+            adminUser[0].email,
+            org.name || 'Your Company',
+            org.id
+          );
+          
+          if (emailSent) {
+            // Mark reminder as sent
+            await db
+              .update(onboardingProgress)
+              .set({ reminderEmailSentAt: new Date() })
+              .where(eq(onboardingProgress.organizationId, org.id));
+            
+            console.log(`📬 Sent onboarding reminder for org ${org.id} (${org.name})`);
+          }
+        }
+      }
+      
+      if (incompleteOnboarding.length > 0) {
+        console.log(`✅ Processed ${incompleteOnboarding.length} onboarding reminder checks`);
+      }
+    } catch (error) {
+      console.error("❌ Error checking onboarding reminders:", error);
+    }
+
+    // Schedule next check in 1 hour
+    setTimeout(checkOnboardingReminders, 60 * 60 * 1000);
+  };
+
+  // Start onboarding reminder scheduler
+  console.log("📩 Starting onboarding reminder scheduler...");
+  checkOnboardingReminders();
+
+  // ========================================
+  // SERVER SYNC API ENDPOINTS
+  // ========================================
+
+  // Get all sync configurations for the organization
+  app.get('/api/sync/configurations', requireAuth, async (req, res) => {
+    try {
+      const configs = await db
+        .select()
+        .from(syncConfigurations)
+        .where(eq(syncConfigurations.organizationId, req.user!.organizationId));
+      
+      res.json(configs);
+    } catch (error) {
+      console.error("Error fetching sync configurations:", error);
+      res.status(500).json({ error: "Failed to fetch sync configurations" });
+    }
+  });
+  app.post('/api/sync/configurations', requireAuth, async (req, res) => {
+    try {
+      const validated = insertSyncConfigurationSchema.parse(req.body);
+      
+      // Encrypt password if provided
+      let encryptedPassword = null;
+      if (validated.encryptedPassword) {
+        const bcrypt = await import('bcryptjs');
+        encryptedPassword = await bcrypt.hash(validated.encryptedPassword, 10);
+      }
+      
+      const [config] = await db
+        .insert(syncConfigurations)
+        .values({
+          ...validated,
+          encryptedPassword,
+          organizationId: req.user!.organizationId,
+        })
+        .returning();
+      
+      res.json(config);
+    } catch (error) {
+      console.error("Error creating sync configuration:", error);
+      res.status(400).json({ error: "Failed to create sync configuration" });
+    }
+  });
+
+  // Update sync configuration
+  app.put('/api/sync/configurations/:id', requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validated = insertSyncConfigurationSchema.partial().parse(req.body);
+      
+      // Encrypt password if provided
+      let encryptedPassword = validated.encryptedPassword;
+      if (encryptedPassword) {
+        const bcrypt = await import('bcryptjs');
+        encryptedPassword = await bcrypt.hash(encryptedPassword, 10);
+      }
+      
+      const [config] = await db
+        .update(syncConfigurations)
+        .set({
+          ...validated,
+          encryptedPassword,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(syncConfigurations.id, id),
+            eq(syncConfigurations.organizationId, req.user!.organizationId)
+          )
+        )
+        .returning();
+      
+      if (!config) {
+        return res.status(404).json({ error: "Configuration not found" });
+      }
+      
+      res.json(config);
+    } catch (error) {
+      console.error("Error updating sync configuration:", error);
+      res.status(400).json({ error: "Failed to update sync configuration" });
+    }
+  });
+
+  // Delete sync configuration
+  app.delete('/api/sync/configurations/:id', requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      await db
+        .delete(syncConfigurations)
+        .where(
+          and(
+            eq(syncConfigurations.id, id),
+            eq(syncConfigurations.organizationId, req.user!.organizationId)
+          )
+        );
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting sync configuration:", error);
+      res.status(500).json({ error: "Failed to delete sync configuration" });
+    }
+  });
+
+  // Test connection to remote server
+  app.post('/api/sync/test-connection', requireAuth, async (req, res) => {
+    try {
+      const { serverUrl, apiKey, username, encryptedPassword } = req.body;
+      
+      const axios = await import('axios');
+      const response = await axios.default.get(`${serverUrl}/api/sync/ping`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'X-Username': username,
+        },
+        timeout: 10000,
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Connection successful",
+        serverVersion: response.data.version,
+      });
+    } catch (error: any) {
+      console.error("Connection test failed:", error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message || "Connection failed" 
+      });
+    }
+  });
+
+  // Get sync history
+  app.get('/api/sync/history', requireAuth, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      const history = await db
+        .select({
+          id: syncHistory.id,
+          configurationId: syncHistory.configurationId,
+          syncType: syncHistory.syncType,
+          syncDirection: syncHistory.syncDirection,
+          status: syncHistory.status,
+          totalRecords: syncHistory.totalRecords,
+          recordsSynced: syncHistory.recordsSynced,
+          recordsFailed: syncHistory.recordsFailed,
+          conflictsDetected: syncHistory.conflictsDetected,
+          totalFiles: syncHistory.totalFiles,
+          filesSynced: syncHistory.filesSynced,
+          startedAt: syncHistory.startedAt,
+          completedAt: syncHistory.completedAt,
+          durationSeconds: syncHistory.durationSeconds,
+          errorMessage: syncHistory.errorMessage,
+          createdAt: syncHistory.createdAt,
+          configuration: {
+            id: syncConfigurations.id,
+            serverName: syncConfigurations.serverName,
+          },
+        })
+        .from(syncHistory)
+        .leftJoin(syncConfigurations, eq(syncHistory.configurationId, syncConfigurations.id))
+        .where(eq(syncHistory.organizationId, req.user!.organizationId))
+        .orderBy(desc(syncHistory.createdAt))
+        .limit(limit);
+      
+      res.json(history);
+    } catch (error) {
+      console.error("Error fetching sync history:", error);
+      res.status(500).json({ error: "Failed to fetch sync history" });
+    }
+  });
+
+  // Get pending conflicts
+  app.get('/api/sync/conflicts', requireAuth, async (req, res) => {
+    try {
+      const conflicts = await db
+        .select()
+        .from(syncConflicts)
+        .where(
+          and(
+            eq(syncConflicts.organizationId, req.user!.organizationId),
+            eq(syncConflicts.status, 'pending')
+          )
+        )
+        .orderBy(desc(syncConflicts.createdAt));
+      
+      res.json(conflicts);
+    } catch (error) {
+      console.error("Error fetching conflicts:", error);
+      res.status(500).json({ error: "Failed to fetch conflicts" });
+    }
+  });
+
+  // Resolve a conflict
+  app.post('/api/sync/conflicts/:id/resolve', requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { resolution, mergedData } = req.body;
+      
+      const [conflict] = await db
+        .update(syncConflicts)
+        .set({
+          status: resolution,
+          resolvedBy: req.user!.id,
+          resolvedAt: new Date(),
+          resolution: req.body.resolutionNote,
+          mergedData: mergedData || null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(syncConflicts.id, id),
+            eq(syncConflicts.organizationId, req.user!.organizationId)
+          )
+        )
+        .returning();
+      
+      if (!conflict) {
+        return res.status(404).json({ error: "Conflict not found" });
+      }
+      
+      res.json(conflict);
+    } catch (error) {
+      console.error("Error resolving conflict:", error);
+      res.status(500).json({ error: "Failed to resolve conflict" });
+    }
+  });
+
+  // Export database to SQL
+  app.post('/api/sync/export/sql', requireAuth, async (req, res) => {
+    try {
+      const { Pool } = await import('pg');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      
+      // Get all table names for the organization
+      const tablesQuery = `
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_type = 'BASE TABLE'
+        ORDER BY table_name;
+      `;
+      
+      const tablesResult = await pool.query(tablesQuery);
+      const tables = tablesResult.rows.map(row => row.table_name);
+      
+      let sqlDump = `-- SQL Export for Organization ${req.user!.organizationId}\n`;
+      sqlDump += `-- Generated: ${new Date().toISOString()}\n\n`;
+      
+      // Export each table
+      for (const table of tables) {
+        // Get table data filtered by organization
+        const dataQuery = `SELECT * FROM ${table} WHERE organization_id = $1`;
+        try {
+          const result = await pool.query(dataQuery, [req.user!.organizationId]);
+          
+          if (result.rows.length > 0) {
+            sqlDump += `\n-- Table: ${table}\n`;
+            
+            for (const row of result.rows) {
+              const columns = Object.keys(row).join(', ');
+              const values = Object.values(row)
+                .map(v => {
+                  if (v === null) return 'NULL';
+                  if (typeof v === 'string') return `'${v.replace(/'/g, "''")}'`;
+                  if (v instanceof Date) return `'${v.toISOString()}'`;
+                  if (typeof v === 'object') return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
+                  return v;
+                })
+                .join(', ');
+              
+              sqlDump += `INSERT INTO ${table} (${columns}) VALUES (${values});\n`;
+            }
+          }
+        } catch (err) {
+          // Skip tables without organization_id column
+          continue;
+        }
+      }
+      
+      await pool.end();
+      
+      res.setHeader('Content-Type', 'application/sql');
+      res.setHeader('Content-Disposition', `attachment; filename="database-export-${Date.now()}.sql"`);
+      res.send(sqlDump);
+    } catch (error) {
+      console.error("Error exporting SQL:", error);
+      res.status(500).json({ error: "Failed to export database" });
+    }
+  });
+
+  // Export database to CSV
+  app.post('/api/sync/export/csv', requireAuth, async (req, res) => {
+    try {
+      const { tableName } = req.body;
+      
+      if (!tableName) {
+        return res.status(400).json({ error: "Table name is required" });
+      }
+      
+      const { Pool } = await import('pg');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      
+      const query = `SELECT * FROM ${tableName} WHERE organization_id = $1`;
+      const result = await pool.query(query, [req.user!.organizationId]);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: "No data found" });
+      }
+      
+      // Convert to CSV
+      const headers = Object.keys(result.rows[0]).join(',');
+      const rows = result.rows.map(row => {
+        return Object.values(row)
+          .map(v => {
+            if (v === null) return '';
+            if (typeof v === 'string') return `"${v.replace(/"/g, '""')}"`;
+            if (v instanceof Date) return v.toISOString();
+            if (typeof v === 'object') return `"${JSON.stringify(v).replace(/"/g, '""')}"`;
+            return v;
+          })
+          .join(',');
+      }).join('\n');
+      
+      const csv = `${headers}\n${rows}`;
+      
+      await pool.end();
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${tableName}-export-${Date.now()}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      res.status(500).json({ error: "Failed to export CSV" });
+    }
+  });
+
+  // Scan files for sync
+  app.get('/api/sync/files/scan', requireAuth, async (req, res) => {
+    try {
+      const crypto = await import('crypto');
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      // Get all files from file_manager table
+      const files = await db
+        .select()
+        .from(fileManager)
+        .where(eq(fileManager.organizationId, req.user!.organizationId));
+      
+      const fileList = [];
+      
+      for (const file of files) {
+        try {
+          const filePath = path.join(process.cwd(), 'uploads', file.filePath);
+          
+          if (fs.existsSync(filePath)) {
+            const stats = fs.statSync(filePath);
+            const fileBuffer = fs.readFileSync(filePath);
+            const checksum = crypto.createHash('md5').update(fileBuffer).digest('hex');
+            
+            fileList.push({
+              id: file.id,
+              name: file.fileName,
+              path: file.filePath,
+              size: stats.size,
+              checksum,
+              updatedAt: file.updatedAt,
+            });
+          }
+        } catch (err) {
+          console.error(`Error processing file ${file.fileName}:`, err);
+        }
+      }
+      
+      res.json({
+        totalFiles: fileList.length,
+        totalSize: fileList.reduce((sum, f) => sum + f.size, 0),
+        files: fileList,
+      });
+    } catch (error) {
+      console.error("Error scanning files:", error);
+      res.status(500).json({ error: "Failed to scan files" });
+    }
+  });
+
+  // Execute sync operation
+  app.post('/api/sync/execute', requireAuth, async (req, res) => {
+    try {
+      const { configurationId, syncType } = req.body;
+      
+      // Get configuration
+      const [config] = await db
+        .select()
+        .from(syncConfigurations)
+        .where(
+          and(
+            eq(syncConfigurations.id, configurationId),
+            eq(syncConfigurations.organizationId, req.user!.organizationId)
+          )
+        );
+      
+      if (!config) {
+        return res.status(404).json({ error: "Configuration not found" });
+      }
+      
+      // Create sync history record
+      const [historyRecord] = await db
+        .insert(syncHistory)
+        .values({
+          organizationId: req.user!.organizationId,
+          configurationId: config.id,
+          syncType,
+          syncDirection: config.syncDirection,
+          exportFormat: config.exportFormat,
+          status: 'in-progress',
+          startedAt: new Date(),
+          initiatedBy: req.user!.id,
+        })
+        .returning();
+      
+      // Return immediately and process sync in background
+      res.json({ 
+        success: true, 
+        syncHistoryId: historyRecord.id,
+        message: "Sync started" 
+      });
+      
+      // Process sync in background
+      (async () => {
+        try {
+          const axios = await import('axios');
+          const startTime = Date.now();
+          
+          // Prepare sync payload
+          let payload: any = {
+            organizationId: req.user!.organizationId,
+            syncType,
+            timestamp: new Date().toISOString(),
+          };
+          
+          if (syncType === 'database' || syncType === 'both') {
+            // Export database based on format
+            if (config.exportFormat === 'sql') {
+              // Generate SQL dump (reuse logic from export endpoint)
+              payload.databaseSql = '-- SQL export would go here';
+            } else {
+              payload.databaseCsv = '-- CSV export would go here';
+            }
+          }
+          
+          if (syncType === 'files' || syncType === 'both') {
+            // Get file list with checksums
+            const crypto = await import('crypto');
+            const fs = await import('fs');
+            const path = await import('path');
+            
+            const files = await db
+              .select()
+              .from(fileManager)
+              .where(eq(fileManager.organizationId, req.user!.organizationId));
+            
+            payload.files = files.map(f => ({
+              id: f.id,
+              name: f.fileName,
+              path: f.filePath,
+              updatedAt: f.updatedAt,
+            }));
+          }
+          
+          // Send to remote server
+          const response = await axios.default.post(
+            `${config.serverUrl}/api/sync/receive`,
+            payload,
+            {
+              headers: {
+                'Authorization': `Bearer ${config.apiKey}`,
+                'Content-Type': 'application/json',
+              },
+              timeout: 300000, // 5 minutes
+            }
+          );
+          
+          const endTime = Date.now();
+          const duration = Math.floor((endTime - startTime) / 1000);
+          
+          // Check for conflicts
+          const conflicts = response.data.conflicts || [];
+          
+          // Save conflicts
+          if (conflicts.length > 0) {
+            for (const conflict of conflicts) {
+              await db.insert(syncConflicts).values({
+                organizationId: req.user!.organizationId,
+                syncHistoryId: historyRecord.id,
+                tableName: conflict.tableName,
+                recordId: conflict.recordId.toString(),
+                conflictType: conflict.type,
+                localData: conflict.localData,
+                remoteData: conflict.remoteData,
+                localTimestamp: conflict.localTimestamp ? new Date(conflict.localTimestamp) : null,
+                remoteTimestamp: conflict.remoteTimestamp ? new Date(conflict.remoteTimestamp) : null,
+                localChecksum: conflict.localChecksum,
+                remoteChecksum: conflict.remoteChecksum,
+              });
+            }
+          }
+          
+          // Update sync history
+          await db
+            .update(syncHistory)
+            .set({
+              status: conflicts.length > 0 ? 'conflict' : 'completed',
+              recordsSynced: response.data.recordsSynced || 0,
+              totalRecords: response.data.totalRecords || 0,
+              conflictsDetected: conflicts.length,
+              completedAt: new Date(),
+              durationSeconds: duration,
+            })
+            .where(eq(syncHistory.id, historyRecord.id));
+          
+          // Update last sync time on configuration
+          await db
+            .update(syncConfigurations)
+            .set({ lastSyncAt: new Date() })
+            .where(eq(syncConfigurations.id, config.id));
+            
+        } catch (error: any) {
+          console.error("Sync failed:", error);
+          
+          // Update history with error
+          await db
+            .update(syncHistory)
+            .set({
+              status: 'failed',
+              errorMessage: error.message,
+              errorDetails: { error: error.toString() },
+              completedAt: new Date(),
+            })
+            .where(eq(syncHistory.id, historyRecord.id));
+        }
+      })();
+      
+    } catch (error) {
+      console.error("Error starting sync:", error);
+      res.status(500).json({ error: "Failed to start sync" });
+    }
+  });
+
+
+  // Proxy endpoint for Google Directions API (security: only allows Google Maps API requests)
+  app.get("/api/proxy-directions", requireAuth, async (req, res) => {
+    try {
+      const { origin, destination } = req.query;
+      
+      if (!origin || !destination || typeof origin !== 'string' || typeof destination !== 'string') {
+        return res.status(400).json({ error: "Origin and destination parameters are required" });
+      }
+      
+      const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+      const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&key=${apiKey}`;
+      
+      const response = await fetch(directionsUrl);
+      const data = await response.json();
+      
+      res.json(data);
+    } catch (error: any) {
+      console.error("Error fetching directions:", error);
+      res.status(500).json({ error: "Failed to fetch directions" });
+    }
+  });
+  // Route Tracking endpoints
+  // Save planned route when technician clicks Directions
+  app.post("/api/routes/planned", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const data = insertPlannedRouteSchema.parse(req.body);
+      
+      const [route] = await db.insert(plannedRoutes).values({
+        ...data,
+        organizationId: user.organizationId,
+        userId: user.id,
+      }).returning();
+      
+      res.json(route);
+    } catch (error: any) {
+      console.error("Error saving planned route:", error);
+      res.status(500).json({ message: "Error saving route: " + error.message });
+    }
+  });
+
+  // Save route waypoints
+  app.post("/api/routes/:routeId/waypoints", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      const waypoints = req.body as InsertRouteWaypoint[];
+      
+      // Verify route belongs to user's organization
+      const route = await db.select().from(plannedRoutes)
+        .where(and(
+          eq(plannedRoutes.id, parseInt(routeId)),
+          eq(plannedRoutes.organizationId, user.organizationId)
+        ))
+        .limit(1);
+      
+      if (!route.length) {
+        return res.status(404).json({ message: "Route not found" });
+      }
+      
+      const saved = await db.insert(routeWaypoints).values(
+        waypoints.map(wp => ({
+          ...wp,
+          routeId: parseInt(routeId),
+          organizationId: user.organizationId,
+        }))
+      ).returning();
+      
+      res.json(saved);
+    } catch (error: any) {
+      console.error("Error saving waypoints:", error);
+      res.status(500).json({ message: "Error saving waypoints: " + error.message });
+    }
+  });
+
+  // Get planned routes for user or organization
+  app.get("/api/routes/planned", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const isAdmin = user.role === 'admin' || user.role === 'manager';
+      const { userId, status } = req.query;
+      
+      let conditions = [eq(plannedRoutes.organizationId, user.organizationId)];
+      
+      if (!isAdmin) {
+        conditions.push(eq(plannedRoutes.userId, user.id));
+      } else if (userId) {
+        conditions.push(eq(plannedRoutes.userId, parseInt(userId as string)));
+      }
+      
+      if (status) {
+        conditions.push(eq(plannedRoutes.status, status as string));
+      }
+      
+      const routes = await db.select().from(plannedRoutes)
+        .where(and(...conditions))
+        .orderBy(desc(plannedRoutes.createdAt))
+        .limit(100);
+      
+      res.json(routes);
+    } catch (error: any) {
+      console.error("Error fetching routes:", error);
+      res.status(500).json({ message: "Error fetching routes: " + error.message });
+    }
+  });
+
+  // Get route waypoints
+  app.get("/api/routes/:routeId/waypoints", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      const waypoints = await db.select().from(routeWaypoints)
+        .where(and(
+          eq(routeWaypoints.routeId, parseInt(routeId)),
+          eq(routeWaypoints.organizationId, user.organizationId)
+        ))
+        .orderBy(routeWaypoints.stepNumber);
+      
+      res.json(waypoints);
+    } catch (error: any) {
+      console.error("Error fetching waypoints:", error);
+      res.status(500).json({ message: "Error fetching waypoints: " + error.message });
+    }
+  });
+
+  // Update route status
+  app.patch("/api/routes/:routeId/status", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      const { status, startedAt, completedAt } = req.body;
+      
+      const [updated] = await db.update(plannedRoutes)
+        .set({
+          status,
+          startedAt: startedAt ? new Date(startedAt) : undefined,
+          completedAt: completedAt ? new Date(completedAt) : undefined,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(plannedRoutes.id, parseInt(routeId)),
+          eq(plannedRoutes.organizationId, user.organizationId)
+        ))
+        .returning();
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating route status:", error);
+      res.status(500).json({ message: "Error updating status: " + error.message });
+    }
+  });
+
+  // Log route deviation
+  app.post("/api/routes/:routeId/deviations", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      const data = insertRouteDeviationSchema.parse(req.body);
+      
+      const [deviation] = await db.insert(routeDeviations).values({
+        ...data,
+        routeId: parseInt(routeId),
+        organizationId: user.organizationId,
+        userId: user.id,
+      }).returning();
+      
+      // Update deviation count on route
+      await db.update(plannedRoutes)
+        .set({
+          deviationCount: sql`${plannedRoutes.deviationCount} + 1`,
+        })
+        .where(eq(plannedRoutes.id, parseInt(routeId)));
+      
+      res.json(deviation);
+    } catch (error: any) {
+      console.error("Error logging deviation:", error);
+      res.status(500).json({ message: "Error logging deviation: " + error.message });
+    }
+  });
+
+  // Log route stop
+  app.post("/api/routes/:routeId/stops", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      const data = insertRouteStopSchema.parse(req.body);
+      
+      const [stop] = await db.insert(routeStops).values({
+        ...data,
+        routeId: parseInt(routeId),
+        organizationId: user.organizationId,
+        userId: user.id,
+      }).returning();
+      
+      // Update stop count on route
+      await db.update(plannedRoutes)
+        .set({
+          stopCount: sql`${plannedRoutes.stopCount} + 1`,
+        })
+        .where(eq(plannedRoutes.id, parseInt(routeId)));
+      
+      res.json(stop);
+    } catch (error: any) {
+      console.error("Error logging stop:", error);
+      res.status(500).json({ message: "Error logging stop: " + error.message });
+    }
+  });
+
+  // Get route deviations
+  app.get("/api/routes/:routeId/deviations", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      const deviations = await db.select().from(routeDeviations)
+        .where(and(
+          eq(routeDeviations.routeId, parseInt(routeId)),
+          eq(routeDeviations.organizationId, user.organizationId)
+        ))
+        .orderBy(desc(routeDeviations.detectedAt));
+      
+      res.json(deviations);
+    } catch (error: any) {
+      console.error("Error fetching deviations:", error);
+      res.status(500).json({ message: "Error fetching deviations: " + error.message });
+    }
+  });
+
+  // Get route stops
+  app.get("/api/routes/:routeId/stops", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      const stops = await db.select().from(routeStops)
+        .where(and(
+          eq(routeStops.routeId, parseInt(routeId)),
+          eq(routeStops.organizationId, user.organizationId)
+        ))
+        .orderBy(desc(routeStops.startedAt));
+      
+      res.json(stops);
+    } catch (error: any) {
+      console.error("Error fetching stops:", error);
+      res.status(500).json({ message: "Error fetching stops: " + error.message });
+    }
+  });
+
+  // Start route monitoring (called when technician starts driving)
+  app.post("/api/routes/:routeId/start-monitoring", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      // Verify route belongs to user's organization
+      const [route] = await db.select().from(plannedRoutes)
+        .where(and(
+          eq(plannedRoutes.id, parseInt(routeId)),
+          eq(plannedRoutes.organizationId, user.organizationId)
+        ));
+      
+      if (!route) {
+        return res.status(404).json({ message: "Route not found" });
+      }
+      
+      // Start monitoring
+      await routeMonitoringService.startMonitoring(parseInt(routeId), user.organizationId);
+      
+      res.json({ message: "Route monitoring started", routeId });
+    } catch (error: any) {
+      console.error("Error starting route monitoring:", error);
+      res.status(500).json({ message: "Error starting monitoring: " + error.message });
+    }
+  });
+
+  // Stop route monitoring (called when technician arrives)
+  app.post("/api/routes/:routeId/stop-monitoring", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      // Stop monitoring and calculate final metrics
+      await routeMonitoringService.stopMonitoring(parseInt(routeId), user.organizationId);
+      
+      res.json({ message: "Route monitoring stopped", routeId });
+    } catch (error: any) {
+      console.error("Error stopping route monitoring:", error);
+      res.status(500).json({ message: "Error stopping monitoring: " + error.message });
+    }
+  });
+
+  // Get route performance comparison (estimated vs actual)
+  app.get("/api/routes/:routeId/performance", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { routeId } = req.params;
+      
+      const [routeData] = await db.select({
+        route: plannedRoutes,
+        vehicle: vehicles,
+        deviationCount: sql<number>`(SELECT COUNT(*) FROM ${routeDeviations} WHERE ${routeDeviations.routeId} = ${plannedRoutes.id})`,
+        stopCount: sql<number>`(SELECT COUNT(*) FROM ${routeStops} WHERE ${routeStops.routeId} = ${plannedRoutes.id})`,
+      })
+      .from(plannedRoutes)
+      .leftJoin(vehicles, eq(plannedRoutes.vehicleId, vehicles.id))
+      .where(and(
+        eq(plannedRoutes.id, parseInt(routeId)),
+        eq(plannedRoutes.organizationId, user.organizationId)
+      ));
+      
+      if (!routeData) {
+        return res.status(404).json({ message: "Route not found" });
+      }
+      
+      const { route, vehicle } = routeData;
+      
+      // Calculate performance metrics
+      const distanceVariance = route.actualDistance 
+        ? ((parseFloat(route.actualDistance) - parseFloat(route.totalDistance || '0')) / parseFloat(route.totalDistance || '1')) * 100
+        : null;
+      
+      const durationVariance = route.actualDuration
+        ? ((route.actualDuration - (route.estimatedDuration || 0)) / (route.estimatedDuration || 1)) * 100
+        : null;
+      
+      const fuelCostVariance = route.actualFuelCost
+        ? ((parseFloat(route.actualFuelCost) - parseFloat(route.estimatedFuelCost || '0')) / parseFloat(route.estimatedFuelCost || '1')) * 100
+        : null;
+      
+      res.json({
+        route: {
+          id: route.id,
+          status: route.status,
+          startedAt: route.startedAt,
+          completedAt: route.completedAt,
+        },
+        estimated: {
+          distance: parseFloat(route.totalDistance || '0'),
+          duration: route.estimatedDuration,
+          fuelCost: parseFloat(route.estimatedFuelCost || '0'),
+          fuelUsage: parseFloat(route.estimatedFuelUsage || '0'),
+        },
+        actual: {
+          distance: route.actualDistance ? parseFloat(route.actualDistance) : null,
+          duration: route.actualDuration,
+          fuelCost: route.actualFuelCost ? parseFloat(route.actualFuelCost) : null,
+          fuelUsage: route.actualFuelUsage ? parseFloat(route.actualFuelUsage) : null,
+        },
+        variance: {
+          distance: distanceVariance,
+          duration: durationVariance,
+          fuelCost: fuelCostVariance,
+        },
+        incidents: {
+          deviations: routeData.deviationCount,
+          stops: routeData.stopCount,
+        },
+        vehicle: vehicle ? {
+          vehicleNumber: vehicle.vehicleNumber,
+          mpg: vehicle.mpg,
+        } : null,
+      });
+    } catch (error: any) {
+      console.error("Error fetching route performance:", error);
+      res.status(500).json({ message: "Error fetching performance: " + error.message });
+    }
+  });
+
+
+
+  // Route Deviations Report API
+  app.get("/api/route-deviations", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+      
+      // Parse date range
+      const { startDate: startParam, endDate: endParam } = req.query;
+      const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endDate = endParam ? new Date(endParam as string) : new Date();
+      
+      // Fetch route deviations with associated route, project, vehicle, and user info
+      const deviations = await db
+        .select({
+          deviation: routeDeviations,
+          route: plannedRoutes,
+          project: projects,
+          vehicle: vehicles,
+          user: users,
+        })
+        .from(routeDeviations)
+        .leftJoin(plannedRoutes, eq(routeDeviations.routeId, plannedRoutes.id))
+        .leftJoin(projects, eq(plannedRoutes.jobId, projects.id))
+        .leftJoin(vehicles, eq(plannedRoutes.vehicleId, vehicles.id))
+        .leftJoin(users, eq(routeDeviations.userId, users.id))
+        .where(and(
+          eq(routeDeviations.organizationId, organizationId),
+          gte(routeDeviations.detectedAt, startDate),
+          lte(routeDeviations.detectedAt, endDate)
+        ))
+        .orderBy(desc(routeDeviations.detectedAt));
+      
+      // For each deviation, get all technicians assigned to active jobs on that vehicle
+      const deviationsWithTechnicians = await Promise.all(
+        deviations.map(async (d) => {
+          let technicianNames: string[] = [];
+          
+          if (d.vehicle) {
+            // Find all active projects assigned to this vehicle at the time of deviation
+            const activeProjectsWithUsers = await db
+              .select({
+                assignedUser: users,
+              })
+              .from(projects)
+              .leftJoin(users, eq(projects.assignedUserId, users.id))
+              .where(and(
+                eq(projects.vehicleId, d.vehicle.id),
+                eq(projects.status, 'in_progress'),
+                eq(projects.organizationId, organizationId)
+              ));
+
+            // Get unique technicians
+            const uniqueTechs = activeProjectsWithUsers
+              .filter(p => p.assignedUser)
+              .map(p => `${p.assignedUser!.firstName} ${p.assignedUser!.lastName}`)
+              .filter((tech, index, self) => self.indexOf(tech) === index);
+            
+            technicianNames = uniqueTechs;
+          }
+          
+          // Fallback to route's assigned user if no active projects found
+          if (technicianNames.length === 0 && d.user) {
+            technicianNames = [`${d.user.firstName} ${d.user.lastName}`];
+          }
+          
+          return {
+            id: d.deviation.id,
+            routeId: d.deviation.routeId,
+            deviationType: d.deviation.deviationType,
+            latitude: d.deviation.latitude,
+            longitude: d.deviation.longitude,
+            address: d.deviation.address,
+            distanceFromRoute: d.deviation.distanceFromRoute,
+            detectedAt: d.deviation.detectedAt,
+            resolvedAt: d.deviation.resolvedAt,
+            durationMinutes: d.deviation.durationMinutes,
+            vehicleNumber: d.vehicle?.vehicleNumber || null,
+            licensePlate: d.vehicle?.licensePlate || null,
+            jobName: d.project?.jobName || null,
+            technicians: technicianNames,
+          };
+        })
+      );
+      
+      res.json(deviationsWithTechnicians);
+    } catch (error: any) {
+      console.error("Error fetching route deviations:", error);
+      res.status(500).json({ message: "Error fetching route deviations: " + error.message });
+    }
+  });
+
+
+  // Job Activity Report API - Start/Stop button tracking
+  app.get("/api/reports/job-activity", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+      
+      const { startDate: startParam, endDate: endParam } = req.query;
+      const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endDate = endParam ? new Date(endParam as string) : new Date();
+      
+      // Count jobs started (status changed to in_progress) and completed per technician
+      const jobActivity = await db
+        .select({
+          userId: projects.assignedUserId,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          position: users.position,
+          jobStartCount: sql<number>`COUNT(CASE WHEN ${projects.status} IN ('in_progress', 'completed') THEN 1 END)`,
+          autoStartCount: sql<number>`COUNT(CASE WHEN ${projects.autoStartedAt} IS NOT NULL THEN 1 END)`,
+          autoStopCount: sql<number>`COUNT(CASE WHEN ${projects.autoCompletedAt} IS NOT NULL THEN 1 END)`,
+          jobStopCount: sql<number>`COUNT(CASE WHEN ${projects.status} = 'completed' THEN 1 END)`,
+        })
+        .from(projects)
+        .leftJoin(users, eq(projects.assignedUserId, users.id))
+        .where(and(
+          eq(projects.organizationId, organizationId),
+          gte(projects.updatedAt, startDate),
+          lte(projects.updatedAt, endDate),
+          isNotNull(projects.assignedUserId)
+        ))
+        .groupBy(projects.assignedUserId, users.firstName, users.lastName, users.position)
+        .orderBy(desc(sql`COUNT(CASE WHEN ${projects.status} IN ('in_progress', 'completed') THEN 1 END)`));
+      
+      const formattedActivity = jobActivity.map(a => ({
+        userId: a.userId,
+        technicianName: `${a.firstName} ${a.lastName}`,
+        position: a.position,
+        jobStartCount: Number(a.jobStartCount),
+        autoStartCount: Number(a.autoStartCount),
+        autoStopCount: Number(a.autoStopCount),
+        jobStopCount: Number(a.jobStopCount),
+      }));
+      
+      res.json(formattedActivity);
+    } catch (error: any) {
+      console.error("Error fetching job activity:", error);
+      res.status(500).json({ message: "Error fetching job activity: " + error.message });
+    }
+  });
+
+  // Documentation Compliance Report API - Photos and Signatures
+  app.get("/api/reports/documentation-compliance", requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const organizationId = user.organizationId;
+      
+      const { startDate: startParam, endDate: endParam } = req.query;
+      const startDate = startParam ? new Date(startParam as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const endDate = endParam ? new Date(endParam as string) : new Date();
+      
+      // Get ALL active users in the organization
+      const allUsers = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        })
+        .from(users)
+        .where(and(
+          eq(users.organizationId, organizationId),
+          eq(users.isActive, true)
+        ));
+      
+      // Initialize stats for ALL users
+      const technicianStats = new Map<number, {
+        firstName: string;
+        lastName: string;
+        totalJobs: number;
+        jobsWithPhotos: Set<number>;
+        jobsWithSignatures: Set<number>;
+      }>();
+      
+      for (const techUser of allUsers) {
+        technicianStats.set(techUser.id, {
+          firstName: techUser.firstName,
+          lastName: techUser.lastName,
+          totalJobs: 0,
+          jobsWithPhotos: new Set(),
+          jobsWithSignatures: new Set(),
+        });
+      }
+      
+      // Get all completed projects in the date range
+      const completedProjects = await db
+        .select({
+          id: projects.id,
+          userId: projects.userId,
+        })
+        .from(projects)
+        .where(and(
+          eq(projects.organizationId, organizationId),
+          eq(projects.status, 'completed'),
+          gte(projects.updatedAt, startDate),
+          lte(projects.updatedAt, endDate),
+          isNotNull(projects.userId)
+        ));
+      
+      // Update stats for users who have completed jobs
+      for (const project of completedProjects) {
+        if (!project.userId || !technicianStats.has(project.userId)) continue;
+        
+        const stats = technicianStats.get(project.userId)!;
+        stats.totalJobs++;
+        
+        // Check if project has photos
+        const photos = await db
+          .select()
+          .from(projectFiles)
+          .where(and(
+            eq(projectFiles.projectId, project.id),
+            eq(projectFiles.fileType, 'image')
+          ))
+          .limit(1);
+        
+        if (photos.length > 0) {
+          stats.jobsWithPhotos.add(project.id);
+        }
+        
+        // Check if project has signatures
+        const signatures = await db
+          .select()
+          .from(projectFiles)
+          .where(and(
+            eq(projectFiles.projectId, project.id),
+            eq(projectFiles.signatureStatus, 'completed')
+          ))
+          .limit(1);
+        
+        if (signatures.length > 0) {
+          stats.jobsWithSignatures.add(project.id);
+        }
+      }
+      
+      // Format response - now includes ALL users even with 0 jobs
+      const formattedCompliance = Array.from(technicianStats.entries()).map(([userId, stats]) => ({
+        userId,
+        technicianName: `${stats.firstName} ${stats.lastName}`,
+        totalJobs: stats.totalJobs,
+        jobsWithPhotos: stats.jobsWithPhotos.size,
+        jobsWithSignatures: stats.jobsWithSignatures.size,
+      }))
+      .sort((a, b) => b.totalJobs - a.totalJobs);
+      
+      res.json(formattedCompliance);
+    } catch (error: any) {
+      console.error("Error fetching documentation compliance:", error);
+      res.status(500).json({ message: "Error fetching documentation compliance: " + error.message });
+    }
+
+  });
   return httpServer;
 }
 

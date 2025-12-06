@@ -2022,18 +2022,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Blur Settings API routes - Control which settings sections are blurred per organization
   // Get blur settings for current organization
+  // Get blur settings for current user's organization (combines global + per-org with super admin bypass)
   app.get('/api/settings/blur', requireAuth, async (req, res) => {
     try {
       const user = getAuthenticatedUser(req);
-      const [settings] = await db
+      
+      // Super admin bypass - users with canAccessSaasAdmin see no blur
+      if ((user as any).canAccessSaasAdmin === true) {
+        return res.json({
+          organizationId: user.organizationId,
+          blurEmailSettings: false,
+          blurTwilioSettings: false,
+          blurOcrSettings: false,
+          blurStripeSettings: false,
+          blurApiSettings: false,
+          blurBackupSettings: false,
+          blurDeploySettings: false,
+          blurAnalyticsSettings: false,
+          blurMessage: null,
+          tabVisibility: {},
+          isSuperAdmin: true
+        });
+      }
+      
+      // Fetch global blur settings from settings table
+      const globalSettings = await db
+        .select()
+        .from(settings)
+        .where(and(
+          isNull(settings.organizationId),
+          eq(settings.category, 'global_blur')
+        ));
+      
+      const globalBlur: Record<string, any> = {};
+      for (const setting of globalSettings) {
+        if (setting.key === 'blurMessage') {
+          globalBlur[setting.key] = setting.value;
+        } else if (setting.key === 'tabVisibility') {
+          try {
+            globalBlur[setting.key] = JSON.parse(setting.value || '{}');
+          } catch {
+            globalBlur[setting.key] = {};
+          }
+        } else {
+          globalBlur[setting.key] = setting.value === 'true';
+        }
+      }
+      
+      // Fetch per-org blur settings
+      const [orgSettings] = await db
         .select()
         .from(blurSettings)
         .where(eq(blurSettings.organizationId, user.organizationId))
         .limit(1);
       
-      // Return defaults if no settings exist (all sections blurred by default)
-      res.json(settings || {
-        organizationId: user.organizationId,
+      // Merge: per-org overrides global, with defaults
+      const defaults = {
         blurEmailSettings: true,
         blurTwilioSettings: true,
         blurOcrSettings: true,
@@ -2042,8 +2086,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         blurBackupSettings: true,
         blurDeploySettings: true,
         blurAnalyticsSettings: true,
-        blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.'
-      });
+        blurMessage: 'This feature is restricted for your organization. Contact your administrator for access.',
+        tabVisibility: {}
+      };
+      
+      // Priority: per-org settings > global settings > defaults
+      const merged = {
+        organizationId: user.organizationId,
+        blurEmailSettings: orgSettings?.blurEmailSettings ?? globalBlur.blurEmailSettings ?? defaults.blurEmailSettings,
+        blurTwilioSettings: orgSettings?.blurTwilioSettings ?? globalBlur.blurTwilioSettings ?? defaults.blurTwilioSettings,
+        blurOcrSettings: orgSettings?.blurOcrSettings ?? globalBlur.blurOcrSettings ?? defaults.blurOcrSettings,
+        blurStripeSettings: orgSettings?.blurStripeSettings ?? globalBlur.blurStripeSettings ?? defaults.blurStripeSettings,
+        blurApiSettings: orgSettings?.blurApiSettings ?? globalBlur.blurApiSettings ?? defaults.blurApiSettings,
+        blurBackupSettings: orgSettings?.blurBackupSettings ?? globalBlur.blurBackupSettings ?? defaults.blurBackupSettings,
+        blurDeploySettings: orgSettings?.blurDeploySettings ?? globalBlur.blurDeploySettings ?? defaults.blurDeploySettings,
+        blurAnalyticsSettings: orgSettings?.blurAnalyticsSettings ?? globalBlur.blurAnalyticsSettings ?? defaults.blurAnalyticsSettings,
+        blurMessage: orgSettings?.blurMessage ?? globalBlur.blurMessage ?? defaults.blurMessage,
+        tabVisibility: orgSettings?.tabVisibility ?? globalBlur.tabVisibility ?? defaults.tabVisibility,
+        isSuperAdmin: false
+      };
+      
+      res.json(merged);
     } catch (error: any) {
       console.error('Error fetching blur settings:', error);
       res.status(500).json({ message: 'Failed to fetch blur settings' });
@@ -2165,6 +2228,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // ============================================
+  // GLOBAL BLUR SETTINGS API ROUTES (SaaS Admin Only)
+  // ============================================
+
+  // Get global blur settings (applies to all organizations)
+  app.get('/api/admin/global-blur-settings', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only allow SaaS admins (profieldmanager organization)
+      if (!(user as any).canAccessSaasAdmin) {
+        return res.status(403).json({ message: 'Only SaaS administrators can access global blur settings' });
+      }
+      
+      // Fetch global blur settings from settings table
+      const globalSettings = await db
+        .select()
+        .from(settings)
+        .where(and(
+          isNull(settings.organizationId),
+          eq(settings.category, 'global_blur')
+        ));
+      
+      const result: Record<string, any> = {
+        blurEmailSettings: false,
+        blurTwilioSettings: false,
+        blurOcrSettings: false,
+        blurStripeSettings: false,
+        blurApiSettings: false,
+        blurBackupSettings: false,
+        blurDeploySettings: false,
+        blurAnalyticsSettings: false,
+        blurMessage: 'This feature is restricted. Contact your administrator for access.',
+        tabVisibility: {}
+      };
+      
+      for (const setting of globalSettings) {
+        if (setting.key === 'blurMessage') {
+          result[setting.key] = setting.value;
+        } else if (setting.key === 'tabVisibility') {
+          try {
+            result[setting.key] = JSON.parse(setting.value || '{}');
+          } catch {
+            result[setting.key] = {};
+          }
+        } else {
+          result[setting.key] = setting.value === 'true';
+        }
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error fetching global blur settings:', error);
+      res.status(500).json({ message: 'Failed to fetch global blur settings' });
+    }
+  });
+
+  // Update global blur settings (applies to all organizations)
+  app.put('/api/admin/global-blur-settings', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      
+      // Only allow SaaS admins (profieldmanager organization)
+      if (!(user as any).canAccessSaasAdmin) {
+        return res.status(403).json({ message: 'Only SaaS administrators can modify global blur settings' });
+      }
+      
+      const {
+        blurEmailSettings,
+        blurTwilioSettings,
+        blurOcrSettings,
+        blurStripeSettings,
+        blurApiSettings,
+        blurBackupSettings,
+        blurDeploySettings,
+        blurAnalyticsSettings,
+        blurMessage,
+        tabVisibility
+      } = req.body;
+      
+      // Delete existing global blur settings
+      await db
+        .delete(settings)
+        .where(and(
+          isNull(settings.organizationId),
+          eq(settings.category, 'global_blur')
+        ));
+      
+      // Insert new global blur settings
+      const settingsToInsert = [
+        { category: 'global_blur', key: 'blurEmailSettings', value: String(blurEmailSettings ?? false) },
+        { category: 'global_blur', key: 'blurTwilioSettings', value: String(blurTwilioSettings ?? false) },
+        { category: 'global_blur', key: 'blurOcrSettings', value: String(blurOcrSettings ?? false) },
+        { category: 'global_blur', key: 'blurStripeSettings', value: String(blurStripeSettings ?? false) },
+        { category: 'global_blur', key: 'blurApiSettings', value: String(blurApiSettings ?? false) },
+        { category: 'global_blur', key: 'blurBackupSettings', value: String(blurBackupSettings ?? false) },
+        { category: 'global_blur', key: 'blurDeploySettings', value: String(blurDeploySettings ?? false) },
+        { category: 'global_blur', key: 'blurAnalyticsSettings', value: String(blurAnalyticsSettings ?? false) },
+        { category: 'global_blur', key: 'blurMessage', value: blurMessage || 'This feature is restricted. Contact your administrator for access.' },
+        { category: 'global_blur', key: 'tabVisibility', value: JSON.stringify(tabVisibility || {}) }
+      ];
+      
+      for (const setting of settingsToInsert) {
+        await db.insert(settings).values({
+          organizationId: null,
+          category: setting.category,
+          key: setting.key,
+          value: setting.value,
+          isSecret: false
+        });
+      }
+      
+      res.json({ message: 'Global blur settings updated successfully' });
+    } catch (error: any) {
+      console.error('Error updating global blur settings:', error);
+      res.status(500).json({ message: 'Failed to update global blur settings' });
+    }
+  });
   
   // COMPLETELY STEALTH AUTH ENDPOINT - Looks like regular data validation
 
