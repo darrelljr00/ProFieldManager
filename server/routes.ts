@@ -11686,57 +11686,62 @@ ${fromName || ''}
       
       console.log("Expense creation request:", { userId, expenseData });
       
-      // Handle file upload
+      // Handle file upload via Cloudinary (with local fallback)
       let receiptUrl = null;
       let receiptData = null;
       
       if (req.file) {
         const user = getAuthenticatedUser(req);
-        let finalFileName = req.file.filename;
-        let sourcePath = req.file.path;
-
-        // Apply compression if it's an image file
-        const isImageFile = /\.(jpeg|jpg|png|gif|webp)$/i.test(req.file.originalname);
-        if (isImageFile) {
-          const originalPath = req.file.path;
-          const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
-          const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
-          
-          // Try to apply compression
-          const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
-          
-          if (compressionResult.success) {
-            // Use compressed image
-            finalFileName = compressedFilename;
-            sourcePath = compressedPath;
-            console.log(`✅ Expense receipt compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
-            // Clean up original file
-            try {
-              await fs.unlink(originalPath);
-            } catch (e) { /* ignore cleanup errors */ }
-          } else {
-            console.log(`❌ Expense receipt compression failed: ${compressionResult.error}`);
-          }
-        }
-
-        // Create org folder structure and move file from temp to org directory
-        await createOrgFolderStructure(user.organizationId);
-        const destDir = getOrgUploadDir(user.organizationId, 'receipt_images');
-        const destPath = path.join(destDir, finalFileName);
         
-        try {
-          await fs.rename(sourcePath, destPath);
-          console.log(`✅ Moved receipt to: ${destPath}`);
-        } catch (moveError) {
-          console.error('Failed to move receipt file:', moveError);
-          // Try copy + delete as fallback (for cross-device moves)
-          await fs.copyFile(sourcePath, destPath);
-          await fs.unlink(sourcePath);
-          console.log(`✅ Copied receipt to: ${destPath}`);
+        // Check if Cloudinary is configured
+        if (CloudinaryService.isConfigured()) {
+          // Read the file buffer
+          const fileBuffer = await fs.readFile(req.file.path);
+          
+          console.log(`📤 Uploading expense receipt to Cloudinary - File: ${req.file.originalname}, Size: ${fileBuffer.length} bytes`);
+          
+          // Upload to Cloudinary
+          const cloudinaryResult = await CloudinaryService.uploadImage(fileBuffer, {
+            folder: 'receipt-images',
+            filename: req.file.originalname,
+            organizationId: user.organizationId,
+            quality: 80,
+            maxWidth: 2000,
+            maxHeight: 2000
+          });
+          
+          if (cloudinaryResult.success) {
+            console.log(`✅ Expense receipt uploaded to Cloudinary: ${cloudinaryResult.secureUrl}`);
+            receiptUrl = cloudinaryResult.secureUrl;
+            receiptData = `Receipt uploaded: ${req.file.originalname}`;
+          } else {
+            console.error('❌ Cloudinary expense receipt upload failed:', cloudinaryResult.error);
+            return res.status(500).json({ message: "Failed to upload receipt image" });
+          }
+          
+          // Clean up temp file after successful upload
+          try {
+            await fs.unlink(req.file.path);
+          } catch (e) { /* ignore cleanup errors */ }
+        } else {
+          // Fallback to local storage if Cloudinary not configured
+          console.log('⚠️ Cloudinary not configured, using local storage for expense receipt');
+          await createOrgFolderStructure(user.organizationId);
+          const destDir = getOrgUploadDir(user.organizationId, 'receipt_images');
+          const destPath = path.join(destDir, req.file.filename);
+          
+          try {
+            await fs.rename(req.file.path, destPath);
+            console.log(`✅ Moved receipt to: ${destPath}`);
+          } catch (moveError) {
+            await fs.copyFile(req.file.path, destPath);
+            await fs.unlink(req.file.path);
+            console.log(`✅ Copied receipt to: ${destPath}`);
+          }
+          
+          receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${req.file.filename}`;
+          receiptData = `Receipt uploaded: ${req.file.originalname}`;
         }
-
-        receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${finalFileName}`;
-        receiptData = `Receipt uploaded: ${req.file.originalname}`;
       }
 
       const expense = await storage.createExpense({
@@ -11777,57 +11782,63 @@ ${fromName || ''}
       
       console.log("Expense update request:", { expenseId, userId, expenseData });
       
-      // Handle file upload
+      // Handle file upload via Cloudinary (with local fallback)
+      // Keep as undefined so existing receiptUrl is preserved if no new file uploaded
       let receiptUrl = undefined;
       let receiptData = undefined;
       
       if (req.file) {
         const user = getAuthenticatedUser(req);
-        let finalFileName = req.file.filename;
-        let sourcePath = req.file.path;
-
-        // Apply compression if it's an image file
-        const isImageFile = /\.(jpeg|jpg|png|gif|webp)$/i.test(req.file.originalname);
-        if (isImageFile) {
-          const originalPath = req.file.path;
-          const compressedFilename = `compressed-${req.file.filename.replace(path.extname(req.file.filename), '.jpg')}`;
-          const compressedPath = path.join(path.dirname(originalPath), compressedFilename);
-          
-          // Try to apply compression
-          const compressionResult = await compressImage(originalPath, compressedPath, user.organizationId);
-          
-          if (compressionResult.success) {
-            // Use compressed image
-            finalFileName = compressedFilename;
-            sourcePath = compressedPath;
-            console.log(`✅ Expense receipt update compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
-            // Clean up original file
-            try {
-              await fs.unlink(originalPath);
-            } catch (e) { /* ignore cleanup errors */ }
-          } else {
-            console.log(`❌ Expense receipt update compression failed: ${compressionResult.error}`);
-          }
-        }
-
-        // Create org folder structure and move file from temp to org directory
-        await createOrgFolderStructure(user.organizationId);
-        const destDir = getOrgUploadDir(user.organizationId, 'receipt_images');
-        const destPath = path.join(destDir, finalFileName);
         
-        try {
-          await fs.rename(sourcePath, destPath);
-          console.log(`✅ Moved receipt to: ${destPath}`);
-        } catch (moveError) {
-          console.error('Failed to move receipt file:', moveError);
-          // Try copy + delete as fallback (for cross-device moves)
-          await fs.copyFile(sourcePath, destPath);
-          await fs.unlink(sourcePath);
-          console.log(`✅ Copied receipt to: ${destPath}`);
+        // Check if Cloudinary is configured
+        if (CloudinaryService.isConfigured()) {
+          // Read the file buffer
+          const fileBuffer = await fs.readFile(req.file.path);
+          
+          console.log(`📤 Uploading expense receipt update to Cloudinary - File: ${req.file.originalname}, Size: ${fileBuffer.length} bytes`);
+          
+          // Upload to Cloudinary
+          const cloudinaryResult = await CloudinaryService.uploadImage(fileBuffer, {
+            folder: 'receipt-images',
+            filename: req.file.originalname,
+            organizationId: user.organizationId,
+            quality: 80,
+            maxWidth: 2000,
+            maxHeight: 2000
+          });
+          
+          if (cloudinaryResult.success) {
+            console.log(`✅ Expense receipt update uploaded to Cloudinary: ${cloudinaryResult.secureUrl}`);
+            receiptUrl = cloudinaryResult.secureUrl;
+            receiptData = `Receipt uploaded: ${req.file.originalname}`;
+          } else {
+            console.error('❌ Cloudinary expense receipt update upload failed:', cloudinaryResult.error);
+            return res.status(500).json({ message: "Failed to upload receipt image" });
+          }
+          
+          // Clean up temp file after successful upload
+          try {
+            await fs.unlink(req.file.path);
+          } catch (e) { /* ignore cleanup errors */ }
+        } else {
+          // Fallback to local storage if Cloudinary not configured
+          console.log('⚠️ Cloudinary not configured, using local storage for expense receipt update');
+          await createOrgFolderStructure(user.organizationId);
+          const destDir = getOrgUploadDir(user.organizationId, 'receipt_images');
+          const destPath = path.join(destDir, req.file.filename);
+          
+          try {
+            await fs.rename(req.file.path, destPath);
+            console.log(`✅ Moved receipt to: ${destPath}`);
+          } catch (moveError) {
+            await fs.copyFile(req.file.path, destPath);
+            await fs.unlink(req.file.path);
+            console.log(`✅ Copied receipt to: ${destPath}`);
+          }
+          
+          receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${req.file.filename}`;
+          receiptData = `Receipt uploaded: ${req.file.originalname}`;
         }
-
-        receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${finalFileName}`;
-        receiptData = `Receipt uploaded: ${req.file.originalname}`;
       }
 
       const updateData: any = {
