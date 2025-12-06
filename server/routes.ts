@@ -24373,6 +24373,10 @@ ${fromName || ''}
   const { registerTechnicianDailyFlowRoutes } = await import("./routes/technicianDailyFlow");
   registerTechnicianDailyFlowRoutes(app);
 
+  // Technician End of Day Routes
+  const { registerTechnicianEndOfDayRoutes } = await import("./routes/technicianEndOfDay");
+  registerTechnicianEndOfDayRoutes(app);
+
   // Technician Inventory Routes
   const { registerTechnicianInventoryRoutes } = await import("./routes/technicianInventory");
   registerTechnicianInventoryRoutes(app);

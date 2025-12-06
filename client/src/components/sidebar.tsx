@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Rocket, GraduationCap, ClipboardCheck, Package } from "lucide-react";
+import { Rocket, GraduationCap, ClipboardCheck, Package, Moon } from "lucide-react";
 import {
   FileText,
   BarChart3,
@@ -540,6 +540,12 @@ export function Sidebar() {
       name: "Daily Flow",
       href: "/daily-flow",
       icon: ClipboardCheck,
+      requiresAuth: true,
+    }] : []),
+    ...(systemSettings?.enableDailyFlow !== "false" ? [{
+      name: "End of Day",
+      href: "/end-of-day",
+      icon: Moon,
       requiresAuth: true,
     }] : []),
     ...(user?.role === "admin" || user?.role === "manager"

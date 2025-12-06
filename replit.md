@@ -63,6 +63,16 @@ Preferred communication style: Simple, everyday language.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
 ## Recent Updates (Dec 6, 2025)
+- **End of Day Daily Flow System**:
+  - Created 4-step end-of-day workflow wizard for field technicians: Clean Vehicle, Store Tools & Supplies, Post Vehicle Inspection, Return Gas Card
+  - Added `technician_end_of_day_sessions` database table for tracking daily session progress
+  - Created `server/routes/technicianEndOfDay.ts` with API routes (GET/PATCH/POST) for session management
+  - Created `client/src/pages/technician-end-of-day.tsx` with step-by-step wizard UI matching Daily Flow design
+  - Added `client/src/components/EndOfDayWidget.tsx` for dashboard to prompt technicians to complete end-of-day checklist
+  - Added "End of Day" sidebar navigation item with Moon icon
+  - Each step links to existing systems (vehicle cleaning checklist, tech-inventory, inspections, gas card confirmation)
+  - Session resets daily and tracks completion status per step
+  - Supports skip functionality with reasons and manager notifications
 - **Global Blur Settings & Super Admin Bypass**:
   - Added global blur settings that apply to ALL organizations as defaults
   - Per-organization blur settings can override global defaults

@@ -3,6 +3,7 @@ import { StatsCards } from "@/components/stats-cards";
 import { OnboardingWidget } from "@/components/OnboardingWidget";
 import { TechnicianTrainingWidget } from "@/components/TechnicianTrainingWidget";
 import { DailyFlowWidget } from "@/components/DailyFlowWidget";
+import { EndOfDayWidget } from "@/components/EndOfDayWidget";
 import { RevenueChart } from "@/components/revenue-chart";
 import { RecentActivity } from "@/components/recent-activity";
 import { InvoicesTable } from "@/components/invoices-table";
@@ -241,6 +242,9 @@ export default function Dashboard() {
 
         {/* Daily Flow Widget for Technicians */}
         <DailyFlowWidget />
+
+        {/* End of Day Widget for Technicians */}
+        <EndOfDayWidget />
 
         {/* Stats Cards */}
         {settings.showStatsCards && (

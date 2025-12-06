@@ -7156,3 +7156,64 @@ export const dailyInventoryVerificationsRelations = relations(dailyInventoryVeri
     references: [technicianDailyFlowSessions.id],
   }),
 }));
+
+// Technician End of Day Sessions - Daily end-of-day workflow tracking
+export const technicianEndOfDaySessions = pgTable("technician_end_of_day_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  organizationId: integer("organization_id").notNull().references(() => organizations.id),
+  workDate: date("work_date").notNull(),
+  
+  // Step completion status
+  vehicleCleanedComplete: boolean("vehicle_cleaned_complete").default(false),
+  vehicleCleanedAt: timestamp("vehicle_cleaned_at"),
+  toolsStoredComplete: boolean("tools_stored_complete").default(false),
+  toolsStoredAt: timestamp("tools_stored_at"),
+  postInspectionComplete: boolean("post_inspection_complete").default(false),
+  postInspectionId: integer("post_inspection_id").references(() => inspectionRecords.id),
+  postInspectionCompletedAt: timestamp("post_inspection_completed_at"),
+  gasCardReturnedComplete: boolean("gas_card_returned_complete").default(false),
+  gasCardReturnedAt: timestamp("gas_card_returned_at"),
+  
+  // Overall status
+  status: text("status").default("in_progress"),
+  currentStep: integer("current_step").default(1),
+  completedSteps: integer("completed_steps").default(0),
+  totalSteps: integer("total_steps").default(4),
+  isComplete: boolean("is_complete").default(false),
+  completedAt: timestamp("completed_at"),
+  
+  // Skip tracking
+  skippedSteps: text("skipped_steps").array(),
+  skipReasons: jsonb("skip_reasons"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userDateUnique: unique().on(table.userId, table.workDate),
+}));
+
+export const insertTechnicianEndOfDaySessionSchema = createInsertSchema(technicianEndOfDaySessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type TechnicianEndOfDaySession = typeof technicianEndOfDaySessions.$inferSelect;
+export type InsertTechnicianEndOfDaySession = z.infer<typeof insertTechnicianEndOfDaySessionSchema>;
+
+// Relations for Technician End of Day Sessions
+export const technicianEndOfDaySessionsRelations = relations(technicianEndOfDaySessions, ({ one }) => ({
+  user: one(users, {
+    fields: [technicianEndOfDaySessions.userId],
+    references: [users.id],
+  }),
+  organization: one(organizations, {
+    fields: [technicianEndOfDaySessions.organizationId],
+    references: [organizations.id],
+  }),
+  postInspection: one(inspectionRecords, {
+    fields: [technicianEndOfDaySessions.postInspectionId],
+    references: [inspectionRecords.id],
+  }),
+}));

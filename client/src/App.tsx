@@ -85,6 +85,7 @@ const FileSecurity = lazy(() => import("@/pages/file-security"));
 const PartsSupplies = lazy(() => import("@/pages/parts-supplies"));
 const TechInventory = lazy(() => import("@/pages/tech-inventory"));
 const TechnicianDailyFlow = lazy(() => import("@/pages/technician-daily-flow"));
+const TechnicianEndOfDay = lazy(() => import("@/pages/technician-end-of-day"));
 const AdminInventoryManagement = lazy(() => import("@/pages/admin-inventory-management"));
 const PersonalProfile = lazy(() => import("@/pages/personal-profile"));
 const MyReports = lazy(() => import("@/pages/my-reports"));
@@ -226,6 +227,7 @@ function AuthenticatedApp() {
               <Route path="/onboarding-overview" component={OnboardingOverview} />
               <Route path="/technician-training" component={TechnicianOnboarding} />
               <Route path="/daily-flow" component={TechnicianDailyFlow} />
+              <Route path="/end-of-day" component={TechnicianEndOfDay} />
               <Route path="/tech-inventory" component={TechInventory} />
               <Route path="/admin-inventory-management" component={AdminInventoryManagement} />
               <Route path="/personal-profile" component={PersonalProfile} />
