@@ -11693,6 +11693,7 @@ ${fromName || ''}
       if (req.file) {
         const user = getAuthenticatedUser(req);
         let finalFileName = req.file.filename;
+        let sourcePath = req.file.path;
 
         // Apply compression if it's an image file
         const isImageFile = /\.(jpeg|jpg|png|gif|webp)$/i.test(req.file.originalname);
@@ -11707,10 +11708,31 @@ ${fromName || ''}
           if (compressionResult.success) {
             // Use compressed image
             finalFileName = compressedFilename;
+            sourcePath = compressedPath;
             console.log(`✅ Expense receipt compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
+            // Clean up original file
+            try {
+              await fs.unlink(originalPath);
+            } catch (e) { /* ignore cleanup errors */ }
           } else {
             console.log(`❌ Expense receipt compression failed: ${compressionResult.error}`);
           }
+        }
+
+        // Create org folder structure and move file from temp to org directory
+        await createOrgFolderStructure(user.organizationId);
+        const destDir = getOrgUploadDir(user.organizationId, 'receipt_images');
+        const destPath = path.join(destDir, finalFileName);
+        
+        try {
+          await fs.rename(sourcePath, destPath);
+          console.log(`✅ Moved receipt to: ${destPath}`);
+        } catch (moveError) {
+          console.error('Failed to move receipt file:', moveError);
+          // Try copy + delete as fallback (for cross-device moves)
+          await fs.copyFile(sourcePath, destPath);
+          await fs.unlink(sourcePath);
+          console.log(`✅ Copied receipt to: ${destPath}`);
         }
 
         receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${finalFileName}`;
@@ -11762,6 +11784,7 @@ ${fromName || ''}
       if (req.file) {
         const user = getAuthenticatedUser(req);
         let finalFileName = req.file.filename;
+        let sourcePath = req.file.path;
 
         // Apply compression if it's an image file
         const isImageFile = /\.(jpeg|jpg|png|gif|webp)$/i.test(req.file.originalname);
@@ -11776,10 +11799,31 @@ ${fromName || ''}
           if (compressionResult.success) {
             // Use compressed image
             finalFileName = compressedFilename;
+            sourcePath = compressedPath;
             console.log(`✅ Expense receipt update compression successful: ${(compressionResult.compressedSize! / 1024 / 1024).toFixed(2)}MB`);
+            // Clean up original file
+            try {
+              await fs.unlink(originalPath);
+            } catch (e) { /* ignore cleanup errors */ }
           } else {
             console.log(`❌ Expense receipt update compression failed: ${compressionResult.error}`);
           }
+        }
+
+        // Create org folder structure and move file from temp to org directory
+        await createOrgFolderStructure(user.organizationId);
+        const destDir = getOrgUploadDir(user.organizationId, 'receipt_images');
+        const destPath = path.join(destDir, finalFileName);
+        
+        try {
+          await fs.rename(sourcePath, destPath);
+          console.log(`✅ Moved receipt to: ${destPath}`);
+        } catch (moveError) {
+          console.error('Failed to move receipt file:', moveError);
+          // Try copy + delete as fallback (for cross-device moves)
+          await fs.copyFile(sourcePath, destPath);
+          await fs.unlink(sourcePath);
+          console.log(`✅ Copied receipt to: ${destPath}`);
         }
 
         receiptUrl = `uploads/org-${user.organizationId}/receipt_images/${finalFileName}`;
