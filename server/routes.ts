@@ -17072,13 +17072,22 @@ ${fromName || ''}
     try {
       const user = getAuthenticatedUser(req);
       const assignment = await storage.getUserActiveGasCardAssignment(user.id);
-      res.json(assignment);
+      
+      if (assignment) {
+        // Get the gas card details
+        const gasCard = await storage.getGasCard(assignment.cardId);
+        return res.json({
+          ...assignment,
+          gasCard: gasCard || null
+        });
+      }
+      
+      res.json(null);
     } catch (error: any) {
       console.error('Error fetching user gas card assignment:', error);
       res.status(500).json({ message: 'Failed to fetch gas card assignment' });
     }
   });
-
   // Get available gas cards for self-checkout
   app.get('/api/my-gas-card/available', requireAuth, async (req, res) => {
     try {
