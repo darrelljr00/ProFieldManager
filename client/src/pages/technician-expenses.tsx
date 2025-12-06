@@ -499,11 +499,9 @@ export default function TechnicianExpenses() {
                           {formatCurrency(parseFloat(expense.amount || "0"))}
                         </TableCell>
 
-                        {/* Receipt cell: show "No receipt" if no valid absolute URL or data URI */}
+                        {/* Receipt cell: show receipt if available (http, data:, or local uploads path) */}
                         <TableCell>
-                          {expense.receiptUrl &&
-                          (expense.receiptUrl.startsWith("http") ||
-                            expense.receiptUrl.startsWith("data:")) ? (
+                          {expense.receiptUrl ? (
                             expense.receiptUrl.startsWith("data:") ? (
                               <button
                                 type="button"
@@ -521,7 +519,7 @@ export default function TechnicianExpenses() {
                               </button>
                             ) : (
                               <a
-                                href={expense.receiptUrl}
+                                href={expense.receiptUrl.startsWith("uploads/") ? `/${expense.receiptUrl}` : expense.receiptUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
@@ -816,7 +814,7 @@ export default function TechnicianExpenses() {
                 <p className="text-sm text-muted-foreground">
                   Current receipt:{" "}
                   <a
-                    href={editingExpense.receiptUrl}
+                    href={editingExpense.receiptUrl.startsWith("uploads/") ? `/${editingExpense.receiptUrl}` : editingExpense.receiptUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline"
