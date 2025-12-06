@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertGasCardSchema, insertGasCardAssignmentSchema, insertGasCardUsageSchema } from "@shared/schema";
-import { CreditCard, Plus, ArrowLeftRight, Calendar, User, Building2, Fuel, History } from "lucide-react";
+import { CreditCard, Plus, ArrowLeftRight, Calendar, User, Building2, Fuel, History, CheckCircle, AlertCircle, LogIn, LogOut, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -55,6 +55,22 @@ export default function GasCards() {
   const { data: gasCardProviders = [] } = useQuery({
     queryKey: ['/api/gas-card-providers'],
   });
+
+  // Self-service: Fetch current user gas card assignment
+  const { data: myGasCard, isLoading: myGasCardLoading, refetch: refetchMyGasCard } = useQuery({
+    queryKey: ['/api/my-gas-card'],
+  });
+
+  // Self-service: Fetch available cards for checkout
+  const { data: availableCardsForCheckout = [], isLoading: availableCardsLoading } = useQuery({
+    queryKey: ['/api/my-gas-card/available'],
+  });
+
+  // Self-service checkout state
+  const [selfServicePurpose, setSelfServicePurpose] = useState("");
+  const [selfServiceNotes, setSelfServiceNotes] = useState("");
+  const [selectedCardForCheckout, setSelectedCardForCheckout] = useState<number | null>(null);
+  const [returnNotes, setReturnNotes] = useState("");
 
   // Gas card form
   const gasCardForm = useForm({
@@ -167,6 +183,60 @@ export default function GasCards() {
       toast({ title: "Error recording usage", description: error.message, variant: "destructive" });
     },
   });
+
+  // Self-service checkout mutation
+  const checkoutMutation = useMutation({
+    mutationFn: async (data: { cardId: number; purpose: string; notes: string }) => {
+      const response = await apiRequest('POST', '/api/my-gas-card/checkout', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/my-gas-card'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/my-gas-card/available'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/gas-card-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/gas-card-assignments/active'] });
+      setSelectedCardForCheckout(null);
+      setSelfServicePurpose("");
+      setSelfServiceNotes("");
+      toast({ title: "Gas Card Checked Out", description: "You have successfully checked out a gas card." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Checkout Failed", description: error.message || "Failed to check out gas card", variant: "destructive" });
+    },
+  });
+
+  // Self-service check-in mutation
+  const checkinMutation = useMutation({
+    mutationFn: async (data: { notes?: string }) => {
+      const response = await apiRequest('POST', '/api/my-gas-card/checkin', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/my-gas-card'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/my-gas-card/available'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/gas-card-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/gas-card-assignments/active'] });
+      setReturnNotes("");
+      toast({ title: "Gas Card Returned", description: "You have successfully returned your gas card." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Return Failed", description: error.message || "Failed to return gas card", variant: "destructive" });
+    },
+  });
+
+  const handleSelfServiceCheckout = () => {
+    if (selectedCardForCheckout) {
+      checkoutMutation.mutate({
+        cardId: selectedCardForCheckout,
+        purpose: selfServicePurpose,
+        notes: selfServiceNotes,
+      });
+    }
+  };
+
+  const handleSelfServiceCheckin = () => {
+    checkinMutation.mutate({ notes: returnNotes });
+  };
 
   const handleCreateGasCard = (data: any) => {
     createGasCardMutation.mutate(data);
@@ -449,12 +519,203 @@ export default function GasCards() {
       </div>
 
       <Tabs defaultValue="active" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="my-card">My Gas Card</TabsTrigger>
           <TabsTrigger value="active">Active Assignments</TabsTrigger>
           <TabsTrigger value="cards">All Gas Cards</TabsTrigger>
           <TabsTrigger value="history">Assignment History</TabsTrigger>
           <TabsTrigger value="usage">Historical Usage</TabsTrigger>
         </TabsList>
+
+        {/* My Gas Card - Self-Service Tab */}
+        <TabsContent value="my-card" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                My Gas Card
+              </CardTitle>
+              <CardDescription>
+                Check out or return gas cards yourself
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {myGasCardLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="ml-2">Loading your gas card status...</span>
+                </div>
+              ) : myGasCard ? (
+                /* User has a gas card checked out */
+                <div className="space-y-6">
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <CheckCircle className="h-6 w-6 text-green-600" />
+                      <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">You Have a Gas Card</h3>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Card Name</p>
+                        <p className="font-medium">{(myGasCard as any).gasCard?.cardName || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Card Number</p>
+                        <p className="font-medium">{(myGasCard as any).gasCard?.cardNumber || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Provider</p>
+                        <p className="font-medium">{(myGasCard as any).gasCard?.provider || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Checked Out</p>
+                        <p className="font-medium">
+                          {(myGasCard as any).assignedDate
+                            ? format(new Date((myGasCard as any).assignedDate), 'MMM d, yyyy h:mm a')
+                            : 'N/A'}
+                        </p>
+                      </div>
+                      {(myGasCard as any).purpose && (
+                        <div className="md:col-span-2">
+                          <p className="text-sm text-muted-foreground">Purpose</p>
+                          <p className="font-medium">{(myGasCard as any).purpose}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Return Card Section */}
+                  <div className="border rounded-lg p-6">
+                    <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <LogIn className="h-5 w-5" />
+                      Return This Card
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium">Return Notes (optional)</label>
+                        <Textarea
+                          placeholder="Any notes about the return, e.g., remaining balance, issues..."
+                          value={returnNotes}
+                          onChange={(e) => setReturnNotes(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <Button
+                        onClick={handleSelfServiceCheckin}
+                        disabled={checkinMutation.isPending}
+                        className="w-full md:w-auto"
+                        data-testid="button-return-gas-card"
+                      >
+                        {checkinMutation.isPending ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Returning...</>
+                        ) : (
+                          <><LogIn className="h-4 w-4 mr-2" /> Return Gas Card</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* User does not have a gas card - show checkout options */
+                <div className="space-y-6">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+                    <div className="flex items-center gap-3 mb-2">
+                      <AlertCircle className="h-6 w-6 text-blue-600" />
+                      <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">No Gas Card Checked Out</h3>
+                    </div>
+                    <p className="text-blue-700 dark:text-blue-300">You don't currently have a gas card. Select one below to check it out.</p>
+                  </div>
+
+                  {/* Checkout Section */}
+                  <div className="border rounded-lg p-6">
+                    <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <LogOut className="h-5 w-5" />
+                      Check Out a Gas Card
+                    </h4>
+                    
+                    {availableCardsLoading ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <span className="ml-2">Loading available cards...</span>
+                      </div>
+                    ) : availableCardsForCheckout.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <AlertCircle className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
+                        <p>No gas cards are currently available for checkout.</p>
+                        <p className="text-sm">Please check with your manager.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Available Cards Grid */}
+                        <div>
+                          <label className="text-sm font-medium">Select a Card</label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+                            {availableCardsForCheckout.map((card: GasCard) => (
+                              <div
+                                key={card.id}
+                                className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                                  selectedCardForCheckout === card.id
+                                    ? 'border-primary bg-primary/5 ring-2 ring-primary'
+                                    : 'hover:border-gray-400'
+                                }`}
+                                onClick={() => setSelectedCardForCheckout(card.id)}
+                                data-testid={`card-gas-card-${card.id}`}
+                              >
+                                <div className="flex items-center gap-2 mb-2">
+                                  <CreditCard className="h-5 w-5" />
+                                  <span className="font-medium">{card.cardName}</span>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  <p>{card.provider}</p>
+                                  <p>****{card.cardNumber?.slice(-4)}</p>
+                                </div>
+                                {selectedCardForCheckout === card.id && (
+                                  <CheckCircle className="h-5 w-5 text-primary mt-2" />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Purpose and Notes */}
+                        <div>
+                          <label className="text-sm font-medium">Purpose (optional)</label>
+                          <Input
+                            placeholder="e.g., Job site visit, supply run..."
+                            value={selfServicePurpose}
+                            onChange={(e) => setSelfServicePurpose(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Notes (optional)</label>
+                          <Textarea
+                            placeholder="Any additional notes..."
+                            value={selfServiceNotes}
+                            onChange={(e) => setSelfServiceNotes(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+
+                        <Button
+                          onClick={handleSelfServiceCheckout}
+                          disabled={!selectedCardForCheckout || checkoutMutation.isPending}
+                          className="w-full md:w-auto"
+                          data-testid="button-checkout-gas-card"
+                        >
+                          {checkoutMutation.isPending ? (
+                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Checking Out...</>
+                          ) : (
+                            <><LogOut className="h-4 w-4 mr-2" /> Check Out Selected Card</>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="active" className="space-y-4">
           <Card>
@@ -628,9 +889,18 @@ export default function GasCards() {
                             : assignment.assignedToUser?.username}
                         </TableCell>
                         <TableCell>
-                          {assignment.assignedByUser?.firstName && assignment.assignedByUser?.lastName 
-                            ? `${assignment.assignedByUser.firstName} ${assignment.assignedByUser.lastName}`
-                            : assignment.assignedByUser?.username}
+                          {assignment.assignedBy === assignment.assignedTo ? (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+                              <Users className="h-3 w-3 mr-1" />
+                              Self-Service
+                            </Badge>
+                          ) : (
+                            <span>
+                              {assignment.assignedByUser?.firstName && assignment.assignedByUser?.lastName 
+                                ? `${assignment.assignedByUser.firstName} ${assignment.assignedByUser.lastName}`
+                                : assignment.assignedByUser?.username}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell>{format(new Date(assignment.assignedDate), 'MMM d, yyyy')}</TableCell>
                         <TableCell>

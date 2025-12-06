@@ -79,6 +79,17 @@ Preferred communication style: Simple, everyday language.
     - Prevents clock out while on break
     - Supports optional clock out notes
     - Uses `/api/time-clock/current` for status and `/api/time-clock/clock-out` for checkout
+- **Technician Gas Card Self-Service System**:
+  - Technicians can now check out and return gas cards without office staff intervention
+  - New "My Gas Card" tab in Gas Cards page (`/gas-cards`) shows current assignment status
+  - API endpoints: GET `/api/my-gas-card`, GET `/api/my-gas-card/available`, POST `/api/my-gas-card/checkout`, POST `/api/my-gas-card/checkin`
+  - Self-checkout workflow: View available cards, select one, enter purpose, and check out
+  - Self-checkin workflow: View current card, enter optional return notes, and return card
+  - Uses `assignedBy` field to differentiate self-service (user's own ID) vs office-assigned assignments
+  - Assignment History table shows "Self-Service" badge for technician-initiated assignments (when `assignedBy === assignedTo`)
+  - End of Day flow integration: "Return Gas Card" step now shows actual gas card info and provides "Return Card & Mark Complete" button
+  - Enhanced `returnGasCard` storage method to accept optional notes
+  - Works alongside existing office-based gas card management (admins/managers can still manage all cards)
 - **Global Blur Settings & Super Admin Bypass**:
   - Added global blur settings that apply to ALL organizations as defaults
   - Per-organization blur settings can override global defaults

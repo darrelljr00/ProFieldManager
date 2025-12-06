@@ -113,6 +113,39 @@ export default function TechnicianEndOfDay() {
     refetchInterval: 30000,
   });
 
+  // Fetch user's current gas card assignment
+  const { data: myGasCard, refetch: refetchMyGasCard } = useQuery<{
+    id: number;
+    gasCard?: { cardName?: string; cardNumber?: string; provider?: string };
+    assignedDate?: string;
+  } | null>({
+    queryKey: ["/api/my-gas-card"],
+  });
+
+  // Gas card check-in (return) mutation
+  const gasCardCheckinMutation = useMutation({
+    mutationFn: async (notes?: string) => {
+      return apiRequest("POST", "/api/my-gas-card/checkin", { notes });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-gas-card"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gas-card-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gas-card-assignments/active"] });
+      refetchMyGasCard();
+      toast({
+        title: "Gas Card Returned",
+        description: "Your gas card has been successfully checked in.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to return gas card",
+        variant: "destructive",
+      });
+    },
+  });
+
   const updateStepMutation = useMutation({
     mutationFn: async ({ stepName, completed, skipReason }: { stepName: string; completed: boolean; skipReason?: string }) => {
       return apiRequest("PATCH", `/api/technician-end-of-day/step/${stepName}`, { completed, skipReason });
@@ -411,7 +444,43 @@ export default function TechnicianEndOfDay() {
                   {status !== "completed" && (
                     <CardFooter className="pt-0 pb-4">
                       <div className="flex gap-2 w-full">
-                        {step.action ? (
+                        {/* Special handling for gas card step */}
+                        {step.id === "gasCardReturned" && myGasCard ? (
+                          <div className="flex-1 space-y-3">
+                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                              <div className="flex items-center gap-2 mb-1">
+                                <CreditCard className="h-4 w-4 text-blue-600" />
+                                <span className="font-medium text-sm">Your Current Gas Card</span>
+                              </div>
+                              <p className="text-sm">{myGasCard.gasCard?.cardName || "Gas Card"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {myGasCard.gasCard?.provider} - ****{myGasCard.gasCard?.cardNumber?.slice(-4)}
+                              </p>
+                            </div>
+                            <Button
+                              className="w-full"
+                              onClick={() => {
+                                gasCardCheckinMutation.mutate("Returned via End of Day checklist");
+                                handleMarkComplete(step.id);
+                              }}
+                              disabled={gasCardCheckinMutation.isPending || updateStepMutation.isPending}
+                              data-testid="button-return-gas-card-eod"
+                            >
+                              {gasCardCheckinMutation.isPending ? (
+                                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Returning...</>
+                              ) : (
+                                <><LogOut className="h-4 w-4 mr-2" /> Return Card &amp; Mark Complete</>
+                              )}
+                            </Button>
+                          </div>
+                        ) : step.id === "gasCardReturned" && !myGasCard ? (
+                          <div className="flex-1 space-y-2">
+                            <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-sm text-muted-foreground">
+                              <AlertCircle className="h-4 w-4 inline mr-1" />
+                              No gas card currently checked out
+                            </div>
+                          </div>
+                        ) : step.action ? (
                           <Link href={`/${step.action}?from=end-of-day&step=${step.id}`} className="flex-1">
                             <Button className="w-full" data-testid={`button-action-${step.id}`}>
                               <Play className="h-4 w-4 mr-2" />

@@ -653,8 +653,11 @@ export interface IStorage {
   returnGasCard(
     assignmentId: number,
     returnedDate: Date,
+    notes?: string,
   ): Promise<GasCardAssignment>;
 
+  getUserActiveGasCardAssignment(userId: number): Promise<GasCardAssignment | null>;
+  getAvailableGasCardsForCheckout(organizationId: number): Promise<GasCard[]>;
   // Gas card usage tracking methods
   getGasCardUsage(
     organizationId: number,
@@ -6859,18 +6862,65 @@ export class DatabaseStorage implements IStorage {
   async returnGasCard(
     assignmentId: number,
     returnedDate: Date,
+    notes?: string,
   ): Promise<GasCardAssignment> {
+    const updateData: any = {
+      returnedDate,
+      status: "returned",
+    };
+    
+    if (notes) {
+      updateData.notes = notes;
+    }
+    
     const [assignment] = await db
       .update(gasCardAssignments)
-      .set({
-        returnedDate,
-        status: "returned",
-      })
+      .set(updateData)
       .where(eq(gasCardAssignments.id, assignmentId))
       .returning();
     return assignment;
   }
 
+  async getUserActiveGasCardAssignment(userId: number): Promise<GasCardAssignment | null> {
+    const [assignment] = await db
+      .select()
+      .from(gasCardAssignments)
+      .where(
+        and(
+          eq(gasCardAssignments.assignedToUserId, userId),
+          isNull(gasCardAssignments.returnedDate)
+        )
+      )
+      .orderBy(desc(gasCardAssignments.assignedDate))
+      .limit(1);
+    return assignment || null;
+  }
+
+  async getAvailableGasCardsForCheckout(organizationId: number): Promise<GasCard[]> {
+    // Get all active gas cards for the organization
+    const allCards = await db
+      .select()
+      .from(gasCards)
+      .where(
+        and(
+          eq(gasCards.organizationId, organizationId),
+          eq(gasCards.status, "active")
+        )
+      );
+
+    // Get all card IDs that have active assignments (not returned yet)
+    const activeAssignments = await db
+      .select({ cardId: gasCardAssignments.cardId })
+      .from(gasCardAssignments)
+      .where(isNull(gasCardAssignments.returnedDate));
+
+    const assignedCardIds = new Set(activeAssignments.map(a => a.cardId));
+
+    // Return only cards that are not currently assigned
+    return allCards.filter(card => !assignedCardIds.has(card.id));
+  }
+
+  // Time Clock Methods
   // Time Clock Methods
   async getCurrentTimeClockEntry(userId: number): Promise<any> {
     const [entry] = await db

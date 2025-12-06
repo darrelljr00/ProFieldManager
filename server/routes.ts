@@ -17063,6 +17063,100 @@ ${fromName || ''}
     }
   });
 
+  // ==========================================
+  // Technician Self-Service Gas Card Routes
+  // ==========================================
+
+  // Get current user's gas card assignment
+  app.get('/api/my-gas-card', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const assignment = await storage.getUserActiveGasCardAssignment(user.id);
+      res.json(assignment);
+    } catch (error: any) {
+      console.error('Error fetching user gas card assignment:', error);
+      res.status(500).json({ message: 'Failed to fetch gas card assignment' });
+    }
+  });
+
+  // Get available gas cards for self-checkout
+  app.get('/api/my-gas-card/available', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const availableCards = await storage.getAvailableGasCardsForCheckout(user.organizationId);
+      res.json(availableCards);
+    } catch (error: any) {
+      console.error('Error fetching available gas cards:', error);
+      res.status(500).json({ message: 'Failed to fetch available gas cards' });
+    }
+  });
+
+  // Technician self-checkout a gas card
+  app.post('/api/my-gas-card/checkout', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { cardId, purpose, notes } = req.body;
+
+      if (!cardId) {
+        return res.status(400).json({ message: 'Card ID is required' });
+      }
+
+      // Check if user already has an active assignment
+      const existingAssignment = await storage.getUserActiveGasCardAssignment(user.id);
+      if (existingAssignment) {
+        return res.status(400).json({ message: 'You already have a gas card checked out. Please return it first.' });
+      }
+
+      // Check if card is available
+      const availableCards = await storage.getAvailableGasCardsForCheckout(user.organizationId);
+      const card = availableCards.find((c: any) => c.id === cardId);
+      if (!card) {
+        return res.status(400).json({ message: 'This card is not available for checkout' });
+      }
+
+      // Create the assignment with self-service indicator
+      const assignment = await storage.createGasCardAssignment({
+        cardId,
+        assignedToUserId: user.id,
+        assignedBy: user.id,
+        assignedDate: new Date(),
+        purpose: purpose || 'Self-service checkout',
+        notes: notes ? `[Self-Service] ${notes}` : '[Self-Service]',
+      });
+
+      res.json(assignment);
+    } catch (error: any) {
+      console.error('Error checking out gas card:', error);
+      res.status(500).json({ message: 'Failed to check out gas card' });
+    }
+  });
+
+  // Technician self-checkin (return) a gas card
+  app.post('/api/my-gas-card/checkin', requireAuth, async (req, res) => {
+    try {
+      const user = getAuthenticatedUser(req);
+      const { notes } = req.body;
+
+      // Get user's active assignment
+      const assignment = await storage.getUserActiveGasCardAssignment(user.id);
+      if (!assignment) {
+        return res.status(400).json({ message: 'You do not have a gas card to return' });
+      }
+
+      // Return the card
+      const returnedAssignment = await storage.returnGasCard(
+        assignment.id,
+        new Date(),
+        notes ? `[Self-Service Return] ${notes}` : '[Self-Service Return]'
+      );
+
+      res.json(returnedAssignment);
+    } catch (error: any) {
+      console.error('Error returning gas card:', error);
+      res.status(500).json({ message: 'Failed to return gas card' });
+    }
+  });
+
   // Image management routes (duplicate removed - using route at line 2768)
 
   app.post('/api/images/annotations', requireAuth, async (req, res) => {
