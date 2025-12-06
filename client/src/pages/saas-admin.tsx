@@ -362,6 +362,7 @@ export default function SaasAdminPage() {
         variant: "destructive",
       });
     },
+  });
 
   // Global blur settings query and mutation
   const { data: fetchedGlobalBlurSettings, refetch: refetchGlobalBlurSettings } = useQuery({
@@ -412,7 +413,6 @@ export default function SaasAdminPage() {
         variant: "destructive",
       });
     },
-  });
   });
 
   // SaaS admin mutations
