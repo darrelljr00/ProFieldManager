@@ -61,7 +61,11 @@ localPort = 34931
 externalPort = 6000
 
 [[ports]]
+<<<<<<< HEAD
 localPort = 35409
+=======
+localPort = 35781
+>>>>>>> d026d89c74c4a70b89472a664ac2beb56ed3280a
 externalPort = 8080
 
 [[ports]]
