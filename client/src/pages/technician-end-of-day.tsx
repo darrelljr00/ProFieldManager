@@ -29,6 +29,9 @@ import {
   Play,
   PartyPopper,
   Moon,
+  Clock,
+  LogOut,
+  Loader2,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -55,6 +58,13 @@ interface EndOfDaySession {
   skippedSteps: string[] | null;
   skipReasons: Record<string, string> | null;
   percentComplete: number;
+}
+
+interface CurrentTimeClockEntry {
+  id: number;
+  clockInTime: string;
+  status: "clocked_in" | "on_break";
+  breakStart?: string;
 }
 
 const STEPS = [
@@ -151,6 +161,47 @@ export default function TechnicianEndOfDay() {
       });
     },
   });
+
+  const { data: timeClockData, isLoading: timeClockLoading } = useQuery<{ entry?: CurrentTimeClockEntry }>({
+    queryKey: ["/api/time-clock/current"],
+    refetchInterval: 30000,
+  });
+
+  const [clockOutNotes, setClockOutNotes] = useState("");
+
+  const clockOutMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/time-clock/clock-out", { notes: clockOutNotes });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-clock/current"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-clock"] });
+      setClockOutNotes("");
+      toast({
+        title: "Clocked Out!",
+        description: "You have successfully clocked out. Have a great evening!",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Clock Out Failed",
+        description: error.message || "Failed to clock out",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const isClockedIn = !!timeClockData?.entry;
+  const currentClockEntry = timeClockData?.entry;
+
+  const formatDuration = (startTime: string) => {
+    const start = new Date(startTime);
+    const now = new Date();
+    const diffMs = now.getTime() - start.getTime();
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  };
 
   const getStepStatus = (stepId: string) => {
     if (!session) return "pending";
@@ -397,7 +448,127 @@ export default function TechnicianEndOfDay() {
             })}
           </div>
 
-          {percentComplete === 100 && !isComplete && (
+          <Card
+            className={`transition-all mt-6 ${
+              !isClockedIn
+                ? "border-green-500 bg-green-50/50 dark:bg-green-950/10"
+                : percentComplete === 100
+                ? "border-primary ring-2 ring-primary/20"
+                : "opacity-75"
+            }`}
+            data-testid="card-checkout"
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-start gap-4">
+                <div
+                  className={`p-3 rounded-full ${
+                    !isClockedIn
+                      ? "bg-green-100 text-green-600 dark:bg-green-900/30"
+                      : percentComplete === 100
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {!isClockedIn ? (
+                    <CheckCircle2 className="h-6 w-6" />
+                  ) : (
+                    <Clock className="h-6 w-6" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg">Check Out</CardTitle>
+                    {!isClockedIn && (
+                      <Badge variant="default" className="bg-green-600">
+                        Complete
+                      </Badge>
+                    )}
+                    {isClockedIn && percentComplete === 100 && (
+                      <Badge variant="outline" className="border-primary text-primary">
+                        Ready
+                      </Badge>
+                    )}
+                    {isClockedIn && percentComplete < 100 && (
+                      <Badge variant="secondary">
+                        Complete tasks first
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription className="mt-1">
+                    Clock out when you're done for the day
+                  </CardDescription>
+                  
+                  {isClockedIn && currentClockEntry && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      <p>
+                        Clocked in at: {new Date(currentClockEntry.clockInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </p>
+                      <p>
+                        Time worked: {formatDuration(currentClockEntry.clockInTime)}
+                      </p>
+                      {currentClockEntry.status === 'on_break' && (
+                        <p className="text-yellow-600 dark:text-yellow-400">
+                          <AlertCircle className="h-3 w-3 inline mr-1" />
+                          Currently on break - end your break first
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {!isClockedIn && (
+                    <p className="text-sm text-green-600 mt-2">
+                      You have clocked out for the day
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            
+            {isClockedIn && (
+              <CardFooter className="pt-0 pb-4">
+                <div className="flex flex-col gap-3 w-full">
+                  <div className="space-y-2">
+                    <Label htmlFor="clockOutNotes">Clock Out Notes (Optional)</Label>
+                    <Textarea
+                      id="clockOutNotes"
+                      placeholder="Add any notes about your work today..."
+                      value={clockOutNotes}
+                      onChange={(e) => setClockOutNotes(e.target.value)}
+                      className="resize-none"
+                      rows={2}
+                      data-testid="input-clock-out-notes"
+                    />
+                  </div>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={() => clockOutMutation.mutate()}
+                    disabled={clockOutMutation.isPending || percentComplete < 100 || currentClockEntry?.status === 'on_break'}
+                    data-testid="button-clock-out"
+                  >
+                    {clockOutMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                        Clocking Out...
+                      </>
+                    ) : (
+                      <>
+                        <LogOut className="h-5 w-5 mr-2" />
+                        Clock Out
+                      </>
+                    )}
+                  </Button>
+                  {percentComplete < 100 && (
+                    <p className="text-sm text-center text-muted-foreground">
+                      Complete all end-of-day tasks before clocking out
+                    </p>
+                  )}
+                </div>
+              </CardFooter>
+            )}
+          </Card>
+
+          {percentComplete === 100 && !isComplete && !isClockedIn && (
             <Button
               className="w-full"
               size="lg"

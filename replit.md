@@ -73,6 +73,12 @@ Preferred communication style: Simple, everyday language.
   - Each step links to existing systems (vehicle cleaning checklist, tech-inventory, inspections, gas card confirmation)
   - Session resets daily and tracks completion status per step
   - Supports skip functionality with reasons and manager notifications
+  - **Check Out Integration**: Added Check Out section at bottom of End of Day page connected to time clock
+    - Shows current clock status (clocked in time, time worked)
+    - Clock Out button only enabled after completing all end-of-day tasks (100% progress)
+    - Prevents clock out while on break
+    - Supports optional clock out notes
+    - Uses `/api/time-clock/current` for status and `/api/time-clock/clock-out` for checkout
 - **Global Blur Settings & Super Admin Bypass**:
   - Added global blur settings that apply to ALL organizations as defaults
   - Per-organization blur settings can override global defaults
