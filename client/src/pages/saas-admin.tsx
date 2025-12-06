@@ -6,6 +6,7 @@ import { AdminOnboardingTab } from "@/components/AdminOnboardingTab";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -63,7 +64,8 @@ import {
   Zap,
   Check,
   X,
-  Phone
+  Phone,
+  Globe
 } from "lucide-react";
 import FileSecurityTab from "@/components/FileSecurityTab";
 import { ApiIntegrationManager } from "@/components/api-integration-manager";
@@ -177,6 +179,29 @@ export default function SaasAdminPage() {
       rollouts: false,
       reminders: false
     }
+  });
+
+  // Global blur settings state (applies to all organizations)
+  const [globalBlurSettings, setGlobalBlurSettings] = useState<{
+    blurEmailSettings: boolean;
+    blurTwilioSettings: boolean;
+    blurOcrSettings: boolean;
+    blurStripeSettings: boolean;
+    blurApiSettings: boolean;
+    blurBackupSettings: boolean;
+    blurDeploySettings: boolean;
+    blurAnalyticsSettings: boolean;
+    blurMessage: string;
+  }>({
+    blurEmailSettings: false,
+    blurTwilioSettings: false,
+    blurOcrSettings: false,
+    blurStripeSettings: false,
+    blurApiSettings: false,
+    blurBackupSettings: false,
+    blurDeploySettings: false,
+    blurAnalyticsSettings: false,
+    blurMessage: 'This feature is restricted. Contact your administrator for access.'
   });
 
   // Clear cached query errors on component mount to force fresh data fetch
@@ -337,6 +362,57 @@ export default function SaasAdminPage() {
         variant: "destructive",
       });
     },
+
+  // Global blur settings query and mutation
+  const { data: fetchedGlobalBlurSettings, refetch: refetchGlobalBlurSettings } = useQuery({
+    queryKey: ["/api/admin/global-blur-settings"],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/global-blur-settings', {
+        credentials: 'include',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` }
+      });
+      if (!response.ok) return null;
+      return response.json();
+    }
+  });
+
+  // Update global blur state when data is fetched
+  useEffect(() => {
+    if (fetchedGlobalBlurSettings) {
+      setGlobalBlurSettings({
+        blurEmailSettings: fetchedGlobalBlurSettings.blurEmailSettings ?? false,
+        blurTwilioSettings: fetchedGlobalBlurSettings.blurTwilioSettings ?? false,
+        blurOcrSettings: fetchedGlobalBlurSettings.blurOcrSettings ?? false,
+        blurStripeSettings: fetchedGlobalBlurSettings.blurStripeSettings ?? false,
+        blurApiSettings: fetchedGlobalBlurSettings.blurApiSettings ?? false,
+        blurBackupSettings: fetchedGlobalBlurSettings.blurBackupSettings ?? false,
+        blurDeploySettings: fetchedGlobalBlurSettings.blurDeploySettings ?? false,
+        blurAnalyticsSettings: fetchedGlobalBlurSettings.blurAnalyticsSettings ?? false,
+        blurMessage: fetchedGlobalBlurSettings.blurMessage || 'This feature is restricted. Contact your administrator for access.'
+      });
+    }
+  }, [fetchedGlobalBlurSettings]);
+
+  const saveGlobalBlurSettingsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("PUT", '/api/admin/global-blur-settings', globalBlurSettings);
+      return response;
+    },
+    onSuccess: () => {
+      refetchGlobalBlurSettings();
+      toast({
+        title: "Success",
+        description: "Global blur settings saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save global blur settings",
+        variant: "destructive",
+      });
+    },
+  });
   });
 
   // SaaS admin mutations
@@ -914,6 +990,119 @@ export default function SaasAdminPage() {
             </CardContent>
           </Card>
 
+
+          {/* Global Blur Settings (applies to all organizations) */}
+          <Card className="border-2 border-blue-200 dark:border-blue-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                <Globe className="h-5 w-5" />
+                Global Blur Settings
+              </CardTitle>
+              <CardDescription>
+                These settings apply to ALL organizations as defaults. Per-organization settings can override these. Toggle ON to allow access, OFF to blur.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between p-3 border rounded">
+                    <Label htmlFor="global-blur-email">Email Settings</Label>
+                    <Switch
+                      id="global-blur-email"
+                      data-testid="switch-global-blur-email"
+                      checked={!globalBlurSettings.blurEmailSettings}
+                      onCheckedChange={(checked) => setGlobalBlurSettings(prev => ({ ...prev, blurEmailSettings: !checked }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded">
+                    <Label htmlFor="global-blur-twilio">SMS/Twilio Settings</Label>
+                    <Switch
+                      id="global-blur-twilio"
+                      data-testid="switch-global-blur-twilio"
+                      checked={!globalBlurSettings.blurTwilioSettings}
+                      onCheckedChange={(checked) => setGlobalBlurSettings(prev => ({ ...prev, blurTwilioSettings: !checked }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded">
+                    <Label htmlFor="global-blur-ocr">OCR Settings</Label>
+                    <Switch
+                      id="global-blur-ocr"
+                      data-testid="switch-global-blur-ocr"
+                      checked={!globalBlurSettings.blurOcrSettings}
+                      onCheckedChange={(checked) => setGlobalBlurSettings(prev => ({ ...prev, blurOcrSettings: !checked }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded">
+                    <Label htmlFor="global-blur-stripe">Stripe Settings</Label>
+                    <Switch
+                      id="global-blur-stripe"
+                      data-testid="switch-global-blur-stripe"
+                      checked={!globalBlurSettings.blurStripeSettings}
+                      onCheckedChange={(checked) => setGlobalBlurSettings(prev => ({ ...prev, blurStripeSettings: !checked }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded">
+                    <Label htmlFor="global-blur-api">API/Integration Settings</Label>
+                    <Switch
+                      id="global-blur-api"
+                      data-testid="switch-global-blur-api"
+                      checked={!globalBlurSettings.blurApiSettings}
+                      onCheckedChange={(checked) => setGlobalBlurSettings(prev => ({ ...prev, blurApiSettings: !checked }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded">
+                    <Label htmlFor="global-blur-backup">Backup Settings</Label>
+                    <Switch
+                      id="global-blur-backup"
+                      data-testid="switch-global-blur-backup"
+                      checked={!globalBlurSettings.blurBackupSettings}
+                      onCheckedChange={(checked) => setGlobalBlurSettings(prev => ({ ...prev, blurBackupSettings: !checked }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded">
+                    <Label htmlFor="global-blur-deploy">Deployment Settings</Label>
+                    <Switch
+                      id="global-blur-deploy"
+                      data-testid="switch-global-blur-deploy"
+                      checked={!globalBlurSettings.blurDeploySettings}
+                      onCheckedChange={(checked) => setGlobalBlurSettings(prev => ({ ...prev, blurDeploySettings: !checked }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded">
+                    <Label htmlFor="global-blur-analytics">Analytics Settings</Label>
+                    <Switch
+                      id="global-blur-analytics"
+                      data-testid="switch-global-blur-analytics"
+                      checked={!globalBlurSettings.blurAnalyticsSettings}
+                      onCheckedChange={(checked) => setGlobalBlurSettings(prev => ({ ...prev, blurAnalyticsSettings: !checked }))}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="global-blur-message">Global Blur Message</Label>
+                  <Textarea
+                    id="global-blur-message"
+                    data-testid="textarea-global-blur-message"
+                    value={globalBlurSettings.blurMessage}
+                    onChange={(e) => setGlobalBlurSettings(prev => ({ ...prev, blurMessage: e.target.value }))}
+                    placeholder="Message shown when feature is restricted"
+                    rows={2}
+                  />
+                </div>
+                
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => saveGlobalBlurSettingsMutation.mutate()}
+                    disabled={saveGlobalBlurSettingsMutation.isPending}
+                    data-testid="button-save-global-blur-settings"
+                  >
+                    {saveGlobalBlurSettingsMutation.isPending ? "Saving..." : "Save Global Blur Settings"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           {/* Blur Settings Management */}
           <Card>
             <CardHeader>

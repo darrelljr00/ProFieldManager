@@ -62,7 +62,17 @@ Preferred communication style: Simple, everyday language.
 - **AWS S3**: Backup storage.
 - **Expo & EAS**: Mobile app development, building, and OTA updates.
 
-## Recent Updates (Dec 5, 2025)
+## Recent Updates (Dec 6, 2025)
+- **Global Blur Settings & Super Admin Bypass**:
+  - Added global blur settings that apply to ALL organizations as defaults
+  - Per-organization blur settings can override global defaults
+  - Super admins (users with `canAccessSaasAdmin: true`) bypass all blur restrictions
+  - New API endpoints: GET/PUT `/api/admin/global-blur-settings`
+  - Updated `/api/settings/blur` to merge global + per-org settings with super admin bypass
+  - Added Global Blur Settings UI in SaaS Admin panel with toggles for Email, SMS, OCR, Stripe, API, Backup, Deploy, Analytics
+  - Uses existing `settings` table with `category='global_blur'` and `organizationId=null` for global settings
+
+## Previous Updates (Dec 5, 2025)
 - **Team Member Assignment During Job Creation**:
   - Added team member multi-select dropdown to the Create New Job dialog
   - Uses Command/Popover UI pattern with searchable team member list
